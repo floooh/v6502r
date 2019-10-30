@@ -14,6 +14,7 @@ void ui_input(const sapp_event* event);
 
 // per-window drawing functions
 void ui_hello(void);
+void ui_chip(void);
 
 #ifdef __cplusplus
 } // extern "C"

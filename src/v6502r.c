@@ -12,7 +12,8 @@ static void app_init(void) {
 
 static void app_frame(void) {
     ui_begin();
-    ui_hello();
+//    ui_hello();
+    ui_chip();
     ui_end();
 }
 
@@ -27,8 +28,8 @@ sapp_desc sokol_main(int argc, char* argv[]) {
         .frame_cb = app_frame,
         .event_cb = ui_input,
         .cleanup_cb = app_cleanup,
-        .width = 1024,
-        .height = 768,
-        .window_title = "Visual6502 Remixed",
+        .width = 900,
+        .height = 700,
+        .window_title = "Visual6502",
     };
 }

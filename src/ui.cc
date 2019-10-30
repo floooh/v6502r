@@ -32,6 +32,7 @@ void ui_setup() {
 
     // setup sokol-imgui
     simgui_desc_t simgui_desc = { };
+    simgui_desc.max_vertices = 500000;
     simgui_setup(&simgui_desc);
     auto& style = ImGui::GetStyle();
     style.WindowRounding = 0.0f;

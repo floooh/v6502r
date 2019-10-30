@@ -1,5 +1,5 @@
 if (FIPS_EMSCRIPTEN)
-    add_definitions(-DSOKOL_GLES3)
+    add_definitions(-DSOKOL_GLES2)
 elseif (FIPS_RASPBERRYPI)
     add_definitions(-DSOKOL_GLES2)
 elseif (FIPS_ANDROID)
@@ -33,8 +33,10 @@ fips_begin_app(v6502r windowed)
     fips_vs_warning_level(3)
     fips_files(
         v6502r.c
+        segdefs.c segdefs.h
         ui.h ui.cc
         ui_hello.cc
+        ui_chip.cc
     )
     fips_deps(sokol imgui)
 fips_end_app()
