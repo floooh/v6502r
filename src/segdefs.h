@@ -1,7 +1,9 @@
 #pragma once
-extern int seg_vertices_num;
-extern int seg_vertices[199720];
-extern int seg_segments_num;
-extern int seg_segments[8233][3];
-extern int seg_nodes_num;
-extern int seg_nodes[1704][3];
+// machine generated, don't edit!
+#include <stdint.h>
+extern uint16_t seg_vertices_0[32280];
+extern uint16_t seg_vertices_1[125672];
+extern uint16_t seg_vertices_2[556];
+extern uint16_t seg_vertices_3[54828];
+extern uint16_t seg_vertices_4[30228];
+extern uint16_t seg_vertices_5[155876];

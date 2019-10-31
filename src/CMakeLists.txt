@@ -1,13 +1,19 @@
 if (FIPS_EMSCRIPTEN)
     add_definitions(-DSOKOL_GLES2)
-elseif (FIPS_RASPBERRYPI)
-    add_definitions(-DSOKOL_GLES2)
-elseif (FIPS_ANDROID)
-    add_definitions(-DSOKOL_GLES3)
+    set(slang "glsl100")
 elseif (FIPS_WINDOWS)
     add_definitions(-DSOKOL_D3D11)
+    set(slang "hlsl5")
 elseif (FIPS_OSX)
     add_definitions(-DSOKOL_METAL)
+    if (FIPS_IOS)
+        set(slang "metal_ios:metal_sim")
+    else()
+        set(slang "metal_macos")
+    endif()
+else()
+    add_definitions(-DSOKOL_GLCORE33)
+    set(slang "glsl330")
 endif()
 
 fips_begin_lib(sokol)
@@ -34,9 +40,11 @@ fips_begin_app(v6502r windowed)
     fips_files(
         v6502r.c
         segdefs.c segdefs.h
+        chipvis.h chipvis.c
+        gfx.h gfx.c
         ui.h ui.cc
-        ui_hello.cc
-        ui_chip.cc
+        ui_chipvis.cc
     )
+    sokol_shader(chipvis.glsl ${slang})
     fips_deps(sokol imgui)
 fips_end_app()
