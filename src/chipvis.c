@@ -44,7 +44,7 @@ void chipvis_init(void) {
             },
         },
         .shader = sg_make_shader(chipvis_shader_desc()),
-        .primitive_type = SG_PRIMITIVETYPE_LINES,
+        .primitive_type = SG_PRIMITIVETYPE_TRIANGLES,
         .index_type = SG_INDEXTYPE_NONE,
         .blend = {
             .enabled = true,

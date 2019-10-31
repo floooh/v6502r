@@ -12,6 +12,7 @@
 #===============================================================================
 
 import os
+import tripy
 
 cur_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -47,8 +48,10 @@ def parse_segdef():
         node_index = int(tokens[0])
         pullup = tokens[1]
         layer = int(tokens[2])
-        verts = tokens[3:]
-        SEGMENTS[layer].append([node_index, len(VERTICES), len(verts)])
+        verts = []
+        for i in range(3, len(tokens), 2):
+            verts.append( ( int(tokens[i]), int(tokens[i+1]) ) )
+        SEGMENTS[layer].append( [ node_index, len(VERTICES), len(verts) ] )
         if NODES[node_index][2] == 0:
             NODES[node_index] = [layer, len(SEGMENTS[layer]), 1]
         else:
@@ -56,22 +59,21 @@ def parse_segdef():
         VERTICES.extend(verts)
 
 #-------------------------------------------------------------------------------
-# Generate a vertex buffer per segment with polygon outlines
+def gen_triangles(first, num):
+    poly = VERTICES[first:first+num]
+    tris = tripy.earclip(poly)
+
+#-------------------------------------------------------------------------------
+# Generate a triangulated index buffer per segment 
 #
 def gen_vertex_buffers():
     for l,layer in enumerate(SEGMENTS):
         for seg in layer:
-            assert (seg[2] > 1)
-            vi = seg[1]
-            x0 = VERTICES[vi]
-            y0 = VERTICES[vi+1]
-            VERTEXBUFFERS[l].extend([x0,y0])
-            for vi in range(seg[1]+2, seg[1]+seg[2], 2):
-                x = VERTICES[vi]
-                y = VERTICES[vi+1]
-                VERTEXBUFFERS[l].extend([x,y])
-                VERTEXBUFFERS[l].extend([x,y])
-            VERTEXBUFFERS[l].extend([x0,y0])
+            tris = tripy.earclip(VERTICES[seg[1]:seg[1]+seg[2]])
+            for tri in tris:
+                VERTEXBUFFERS[l].append(tri[0])
+                VERTEXBUFFERS[l].append(tri[1])
+                VERTEXBUFFERS[l].append(tri[2])
 
 #-------------------------------------------------------------------------------
 def write_header():
@@ -80,7 +82,7 @@ def write_header():
     fp.write("// machine generated, don't edit!\n");
     fp.write('#include <stdint.h>\n')
     for i,vb in enumerate(VERTEXBUFFERS):
-        fp.write('extern uint16_t seg_vertices_{}[{}];\n'.format(i,len(vb)))
+        fp.write('extern uint16_t seg_vertices_{}[{}];\n'.format(i,len(vb)*2))
     fp.close()
 
 #-------------------------------------------------------------------------------
@@ -89,9 +91,9 @@ def write_source():
     fp.write("// machine generated, don't edit!\n")
     fp.write('#include "segdefs.h"\n')
     for ivb,vb in enumerate(VERTEXBUFFERS):
-        fp.write('uint16_t seg_vertices_{}[{}] = {{\n'.format(ivb,len(vb)))
+        fp.write('uint16_t seg_vertices_{}[{}] = {{\n'.format(ivb,len(vb)*2))
         for iv,v in enumerate(vb):
-            fp.write('{},'.format(v))
+            fp.write('{},{},'.format(v[0],v[1]))
             if 0 == ((iv+1) % 16):
                 fp.write('\n')
         fp.write('};\n')
@@ -104,45 +106,3 @@ parse_segdef()
 gen_vertex_buffers()
 write_header()
 write_source()
-
-    
-# # write .c file
-# out_file = open(cur_dir + '/../../src/segdefs.c', 'w')
-# # copy the original copyright notice
-# for i in range(0, 10):
-#     out_file.write(in_lines[i])
-# out_file.write('// vertex data: x,y, ...\n')
-# out_file.write('int seg_vertices_num = {};\n'.format(len(VERTICES)))
-# out_file.write('int seg_vertices[{}] = {{\n'.format(len(VERTICES)))
-# for i,v in enumerate(VERTICES):
-#     out_file.write('{},'.format(v))
-#     if 0 == ((i+1) % 16):
-#         out_file.write('\n')
-# out_file.write('};\n\n')
-# 
-# out_file.write('// segments: layer, start_vertex, num_vertices\n')
-# out_file.write('int seg_segments_num = {};\n'.format(len(SEGMENTS)))
-# out_file.write('int seg_segments[{}][3] = {{\n'.format(len(SEGMENTS)))
-# for s in SEGMENTS:
-#     out_file.write('{{ {}, {}, {}, }},\n'.format(s[0], s[1], s[2]))
-# out_file.write('};\n\n')
-# 
-# out_file.write('// nodes: node_index, start_segment, num_segments\n')
-# out_file.write('int seg_nodes_num = {};\n'.format(len(NODES)))
-# out_file.write('int seg_nodes[{}][3] = {{\n'.format(len(NODES)))
-# for i,n in NODES.items():
-#     out_file.write('{{ {}, {}, {} }},\n'.format(i, n[0], n[1]))
-# out_file.write('};\n\n')
-# out_file.close()
-# 
-# # write .h file
-# out_file = open(cur_dir + '/../../src/segdefs.h', 'w')
-# out_file.write('#pragma once\n')
-# out_file.write('extern int seg_vertices_num;\n')
-# out_file.write('extern int seg_vertices[{}];\n'.format(len(VERTICES)))
-# out_file.write('extern int seg_segments_num;\n')
-# out_file.write('extern int seg_segments[{}][3];\n'.format(len(SEGMENTS)))
-# out_file.write('extern int seg_nodes_num;\n')
-# out_file.write('extern int seg_nodes[{}][3];\n'.format(len(NODES)))
-# out_file.close()
-
