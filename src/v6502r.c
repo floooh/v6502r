@@ -42,7 +42,7 @@ static void app_input(const sapp_event* ev) {
         return;
     }
     float w = (float)ev->framebuffer_width * state.chipvis.scale;
-    float h = (float) ev->framebuffer_height * state.chipvis.scale;
+    float h = (float) ev->framebuffer_height * state.chipvis.scale * state.chipvis.aspect;
     switch (ev->type) {
         case SAPP_EVENTTYPE_MOUSE_SCROLL:
             state.chipvis.scale += ev->scroll_y * 0.25f;
