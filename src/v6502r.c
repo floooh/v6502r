@@ -80,6 +80,13 @@ static void app_input(const sapp_event* ev) {
 static void app_frame(void) {
     ui_new_frame();
     ui_chipvis(&state.chipvis);
+
+    // FIXME
+    static uint32_t i = 0;
+    state.chipvis.node_state[(i-10) % 1725] = 0;
+    state.chipvis.node_state[i] = 255;
+    i = (i + 1) % 1735;
+
     state.chipvis.aspect = (float)sapp_width()/(float)sapp_height();
     gfx_begin();
     chipvis_draw(&state.chipvis);

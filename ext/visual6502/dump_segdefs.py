@@ -80,9 +80,9 @@ def gen_vertex_buffers():
         for seg in layer:
             tris = tripy.earclip(VERTICES[seg[1]:seg[1]+seg[2]])
             for tri in tris:
-                VERTEXBUFFERS[l].append(tri[0])
-                VERTEXBUFFERS[l].append(tri[1])
-                VERTEXBUFFERS[l].append(tri[2])
+                VERTEXBUFFERS[l].append((tri[0][0], tri[0][1], seg[0], 0))
+                VERTEXBUFFERS[l].append((tri[1][0], tri[1][1], seg[0], 0))
+                VERTEXBUFFERS[l].append((tri[2][0], tri[2][1], seg[0], 0))
 
 #-------------------------------------------------------------------------------
 def write_header():
@@ -94,7 +94,7 @@ def write_header():
     fp.write('static const uint16_t seg_max_y = {};\n'.format(MAX_Y))
 
     for i,vb in enumerate(VERTEXBUFFERS):
-        fp.write('extern uint16_t seg_vertices_{}[{}];\n'.format(i,len(vb)*2))
+        fp.write('extern uint16_t seg_vertices_{}[{}];\n'.format(i,len(vb)*4))
     fp.close()
 
 #-------------------------------------------------------------------------------
@@ -103,10 +103,10 @@ def write_source():
     fp.write("// machine generated, don't edit!\n")
     fp.write('#include "segdefs.h"\n')
     for ivb,vb in enumerate(VERTEXBUFFERS):
-        fp.write('uint16_t seg_vertices_{}[{}] = {{\n'.format(ivb,len(vb)*2))
+        fp.write('uint16_t seg_vertices_{}[{}] = {{\n'.format(ivb,len(vb)*4))
         for iv,v in enumerate(vb):
-            fp.write('{},{},'.format(v[0],v[1]))
-            if 0 == ((iv+1) % 16):
+            fp.write('{},{},{},{},'.format(v[0],v[1],v[2],v[3]))
+            if 0 == ((iv+1) % 8):
                 fp.write('\n')
         fp.write('};\n')
     fp.close()

@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 #include <stdbool.h>
 
 #ifdef __cplusplus
@@ -22,6 +23,7 @@ typedef struct {
     float2_t offset;
     float4_t layer_colors[MAX_CHIP_LAYERS];
     bool layer_visible[MAX_CHIP_LAYERS];
+    uint8_t node_state[2048];
 } chipvis_t;
 
 void chipvis_init(void);
