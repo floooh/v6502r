@@ -23,8 +23,8 @@ void ui_shutdown() {
     simgui_shutdown();
 }
 
-void ui_input(const sapp_event* ev) {
-    simgui_handle_event(ev);
+bool ui_input(const sapp_event* ev) {
+    return simgui_handle_event(ev) || ImGui::GetIO().WantCaptureMouse;
 }
 
 void ui_new_frame() {

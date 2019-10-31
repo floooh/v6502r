@@ -18,6 +18,8 @@ cur_dir = os.path.dirname(os.path.abspath(__file__))
 
 # this is the original extracted data
 VERTICES = []   # each vertex is a [x,y] pair
+MAX_X = 0
+MAX_Y = 0
 
 # segments (== polygons) bucketed into layers, each segment is a triple
 # of [node_index, start_vertex_index, num_vertices]
@@ -38,6 +40,7 @@ VERTEXBUFFERS = [[] for i in range(0, MAX_LAYERS)]
 # into VERTICES, SEGMENTS and NODES
 #
 def parse_segdef():
+    global MAX_X, MAX_Y
     fp = open(cur_dir + '/segdefs.js', 'r')
     lines = fp.readlines()
     fp.close
@@ -50,7 +53,13 @@ def parse_segdef():
         layer = int(tokens[2])
         verts = []
         for i in range(3, len(tokens), 2):
-            verts.append( ( int(tokens[i]), int(tokens[i+1]) ) )
+            x = int(tokens[i])
+            y = int(tokens[i+1])
+            if x > MAX_X:
+                MAX_X = x
+            if y > MAX_Y:
+                MAX_Y = y
+            verts.append((x,y))
         SEGMENTS[layer].append( [ node_index, len(VERTICES), len(verts) ] )
         if NODES[node_index][2] == 0:
             NODES[node_index] = [layer, len(SEGMENTS[layer]), 1]
@@ -81,6 +90,9 @@ def write_header():
     fp.write('#pragma once\n')
     fp.write("// machine generated, don't edit!\n");
     fp.write('#include <stdint.h>\n')
+    fp.write('static const uint16_t seg_max_x = {};\n'.format(MAX_X))
+    fp.write('static const uint16_t seg_max_y = {};\n'.format(MAX_Y))
+
     for i,vb in enumerate(VERTEXBUFFERS):
         fp.write('extern uint16_t seg_vertices_{}[{}];\n'.format(i,len(vb)*2))
     fp.close()

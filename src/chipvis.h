@@ -18,6 +18,7 @@ typedef struct {
 typedef struct {
     float aspect;
     float scale;
+    float2_t scale_pivot;
     float2_t offset;
     float4_t layer_colors[MAX_CHIP_LAYERS];
     bool layer_visible[MAX_CHIP_LAYERS];

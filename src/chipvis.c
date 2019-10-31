@@ -62,17 +62,20 @@ void chipvis_shutdown(void) {
 }
 
 void chipvis_draw(const chipvis_t* params) {
+    const float sx = params->scale;
+    const float sy = params->scale * params->aspect;
+    vs_params_t vs_params = {
+        .half_size = (float2_t){(seg_max_x>>1)/65535.0f, (seg_max_y>>1)/65535.0f},
+        .offset = params->offset,
+        .scale = (float2_t) { sx, sy },
+    };
     sg_apply_pipeline(state.pip);
     for (int i = 0; i < MAX_LAYERS; i++) {
+        vs_params.color0 = params->layer_colors[i];
         if (params->layer_visible[i]) {
             sg_apply_bindings(&(sg_bindings){
                 .vertex_buffers[0] = state.layers[i].vb
             });
-            vs_params_t vs_params = {
-                .color0 = params->layer_colors[i],
-                .offset = (float2_t) { params->offset.x, params->offset.y },
-                .scale = (float2_t) { params->scale, params->scale * params->aspect }
-            };
             sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &vs_params, sizeof(vs_params));
             sg_draw(0, state.layers[i].num_elms, 1);
         }

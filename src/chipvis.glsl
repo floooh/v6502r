@@ -8,6 +8,7 @@
 @vs vs
 uniform vs_params {
     vec4 color0;
+    vec2 half_size;
     vec2 offset;
     vec2 scale;
 };
@@ -15,7 +16,9 @@ in vec2 pos;
 out vec4 color;
 
 void main() {
-    gl_Position = vec4((pos * scale) + offset, 0.5, 1.0);
+    vec2 p = (pos - half_size) + offset;
+    p *= scale;
+    gl_Position = vec4(p, 0.5, 1.0);
     color = color0;
 }
 @end

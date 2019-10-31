@@ -11,7 +11,7 @@ void ui_init(void);
 void ui_shutdown(void);
 void ui_new_frame(void);
 void ui_draw(void);
-void ui_input(const sapp_event* event);
+bool ui_input(const sapp_event* event);
 
 // per-window drawing functions
 void ui_chipvis(chipvis_t* params);
