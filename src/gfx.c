@@ -1,11 +1,8 @@
 //------------------------------------------------------------------------------
 //  gfx.c
 //------------------------------------------------------------------------------
-#include "gfx.h"
-#include "sokol_gfx.h"
-#include "sokol_app.h"
+#include "v6502r.h"
 
-// setup sokol-gfx
 void gfx_init(void) {
     sg_setup(&(sg_desc){
         .buffer_pool_size = 16,

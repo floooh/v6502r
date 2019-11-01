@@ -2,22 +2,27 @@
 //  chipvis.c
 //  Chips visualization stuff.
 //------------------------------------------------------------------------------
-#include "chipvis.h"
-#include "segdefs.h"
-#include "sokol_gfx.h"
+#include "v6502r.h"
 #include "chipvis.glsl.h"
-#define MAX_LAYERS (6)
 
-static struct {
-    struct {
-        sg_buffer vb;
-        int num_elms;
-    } layers[MAX_LAYERS];
-    sg_pipeline pip;
-    sg_image img;
-} state;
+static const float4_t default_colors[MAX_LAYERS] = {
+    { 1.0f, 0.0f, 0.0f, 0.5f },
+    { 0.0f, 1.0f, 0.0f, 0.5f },
+    { 0.0f, 0.0f, 1.0f, 0.5f },
+    { 1.0f, 1.0f, 0.0f, 0.5f },
+    { 0.0f, 1.0f, 1.0f, 0.5f },
+    { 1.0f, 0.0f, 1.0f, 0.5f },
+};
 
 void chipvis_init(void) {
+    // default values
+    app.chipvis.aspect = 1.0f;
+    app.chipvis.scale = 5.0f;
+    for (int i = 0; i < MAX_LAYERS; i++) {
+        app.chipvis.layer_colors[i] = default_colors[i];
+        app.chipvis.layer_visible[i] = true;
+    }
+
     // create vertex buffer from offline-baked vertex data
     for (int i = 0; i < MAX_LAYERS; i++) {
         void* ptr = 0;
@@ -30,15 +35,15 @@ void chipvis_init(void) {
             case 4: ptr = seg_vertices_4; size = sizeof(seg_vertices_4); break;
             case 5: ptr = seg_vertices_5; size = sizeof(seg_vertices_5); break;
         }
-        state.layers[i].vb = sg_make_buffer(&(sg_buffer_desc){
+        app.chipvis.layers[i].vb = sg_make_buffer(&(sg_buffer_desc){
             .content = ptr,
             .size = size
         });
-        state.layers[i].num_elms = size / 8;
+        app.chipvis.layers[i].num_elms = size / 8;
     }
 
     // create shader and pipeline object
-    state.pip = sg_make_pipeline(&(sg_pipeline_desc){
+    app.chipvis.pip = sg_make_pipeline(&(sg_pipeline_desc){
         .layout = {
             .attrs = {
                 [ATTR_vs_pos] = { .format = SG_VERTEXFORMAT_USHORT2N },
@@ -56,7 +61,7 @@ void chipvis_init(void) {
     });
 
     // a 2048x1 dynamic palette texture
-    state.img = sg_make_image(&(sg_image_desc){
+    app.chipvis.img = sg_make_image(&(sg_image_desc){
         .width = 2048,
         .height = 1,
         .pixel_format = SG_PIXELFORMAT_R8,
@@ -70,35 +75,35 @@ void chipvis_init(void) {
 
 void chipvis_shutdown(void) {
     for (int i = 0; i < MAX_LAYERS; i++) {
-        sg_destroy_buffer(state.layers[i].vb);
+        sg_destroy_buffer(app.chipvis.layers[i].vb);
     }
-    sg_destroy_pipeline(state.pip);
+    sg_destroy_pipeline(app.chipvis.pip);
 }
 
-void chipvis_draw(const chipvis_t* params) {
-    const float sx = params->scale;
-    const float sy = params->scale * params->aspect;
+void chipvis_draw(void) {
+    const float sx = app.chipvis.scale;
+    const float sy = app.chipvis.scale * app.chipvis.aspect;
     vs_params_t vs_params = {
         .half_size = (float2_t){(seg_max_x>>1)/65535.0f, (seg_max_y>>1)/65535.0f},
-        .offset = params->offset,
+        .offset = app.chipvis.offset,
         .scale = (float2_t) { sx, sy },
     };
-    sg_update_image(state.img, &(sg_image_content){
+    sg_update_image(app.chipvis.img, &(sg_image_content){
         .subimage[0][0] = {
-            .ptr = params->node_state,
-            .size = sizeof(params->node_state)
+            .ptr = app.chipvis.node_state,
+            .size = sizeof(app.chipvis.node_state)
         }
     });
-    sg_apply_pipeline(state.pip);
+    sg_apply_pipeline(app.chipvis.pip);
     for (int i = 0; i < MAX_LAYERS; i++) {
-        vs_params.color0 = params->layer_colors[i];
-        if (params->layer_visible[i]) {
+        vs_params.color0 = app.chipvis.layer_colors[i];
+        if (app.chipvis.layer_visible[i]) {
             sg_apply_bindings(&(sg_bindings){
-                .vertex_buffers[0] = state.layers[i].vb,
-                .vs_images[SLOT_palette_tex] = state.img
+                .vertex_buffers[0] = app.chipvis.layers[i].vb,
+                .vs_images[SLOT_palette_tex] = app.chipvis.img
             });
             sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &vs_params, sizeof(vs_params));
-            sg_draw(0, state.layers[i].num_elms, 1);
+            sg_draw(0, app.chipvis.layers[i].num_elms, 1);
         }
     }
 }

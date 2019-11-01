@@ -1,11 +1,8 @@
 //------------------------------------------------------------------------------
 //  ui.cc
 //------------------------------------------------------------------------------
-#include "ui.h"
+#include "v6502r.h"
 #include "imgui.h"
-#include "sokol_app.h"
-#include "sokol_gfx.h"
-#include "sokol_time.h"
 #define SOKOL_IMGUI_IMPL
 #include "sokol_imgui.h"
 
