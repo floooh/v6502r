@@ -10,6 +10,7 @@
 extern "C" {
 #endif
 
+#include "nodenames.h"
 #include "segdefs.h"
 
 #define MAX_LAYERS (6)

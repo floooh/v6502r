@@ -1,7 +1,8 @@
 #===============================================================================
 #   dump_segdefs.py
 #
-#   Dump the segment definitions from segdefs.js into a C header.
+#   Dump the segment definitions from segdefs.js into a C header, convert
+#   into triangles, precompute mouse picking helper structs.
 #
 #   The items in a segdefs line are:
 #

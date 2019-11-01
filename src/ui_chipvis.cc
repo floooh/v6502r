@@ -28,6 +28,23 @@ void ui_chipvis(void) {
         ImGui::Checkbox("Layer 4##P", &app.picking.layer_enabled[4]);
         ImGui::Checkbox("Layer 5##P", &app.picking.layer_enabled[5]);
     }
+    // if there are picking results, build a tooltip
+    if (app.picking.result.num_hits > 0) {
+        char str[256] = { 0 };
+        for (int i = 0; i < app.picking.result.num_hits; i++) {
+            int node_index = app.picking.result.node_index[i];
+            assert((node_index >= 0) && (node_index < max_node_names));
+            if (node_names[node_index][0] != 0) {
+                if (i != 0) {
+                    strcat(str, "\n");
+                }
+                strcat(str, node_names[node_index]);
+            }
+        }
+        if (str[0] != 0) {
+            ImGui::SetTooltip("%s", str);
+        }
+    }
     ImGui::End();
 }
 
