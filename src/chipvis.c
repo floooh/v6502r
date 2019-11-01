@@ -78,6 +78,7 @@ void chipvis_shutdown(void) {
         sg_destroy_buffer(app.chipvis.layers[i].vb);
     }
     sg_destroy_pipeline(app.chipvis.pip);
+    sg_destroy_image(app.chipvis.img);
 }
 
 void chipvis_draw(void) {
