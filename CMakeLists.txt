@@ -9,6 +9,7 @@ include("${FIPS_ROOT_DIR}/cmake/fips.cmake")
 
 fips_setup()
 fips_import_fips_imgui_imgui()
+fips_add_subdirectory(ext/perfect6502)
 fips_add_subdirectory(src)
 fips_finish()
 
