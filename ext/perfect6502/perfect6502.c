@@ -20,11 +20,22 @@
  THE SOFTWARE.
  */
 
-#include <stdio.h>
 #include "types.h"
 #include "netlist_sim.h"
 /* nodes & transistors */
 #include "netlist_6502.h"
+
+// v6502r additions
+int p6502_read_node_state(void* state, uint8_t* ptr, int max_nodes) {
+    int num_nodes = sizeof(netlist_6502_node_is_pullup)/sizeof(*netlist_6502_node_is_pullup);
+    if (num_nodes > max_nodes) {
+        return 0;
+    }
+    for (int i = 0; i < num_nodes; i++) {
+        ptr[i] = isNodeHigh(state, i) ? 160 : 48;
+    }
+    return 1;
+}
 
 /************************************************************
  *
@@ -210,6 +221,7 @@ destroyChip(void *state)
  *
  ************************************************************/
 
+/*
 void
 chipStatus(void *state)
 {
@@ -240,3 +252,4 @@ chipStatus(void *state)
 	}
 	printf("\n");
 }
+*/

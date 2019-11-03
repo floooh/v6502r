@@ -15,6 +15,7 @@ extern "C" {
 
 #define MAX_LAYERS (6)
 #define PICK_MAX_HITS (16)
+#define MAX_NODES (2048)
 
 typedef struct {
     float x, y, z, w;
@@ -53,7 +54,7 @@ typedef struct {
         float2_t offset;
         float4_t layer_colors[MAX_LAYERS];
         bool layer_visible[MAX_LAYERS];
-        uint8_t node_state[2048];
+        uint8_t node_state[MAX_NODES];
     } chipvis;
 } app_state_t;
 
@@ -74,6 +75,17 @@ void ui_chipvis(void);
 void chipvis_init(void);
 void chipvis_draw(void);
 void chipvis_shutdown(void);
+
+void sim_init_or_reset(void);
+void sim_shutdown(void);
+void sim_start(uint16_t start_addr);
+void sim_step(int num_half_cycles);
+void sim_update_nodestate(void);
+void sim_w8(uint16_t addr, uint8_t val);
+uint8_t sim_r8(uint16_t addr);
+void sim_w16(uint16_t addr, uint16_t val);
+uint16_t sim_r16(uint16_t addr);
+void sim_write(uint16_t addr, uint16_t num_bytes, const uint8_t* ptr);
 
 void pick_init(void);
 pick_result_t pick(float2_t mouse_pos, float2_t disp_size, float2_t offset, float2_t scale);

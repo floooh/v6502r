@@ -6,11 +6,41 @@
 
 app_state_t app;
 
+/* example program from visual6502.org:
+                   * = 0000
+ 0000   A9 00      LDA #$00
+ 0002   20 10 00   JSR $0010
+ 0005   4C 02 00   JMP $0002
+ 0008   00         BRK
+ 0009   00         BRK
+ 000A   00         BRK
+ 000B   00         BRK
+ 000C   00         BRK
+ 000D   00         BRK
+ 000E   00         BRK
+ 000F   43         ???
+ 0010   E8         INX
+ 0011   88         DEY
+ 0012   E6 0F      INC $0F
+ 0014   38         SEC
+ 0015   69 02      ADC #$02
+ 0017   60         RTS
+ 0018              .END
+*/
+static uint8_t test_prog[] = {
+    0xa9, 0x00, 0x20, 0x10, 0x00, 0x4c, 0x02, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x43,
+    0xe8, 0x88, 0xe6, 0x0f, 0x38, 0x69, 0x02, 0x60
+};
+
 static void app_init(void) {
     gfx_init();
     ui_init();
     chipvis_init();
     pick_init();
+    sim_init_or_reset();
+    sim_write(0x0000, sizeof(test_prog), test_prog);
+    sim_start(0x000);
 }
 
 static void app_input(const sapp_event* ev) {
@@ -60,24 +90,22 @@ static void app_input(const sapp_event* ev) {
 }
 
 static void app_frame(void) {
+    app.chipvis.aspect = (float)sapp_width()/(float)sapp_height();
     ui_new_frame();
     ui_chipvis();
+
+    // FIXME
+    sim_step(1);
+    sim_update_nodestate();
 
     // FIXME: tests picking
     float2_t disp_size = { (float)sapp_width(), (float)sapp_height() };
     float2_t scale = { app.chipvis.scale, app.chipvis.scale*app.chipvis.aspect };
-    pick_result_t pick_res = pick(app.input.mouse, disp_size, app.chipvis.offset, scale);
-    // delete old pick results
-    for (int i = 0; i < app.picking.result.num_hits; i++) {
-        app.chipvis.node_state[app.picking.result.node_index[i]] = 0;
-    }
-    app.picking.result = pick_res;
-    // highlight new pick results
+    app.picking.result = pick(app.input.mouse, disp_size, app.chipvis.offset, scale);
     for (int i = 0; i < app.picking.result.num_hits; i++) {
         app.chipvis.node_state[app.picking.result.node_index[i]] = 255;
     }
 
-    app.chipvis.aspect = (float)sapp_width()/(float)sapp_height();
     gfx_begin();
     chipvis_draw();
     ui_draw();
@@ -85,6 +113,7 @@ static void app_frame(void) {
 }
 
 static void app_cleanup(void) {
+    sim_shutdown();
     chipvis_shutdown();
     ui_shutdown();
     gfx_shutdown();

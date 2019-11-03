@@ -17,7 +17,7 @@ static const float4_t default_colors[MAX_LAYERS] = {
 void chipvis_init(void) {
     // default values
     app.chipvis.aspect = 1.0f;
-    app.chipvis.scale = 5.0f;
+    app.chipvis.scale = 9.0f;
     for (int i = 0; i < MAX_LAYERS; i++) {
         app.chipvis.layer_colors[i] = default_colors[i];
         app.chipvis.layer_visible[i] = true;

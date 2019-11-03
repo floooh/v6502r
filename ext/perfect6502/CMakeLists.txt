@@ -6,3 +6,4 @@ fips_begin_lib(perfect6502)
         perfect6502.h perfect6502.c
     )
 fips_end_lib()
+target_include_directories(perfect6502 INTERFACE .)
