@@ -43,7 +43,39 @@ static void app_init(void) {
     sim_start(0x000);
 }
 
+static void app_frame(void) {
+    app.chipvis.aspect = (float)sapp_width()/(float)sapp_height();
+    ui_frame();
+
+    // FIXME
+    sim_step(1);
+    sim_update_nodestate();
+
+    // FIXME: tests picking
+    float2_t disp_size = { (float)sapp_width(), (float)sapp_height() };
+    float2_t scale = { app.chipvis.scale, app.chipvis.scale*app.chipvis.aspect };
+    app.picking.result = pick(app.input.mouse, disp_size, app.chipvis.offset, scale);
+    for (int i = 0; i < app.picking.result.num_hits; i++) {
+        app.chipvis.node_state[app.picking.result.node_index[i]] = 255;
+    }
+
+    gfx_begin();
+    chipvis_draw();
+    ui_draw();
+    gfx_end();
+}
+
 static void app_input(const sapp_event* ev) {
+    // on emscripten we're inside an input handle here, handle any URL to
+    // be opened:
+    if (app.input.open_url) {
+        #if __EMSCRIPTEN__
+        EM_ASM({
+            window.open(UTF8ToString($0));
+        }, app.input.open_url);
+        #endif
+        app.input.open_url = 0;
+    }
     if (ui_input(ev)) {
         return;
     }
@@ -89,29 +121,6 @@ static void app_input(const sapp_event* ev) {
     }
 }
 
-static void app_frame(void) {
-    app.chipvis.aspect = (float)sapp_width()/(float)sapp_height();
-    ui_new_frame();
-    ui_chipvis();
-
-    // FIXME
-    sim_step(1);
-    sim_update_nodestate();
-
-    // FIXME: tests picking
-    float2_t disp_size = { (float)sapp_width(), (float)sapp_height() };
-    float2_t scale = { app.chipvis.scale, app.chipvis.scale*app.chipvis.aspect };
-    app.picking.result = pick(app.input.mouse, disp_size, app.chipvis.offset, scale);
-    for (int i = 0; i < app.picking.result.num_hits; i++) {
-        app.chipvis.node_state[app.picking.result.node_index[i]] = 255;
-    }
-
-    gfx_begin();
-    chipvis_draw();
-    ui_draw();
-    gfx_end();
-}
-
 static void app_cleanup(void) {
     sim_shutdown();
     chipvis_shutdown();
@@ -130,4 +139,9 @@ sapp_desc sokol_main(int argc, char* argv[]) {
         .height = 700,
         .window_title = "Visual6502 Remix",
     };
+}
+
+// called by ui_util/TextURL() when clicked on an URL
+void PlatformOpenURLInBrowser(const char* url) {
+    app.input.open_url = url;
 }

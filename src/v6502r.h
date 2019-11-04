@@ -5,6 +5,9 @@
 #include "sokol_gfx.h"
 #include "sokol_app.h"
 #include "sokol_args.h"
+#if __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,6 +39,7 @@ typedef struct {
         float2_t drag_start;
         float2_t offset_start;
         float2_t mouse;
+        const char* open_url;
     } input;
     struct {
         pick_result_t result;
@@ -56,6 +60,9 @@ typedef struct {
         bool layer_visible[MAX_LAYERS];
         uint8_t node_state[MAX_NODES];
     } chipvis;
+    struct {
+        bool about_open;
+    } ui;
 } app_state_t;
 
 extern app_state_t app;
@@ -67,10 +74,9 @@ void gfx_end(void);
 
 void ui_init(void);
 void ui_shutdown(void);
-void ui_new_frame(void);
+void ui_frame(void);
 void ui_draw(void);
 bool ui_input(const sapp_event* event);
-void ui_chipvis(void);
 
 void chipvis_init(void);
 void chipvis_draw(void);
