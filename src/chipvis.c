@@ -18,6 +18,7 @@ void chipvis_init(void) {
     // default values
     app.chipvis.aspect = 1.0f;
     app.chipvis.scale = 7.0f;
+    app.chipvis.offset = (float2_t) { -0.04f, 0.0f };
     for (int i = 0; i < MAX_LAYERS; i++) {
         app.chipvis.layer_colors[i] = default_colors[i];
         app.chipvis.layer_visible[i] = true;

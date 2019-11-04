@@ -11,3 +11,6 @@ imports:
         git: https://github.com/floooh/sokol-tools-bin
     fips-imgui:
         git: https://github.com/fips-libs/fips-imgui
+    chips:
+        git: https://github.com/floooh/chips
+

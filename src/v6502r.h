@@ -5,6 +5,11 @@
 #include "sokol_gfx.h"
 #include "sokol_app.h"
 #include "sokol_args.h"
+#include "ui/ui_memedit.h"
+#include "util/m6502dasm.h"
+#include "ui/ui_util.h"
+#define UI_DASM_USE_M6502
+#include "ui/ui_dasm.h"
 #if __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
@@ -61,7 +66,8 @@ typedef struct {
         uint8_t node_state[MAX_NODES];
     } chipvis;
     struct {
-        bool about_open;
+        ui_memedit_t memedit;
+        ui_dasm_t dasm;
     } ui;
 } app_state_t;
 
