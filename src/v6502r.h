@@ -10,9 +10,6 @@
 #include "ui/ui_util.h"
 #define UI_DASM_USE_M6502
 #include "ui/ui_dasm.h"
-#if __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,7 +41,6 @@ typedef struct {
         float2_t drag_start;
         float2_t offset_start;
         float2_t mouse;
-        const char* open_url;
     } input;
     struct {
         pick_result_t result;

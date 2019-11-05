@@ -66,16 +66,6 @@ static void app_frame(void) {
 }
 
 static void app_input(const sapp_event* ev) {
-    // on emscripten we're inside an input handle here, handle any URL to
-    // be opened:
-    if (app.input.open_url) {
-        #if __EMSCRIPTEN__
-        EM_ASM({
-            window.open(UTF8ToString($0));
-        }, app.input.open_url);
-        #endif
-        app.input.open_url = 0;
-    }
     if (ui_input(ev)) {
         return;
     }
@@ -139,9 +129,4 @@ sapp_desc sokol_main(int argc, char* argv[]) {
         .height = 700,
         .window_title = "Visual6502 Remix",
     };
-}
-
-// called by ui_util/TextURL() when clicked on an URL
-void PlatformOpenURLInBrowser(const char* url) {
-    app.input.open_url = url;
 }
