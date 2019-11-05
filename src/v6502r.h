@@ -10,6 +10,7 @@
 #include "ui/ui_util.h"
 #define UI_DASM_USE_M6502
 #include "ui/ui_dasm.h"
+#include "sokol_gfx_imgui.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -64,6 +65,8 @@ typedef struct {
     struct {
         ui_memedit_t memedit;
         ui_dasm_t dasm;
+        sg_imgui_t sg_imgui;
+        bool cpu_controls_open;
     } ui;
 } app_state_t;
 
