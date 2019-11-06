@@ -14,6 +14,7 @@ void sim_init_or_reset(void) {
         p6502_state = 0;
     }
     p6502_state = initAndResetChip();
+    app.sim.paused = true;
 }
 
 void sim_shutdown(void) {
@@ -24,12 +25,27 @@ void sim_shutdown(void) {
 }
 
 void sim_start(uint16_t start_addr) {
-    // patch reset vector and run through the 9-cycle reset sequence
+    // patch reset vector and run through the 9-cycle reset sequence,
+    // but stop before the first post-reset instruction byte is set
     sim_w16(0xFFFC, start_addr);
-    for (int i = 0; i < 9; i++) {
-        step(p6502_state);
+    for (int i = 0; i < 17; i++) {
         step(p6502_state);
     }
+}
+
+void sim_frame_update(void) {
+    if (!app.sim.paused) {
+        sim_step(1);
+    }
+    sim_update_nodestate();
+}
+
+void sim_pause(bool paused) {
+    app.sim.paused = paused;
+}
+
+bool sim_paused(void) {
+    return app.sim.paused;
 }
 
 void sim_step(int num_half_cycles) {
@@ -37,6 +53,17 @@ void sim_step(int num_half_cycles) {
     for (int i = 0; i < num_half_cycles; i++) {
         step(p6502_state);
     }
+}
+
+void sim_step_op(void) {
+    int num_sync = 0;
+    do {
+        sim_step(1);
+        if (readSYNC(p6502_state)) {
+            num_sync++;
+        }
+    }
+    while (num_sync != 2);
 }
 
 void sim_update_nodestate(void) {
@@ -66,4 +93,44 @@ void sim_write(uint16_t addr, uint16_t num_bytes, const uint8_t* ptr) {
     for (uint16_t i = 0; i < num_bytes; i++) {
         memory[(addr+i)&0xFFFF] = ptr[i];
     }
+}
+
+uint8_t sim_a(void) {
+    return readA(p6502_state);
+}
+
+uint8_t sim_x(void) {
+    return readX(p6502_state);
+}
+
+uint8_t sim_y(void) {
+    return readY(p6502_state);
+}
+
+uint8_t sim_sp(void) {
+    return readSP(p6502_state);
+}
+
+uint16_t sim_pc(void) {
+    return readPC(p6502_state);
+}
+
+uint8_t sim_ir(void) {
+    return readIR(p6502_state);
+}
+
+uint16_t sim_addr_bus(void) {
+    return readAddressBus(p6502_state);
+}
+
+uint8_t sim_data_bus(void) {
+    return readDataBus(p6502_state);
+}
+
+uint8_t sim_p(void) {
+    return readP(p6502_state);
+}
+
+bool sim_rw(void) {
+    return readRW(p6502_state) != 0;
 }

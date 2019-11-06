@@ -37,7 +37,7 @@ fips_end_lib()
 
 fips_begin_app(v6502r windowed)
     fips_vs_warning_level(3)
-    fips_files(v6502r.c v6502r.h chipvis.c pick.c gfx.c sim.c)
+    fips_files(v6502r.c v6502r.h chipvis.c pick.c gfx.c sim.c util.c)
     fips_files(segdefs.c segdefs.h nodenames.c nodenames.h)
     fips_files(ui.cc)
     sokol_shader(chipvis.glsl ${slang})

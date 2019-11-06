@@ -38,6 +38,9 @@ typedef struct {
 
 typedef struct {
     struct {
+        bool paused;
+    } sim;
+    struct {
         bool dragging;
         float2_t drag_start;
         float2_t offset_start;
@@ -64,6 +67,7 @@ typedef struct {
     } chipvis;
     struct {
         ui_memedit_t memedit;
+        ui_memedit_t memedit_integrated;
         ui_dasm_t dasm;
         sg_imgui_t sg_imgui;
         bool cpu_controls_open;
@@ -90,16 +94,32 @@ void chipvis_shutdown(void);
 void sim_init_or_reset(void);
 void sim_shutdown(void);
 void sim_start(uint16_t start_addr);
+void sim_frame_update(void);
+void sim_pause(bool paused);
+bool sim_paused(void);
 void sim_step(int num_half_cycles);
+void sim_step_op(void);
 void sim_update_nodestate(void);
 void sim_w8(uint16_t addr, uint8_t val);
 uint8_t sim_r8(uint16_t addr);
 void sim_w16(uint16_t addr, uint16_t val);
 uint16_t sim_r16(uint16_t addr);
 void sim_write(uint16_t addr, uint16_t num_bytes, const uint8_t* ptr);
+uint8_t sim_a(void);
+uint8_t sim_x(void);
+uint8_t sim_y(void);
+uint8_t sim_sp(void);
+uint16_t sim_pc(void);
+uint8_t sim_ir(void);
+uint8_t sim_p(void);
+bool sim_rw(void);
+uint16_t sim_addr_bus(void);
+uint8_t sim_data_bus(void);
 
 void pick_init(void);
 pick_result_t pick(float2_t mouse_pos, float2_t disp_size, float2_t offset, float2_t scale);
+
+const char* util_opcode_to_str(uint8_t op);
 
 #ifdef __cplusplus
 } // extern "C"

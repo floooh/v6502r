@@ -63,19 +63,22 @@ void ui_init() {
     }
 
     // initialize helper windows from the chips projects
-    float disp_w = (float) sapp_width();
     {
         ui_memedit_desc_t desc = { };
         desc.title = "Memory Editor";
-        desc.open = true;
+        desc.open = false;
         desc.num_rows = 8;
         desc.h = 300;
-        desc.x = disp_w - 300.0f;
+        desc.x = 50.0f;
         desc.y = 50.0f;
         desc.hide_ascii = true;
         desc.read_cb = ui_mem_read;
         desc.write_cb = ui_mem_write;
         ui_memedit_init(&app.ui.memedit, &desc);
+        desc.title = "Integrated Memory Editor";
+        desc.hide_options = true;
+        desc.hide_addr_input = true;
+        ui_memedit_init(&app.ui.memedit_integrated, &desc);
     }
     {
         ui_dasm_desc_t desc = { };
@@ -93,6 +96,7 @@ void ui_init() {
 void ui_shutdown() {
     ui_dasm_discard(&app.ui.dasm);
     ui_memedit_discard(&app.ui.memedit);
+    ui_memedit_discard(&app.ui.memedit_integrated);
     sg_imgui_discard(&app.ui.sg_imgui);
     simgui_shutdown();
 }
@@ -176,34 +180,103 @@ void ui_controls(void) {
     if (!app.ui.cpu_controls_open) {
         return;
     }
-    ImGui::SetNextWindowSize({ 300, 64 }, ImGuiCond_Once);
-    if (ImGui::Begin("6502 Controls", &app.ui.cpu_controls_open, ImGuiWindowFlags_NoResize)) {
+    const float disp_w = (float) sapp_width();
+    ImGui::SetNextWindowPos({ disp_w - 300, 50 }, ImGuiCond_Once);
+    ImGui::SetNextWindowSize({ 270, 400 }, ImGuiCond_Once);
+    if (ImGui::Begin("MOS 6502", &app.ui.cpu_controls_open, ImGuiWindowFlags_None)) {
+
+        /* CPU state */
+        const uint8_t ir = sim_ir();
+        const uint8_t p = sim_p();
+        char p_str[9] = {
+            (p & (1<<7)) ? 'N':'n',
+            (p & (1<<6)) ? 'V':'v',
+            (p & (1<<5)) ? 'X':'x',
+            (p & (1<<4)) ? 'B':'b',
+            (p & (1<<3)) ? 'D':'d',
+            (p & (1<<2)) ? 'I':'i',
+            (p & (1<<1)) ? 'Z':'z',
+            (p & (1<<0)) ? 'C':'c',
+            0,
+        };
+        ImGui::Text("A:%02X X:%02X Y:%02X SP:%02X PC:%04X", sim_a(), sim_x(), sim_y(), sim_sp(), sim_pc());
+        ImGui::Text("P:%02X (%s)", p, p_str);
+        ImGui::Text("IR:%02X  (%s)\n", ir, util_opcode_to_str(ir));
+        ImGui::Text("Data:%02X Addr:%04X %s", sim_data_bus(), sim_addr_bus(), sim_rw()?"R":"W");
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        /* cassette deck controls */
+        const char* tooltip = 0;
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 10.0f, 10.0f } );
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 7.0f, 7.0f } );
         ImGui::PushStyleColor(ImGuiCol_Button, 0xFFFFFFFF);
         ImGui::PushStyleColor(ImGuiCol_Text, 0xFF000000);
-        if (ImGui::Button(ICON_FA_PAUSE, { 28, 25 })) {
-
+        if (sim_paused()) {
+            if (ImGui::Button(ICON_FA_PLAY, { 28, 25 })) {
+                sim_pause(false);
+            }
+            if (ImGui::IsItemHovered()) {
+                tooltip = "Run (one half-cycle per frame)";
+            }
+        }
+        else {
+            if (ImGui::Button(ICON_FA_PAUSE, { 28, 25 })) {
+                sim_pause(true);
+            }
+            if (ImGui::IsItemHovered()) {
+                tooltip = "Pause";
+            }
         }
         ImGui::SameLine();
         if (ImGui::Button(ICON_FA_STEP_FORWARD, { 28, 25 })) {
-
+            if (!sim_paused()) {
+                sim_pause(true);
+            }
+            sim_step(1);
         }
-        ImGui::SameLine();
-        if (ImGui::Button(ICON_FA_PLAY, { 28, 25 })) {
-
+        if (ImGui::IsItemHovered()) {
+            tooltip = "Step one half-cycle";
         }
         ImGui::SameLine();
         if (ImGui::Button(ICON_FA_FAST_FORWARD, { 28, 25 })) {
-
+            if (!sim_paused()) {
+                sim_pause(true);
+            }
+            sim_step(2);
+        }
+        if (ImGui::IsItemHovered()) {
+            tooltip = "Step two half-cycles";
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_ARROW_RIGHT, { 28, 25 })) {
+            if (!sim_paused()) {
+                sim_pause(true);
+            }
+            sim_step_op();
+        }
+        if (ImGui::IsItemHovered()) {
+            tooltip = "Step to next instruction";
         }
         ImGui::SameLine();
         if (ImGui::Button(ICON_FA_EJECT, { 28, 25 })) {
-
+            sim_init_or_reset();
+            sim_start(0x0000);
+        }
+        if (ImGui::IsItemHovered()) {
+            tooltip = "Reset";
         }
         ImGui::PopStyleColor(2);
         ImGui::PopStyleVar(3);
+        if (!tooltip) {
+            tooltip = sim_paused() ? "Paused" : "Running";
+        }
+        ImGui::Text("%s", tooltip);
+        ImGui::Separator();
+        ImGui::BeginChild("##memedit");
+        ui_memedit_draw_content(&app.ui.memedit_integrated);
+        ImGui::EndChild();
     }
     ImGui::End();
 }

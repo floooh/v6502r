@@ -67,6 +67,12 @@ readRW(void *state)
 	return isNodeHigh(state, rw);
 }
 
+BOOL
+readSYNC(void* state)
+{
+    return isNodeHigh(state, sync_);
+}
+
 uint8_t
 readA(void *state)
 {

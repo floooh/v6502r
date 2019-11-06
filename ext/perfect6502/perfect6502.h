@@ -13,6 +13,7 @@ extern unsigned char readY(state_t *state);
 extern unsigned char readSP(state_t *state);
 extern unsigned char readP(state_t *state);
 extern unsigned int readRW(state_t *state);
+extern unsigned int readSYNC(state_t* state);
 extern unsigned short readAddressBus(state_t *state);
 extern void writeDataBus(state_t *state, unsigned char);
 extern unsigned char readDataBus(state_t *state);

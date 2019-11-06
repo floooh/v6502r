@@ -40,16 +40,13 @@ static void app_init(void) {
     pick_init();
     sim_init_or_reset();
     sim_write(0x0000, sizeof(test_prog), test_prog);
-    sim_start(0x000);
+    sim_start(0x0000);
 }
 
 static void app_frame(void) {
     app.chipvis.aspect = (float)sapp_width()/(float)sapp_height();
     ui_frame();
-
-    // FIXME
-    sim_step(1);
-    sim_update_nodestate();
+    sim_frame_update();
 
     // FIXME: tests picking
     float2_t disp_size = { (float)sapp_width(), (float)sapp_height() };
