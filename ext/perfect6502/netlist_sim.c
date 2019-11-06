@@ -639,8 +639,9 @@ destroyNodesAndTransistors(state_t *state)
 void
 stabilizeChip(state_t *state)
 {
-	for (count_t i = 0; i < state->nodes; i++)
-	listout_add(state, i);
+	for (count_t i = 0; i < state->nodes; i++) {
+        listout_add(state, i);
+    }
 
 	recalcNodeList(state);
 }
