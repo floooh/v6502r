@@ -32,6 +32,10 @@ typedef struct {
 } float2_t;
 
 typedef struct {
+    float4_t colors[MAX_LAYERS];
+} palette_t;
+
+typedef struct {
     int num_hits;
     int node_index[PICK_MAX_HITS];
 } pick_result_t;
@@ -55,13 +59,15 @@ typedef struct {
             sg_buffer vb;
             int num_elms;
         } layers[MAX_LAYERS];
-        sg_pipeline pip;
+        sg_pipeline pip_alpha;
+        sg_pipeline pip_add;
         sg_image img;
         float aspect;
         float scale;
         float2_t scale_pivot;
         float2_t offset;
-        float4_t layer_colors[MAX_LAYERS];
+        bool use_additive_blend;
+        palette_t layer_palette;
         bool layer_visible[MAX_LAYERS];
         uint8_t node_state[MAX_NODES];
     } chipvis;

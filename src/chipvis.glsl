@@ -27,7 +27,7 @@ void main() {
 }
 @end
 
-@fs fs
+@fs fs_alpha
 in vec4 color;
 out vec4 frag_color;
 
@@ -36,4 +36,14 @@ void main() {
 }
 @end
 
-@program chipvis vs fs
+@fs fs_add
+in vec4 color;
+out vec4 frag_color;
+
+void main() {
+    frag_color = vec4(color.rgb * color.a, 1.0);
+}
+@end
+
+@program chipvis_alpha vs fs_alpha
+@program chipvis_add vs fs_add

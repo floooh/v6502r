@@ -164,6 +164,53 @@ void ui_menu(void) {
             ImGui::MenuItem("Disassembler", 0, &app.ui.dasm.open);
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Theme")) {
+            if (ImGui::MenuItem("Default")) {
+                app.chipvis.layer_palette = { {
+                    { 1.0f, 0.0f, 0.0f, 1.0f },
+                    { 0.0f, 1.0f, 0.0f, 1.0f },
+                    { 0.0f, 0.0f, 1.0f, 1.0f },
+                    { 1.0f, 1.0f, 0.0f, 1.0f },
+                    { 0.0f, 1.0f, 1.0f, 1.0f },
+                    { 1.0f, 0.0f, 1.0f, 1.0f },
+                } };
+                app.chipvis.use_additive_blend = false;
+            }
+            if (ImGui::MenuItem("Visual6502")) {
+                app.chipvis.layer_palette = { {
+                    { 1.0f, 0.0f, 0.0f, 1.0f },
+                    { 1.0f, 1.0f, 0.0f, 1.0f },
+                    { 1.0f, 0.0f, 1.0f, 1.0f },
+                    { 0.3f, 1.0f, 0.3f, 1.0f },
+                    { 1.0f, 0.3f, 0.3f, 1.0f },
+                    { 0.5f, 0.1f, 0.75f, 1.0f },
+                } };
+                app.chipvis.use_additive_blend = false;
+            }
+            if (ImGui::MenuItem("Matrix")) {
+                app.chipvis.layer_palette = { {
+                    { 0.0f, 0.5f, 0.0f, 1.0f },
+                    { 0.0f, 0.5f, 0.0f, 1.0f },
+                    { 0.0f, 0.5f, 0.0f, 1.0f },
+                    { 0.0f, 0.5f, 0.0f, 1.0f },
+                    { 0.0f, 0.5f, 0.0f, 1.0f },
+                    { 0.0f, 0.5f, 0.0f, 1.0f },
+                } };
+                app.chipvis.use_additive_blend = true;
+            }
+            if (ImGui::MenuItem("X-Ray")) {
+                app.chipvis.layer_palette = { {
+                    { 0.5f, 0.5f, 0.5f, 1.0f },
+                    { 0.5f, 0.5f, 0.5f, 1.0f },
+                    { 0.5f, 0.5f, 0.5f, 1.0f },
+                    { 0.5f, 0.5f, 0.5f, 1.0f },
+                    { 0.5f, 0.5f, 0.5f, 1.0f },
+                    { 0.5f, 0.5f, 0.5f, 1.0f },
+                } };
+                app.chipvis.use_additive_blend = true;
+            }
+            ImGui::EndMenu();
+        }
         if (ImGui::BeginMenu("Sokol")) {
             ImGui::MenuItem("Buffers", 0, &app.ui.sg_imgui.buffers.open);
             ImGui::MenuItem("Images", 0, &app.ui.sg_imgui.images.open);
