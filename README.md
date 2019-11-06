@@ -2,6 +2,8 @@
 
 Visual6502 Remixed (WIP)
 
+WASM Version: https://floooh.github.io/visual6502remix/
+
 TL;DR: Take the [visual6502](https://github.com/trebonian/visual6502) project
 and turn it into a native+wasm app via
 [perfect6502](https://github.com/mist64/perfect6502), [Dear
