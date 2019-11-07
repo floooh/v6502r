@@ -81,7 +81,7 @@ uint8_t sim_r8(uint16_t addr) {
 }
 
 void sim_w16(uint16_t addr, uint16_t val) {
-    memory[addr] = val;
+    memory[addr] = (uint8_t) val;
     memory[(addr+1)&0xFFFF] = val>>8;
 }
 

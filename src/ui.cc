@@ -69,8 +69,8 @@ void ui_init() {
         desc.open = false;
         desc.num_rows = 8;
         desc.h = 300;
-        desc.x = 50.0f;
-        desc.y = 50.0f;
+        desc.x = 50;
+        desc.y = 50;
         desc.hide_ascii = true;
         desc.read_cb = ui_mem_read;
         desc.write_cb = ui_mem_write;
@@ -87,8 +87,8 @@ void ui_init() {
         desc.cpu_type = UI_DASM_CPUTYPE_M6502;
         desc.start_addr = 0;
         desc.read_cb = ui_mem_read;
-        desc.x = 50.0f;
-        desc.y = 50.0f;
+        desc.x = 50;
+        desc.y = 50;
         ui_dasm_init(&app.ui.dasm, &desc);
     }
 }

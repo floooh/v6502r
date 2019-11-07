@@ -36,7 +36,7 @@ static bool point_in_triangle(float2_t p, float2_t a, float2_t b, float2_t c) {
 
 // not super-duper optimized, but probably fast enough
 pick_result_t pick(float2_t mouse_pos, float2_t disp_size, float2_t offset, float2_t scale) {
-    pick_result_t res = { };
+    pick_result_t res = {0};
 
     // first convert mouse pos into screen space [-1,+1]
     float sx = ((mouse_pos.x / disp_size.x) -0.5f) * 2.0f;

@@ -48,7 +48,7 @@ void chipvis_init(void) {
         .layout = {
             .attrs = {
                 [ATTR_vs_pos] = { .format = SG_VERTEXFORMAT_USHORT2N },
-                [ATTR_vs_uv]  = { .format = SG_VERTEXFORMAT_SHORT2 }
+                [ATTR_vs_uv]  = { .format = SG_VERTEXFORMAT_USHORT2N }
             },
         },
         .shader = sg_make_shader(chipvis_alpha_shader_desc()),

@@ -374,6 +374,7 @@ getGroupValue(state_t *state)
 		case contains_vss:
 		case contains_pulldown:
 		case contains_nothing:
+        default:
 			return NO;
 	}
 }
