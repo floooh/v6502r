@@ -38,6 +38,7 @@ static void app_init(void) {
     ui_init();
     chipvis_init();
     pick_init();
+    trace_init();
     sim_init_or_reset();
     sim_write(0x0000, sizeof(test_prog), test_prog);
     sim_start(0x0000);
@@ -46,16 +47,8 @@ static void app_init(void) {
 static void app_frame(void) {
     app.chipvis.aspect = (float)sapp_width()/(float)sapp_height();
     ui_frame();
-    sim_frame_update();
-
-    // FIXME: tests picking
-    float2_t disp_size = { (float)sapp_width(), (float)sapp_height() };
-    float2_t scale = { app.chipvis.scale, app.chipvis.scale*app.chipvis.aspect };
-    app.picking.result = pick(app.input.mouse, disp_size, app.chipvis.offset, scale);
-    for (int i = 0; i < app.picking.result.num_hits; i++) {
-        app.chipvis.node_state[app.picking.result.node_index[i]] = 255;
-    }
-
+    sim_frame();
+    pick_frame();
     gfx_begin();
     chipvis_draw();
     ui_draw();
@@ -110,6 +103,7 @@ static void app_input(const sapp_event* ev) {
 
 static void app_cleanup(void) {
     sim_shutdown();
+    trace_shutdown();
     chipvis_shutdown();
     ui_shutdown();
     gfx_shutdown();

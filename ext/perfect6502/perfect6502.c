@@ -26,7 +26,7 @@
 #include "netlist_6502.h"
 
 // v6502r additions
-int p6502_read_node_state(void* state, uint8_t* ptr, int max_nodes) {
+int p6502_read_node_state_as_bytes(void* state, uint8_t* ptr, int max_nodes) {
     int num_nodes = sizeof(netlist_6502_node_is_pullup)/sizeof(*netlist_6502_node_is_pullup);
     if (num_nodes > max_nodes) {
         return 0;
@@ -35,6 +35,14 @@ int p6502_read_node_state(void* state, uint8_t* ptr, int max_nodes) {
         ptr[i] = isNodeHigh(state, i) ? 160 : 48;
     }
     return 1;
+}
+
+int p6502_read_node_values(void* state, uint8_t* ptr, int max_bytes) {
+    return read_node_values(state, ptr, max_bytes);
+}
+
+int p6502_read_transistor_on(void* state, uint8_t* ptr, int max_bytes) {
+    return read_transistor_on(state, ptr, max_bytes);
 }
 
 /************************************************************
@@ -59,6 +67,12 @@ void
 writeDataBus(void *state, uint8_t d)
 {
 	writeNodes(state, 8, (nodenum_t[]){ db0, db1, db2, db3, db4, db5, db6, db7 }, d);
+}
+
+BOOL
+readCLK0(void* state)
+{
+    return isNodeHigh(state, clk0);
 }
 
 BOOL
@@ -162,7 +176,7 @@ handleMemory(void *state)
  *
  ************************************************************/
 
-static unsigned int cycle;
+unsigned int cycle;
 
 void
 step(void *state)

@@ -692,3 +692,29 @@ writeNodes(state_t *state, int count, nodenum_t *nodelist, int v)
 	for (int i = 0; i < 8; i++, v >>= 1)
 	setNode(state, nodelist[i], v & 1);
 }
+
+//------------------------------------------------------------------------------
+//  v6502r additions
+//------------------------------------------------------------------------------
+int read_node_values(state_t* state, uint8_t* ptr, int max_bytes) {
+    int bytes_to_copy = WORDS_FOR_BITS(state->nodes) * sizeof(bitmap_t);
+    if (bytes_to_copy <= max_bytes) {
+        memcpy(ptr, state->nodes_value, bytes_to_copy);
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
+int read_transistor_on(state_t* state, uint8_t* ptr, int max_bytes) {
+    int bytes_to_copy = WORDS_FOR_BITS(state->transistors) * sizeof(bitmap_t);
+    if (bytes_to_copy <= max_bytes) {
+        memcpy(ptr, state->transistors_on, bytes_to_copy);
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+

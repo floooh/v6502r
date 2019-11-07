@@ -115,3 +115,13 @@ pick_result_t pick(float2_t mouse_pos, float2_t disp_size, float2_t offset, floa
     }
     return res;
 }
+
+void pick_frame(void) {
+    float2_t disp_size = { (float)sapp_width(), (float)sapp_height() };
+    float2_t scale = { app.chipvis.scale, app.chipvis.scale*app.chipvis.aspect };
+    app.picking.result = pick(app.input.mouse, disp_size, app.chipvis.offset, scale);
+    for (int i = 0; i < app.picking.result.num_hits; i++) {
+        app.chipvis.node_state[app.picking.result.node_index[i]] = 255;
+    }
+}
+

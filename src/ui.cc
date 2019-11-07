@@ -13,6 +13,7 @@
 
 static void ui_menu(void);
 static void ui_picking(void);
+static void ui_tracelog(void);
 static void ui_controls(void);
 static uint8_t ui_mem_read(int layer, uint16_t addr, void* user_data);
 static void ui_mem_write(int layer, uint16_t addr, uint8_t data, void* user_data);
@@ -20,6 +21,7 @@ static void ui_mem_write(int layer, uint16_t addr, uint8_t data, void* user_data
 void ui_init() {
     // default window open state
     app.ui.cpu_controls_open = true;
+    app.ui.tracelog_open = true;
 
     // initialize the sokol-gfx debugging UI
     sg_imgui_init(&app.ui.sg_imgui);
@@ -127,6 +129,7 @@ void ui_frame() {
     ui_picking();
     ui_memedit_draw(&app.ui.memedit);
     ui_dasm_draw(&app.ui.dasm);
+    ui_tracelog();
     ui_controls();
     sg_imgui_draw(&app.ui.sg_imgui);
 }
@@ -160,6 +163,7 @@ void ui_menu(void) {
         }
         if (ImGui::BeginMenu("Windows")) {
             ImGui::MenuItem("Controls", 0, &app.ui.cpu_controls_open);
+            ImGui::MenuItem("Trace Log", 0, &app.ui.tracelog_open);
             ImGui::MenuItem("Memory Editor", 0, &app.ui.memedit.open);
             ImGui::MenuItem("Disassembler", 0, &app.ui.dasm.open);
             ImGui::EndMenu();
@@ -233,8 +237,8 @@ void ui_controls(void) {
     if (ImGui::Begin("MOS 6502", &app.ui.cpu_controls_open, ImGuiWindowFlags_None)) {
 
         /* CPU state */
-        const uint8_t ir = sim_ir();
-        const uint8_t p = sim_p();
+        const uint8_t ir = sim_get_ir();
+        const uint8_t p = sim_get_p();
         char p_str[9] = {
             (p & (1<<7)) ? 'N':'n',
             (p & (1<<6)) ? 'V':'v',
@@ -246,10 +250,15 @@ void ui_controls(void) {
             (p & (1<<0)) ? 'C':'c',
             0,
         };
-        ImGui::Text("A:%02X X:%02X Y:%02X SP:%02X PC:%04X", sim_a(), sim_x(), sim_y(), sim_sp(), sim_pc());
-        ImGui::Text("P:%02X (%s)", p, p_str);
-        ImGui::Text("IR:%02X  (%s)\n", ir, util_opcode_to_str(ir));
-        ImGui::Text("Data:%02X Addr:%04X %s", sim_data_bus(), sim_addr_bus(), sim_rw()?"R":"W");
+        ImGui::Text("A:%02X X:%02X Y:%02X SP:%02X PC:%04X",
+            sim_get_a(), sim_get_x(), sim_get_y(), sim_get_sp(), sim_get_pc());
+        ImGui::Text("P:%02X (%s) Cycle: %d", p, p_str, sim_get_cycle()>>1);
+        ImGui::Text("IR:%02X %s\n", ir, util_opcode_to_str(ir));
+        ImGui::Text("Data:%02X Addr:%04X %s %s %s",
+            sim_get_data(), sim_get_addr(),
+            sim_get_rw()?"R":"W",
+            sim_get_clk0()?"CLK0":"    ",
+            sim_get_sync()?"SYNC":"    ");
         ImGui::Separator();
         ImGui::Spacing();
 
@@ -321,8 +330,62 @@ void ui_controls(void) {
         }
         ImGui::Text("%s", tooltip);
         ImGui::Separator();
+        ImGui::Text("Memory:");
         ImGui::BeginChild("##memedit");
         ui_memedit_draw_content(&app.ui.memedit_integrated);
+        ImGui::EndChild();
+    }
+    ImGui::End();
+}
+
+void ui_tracelog(void) {
+    if (!app.ui.tracelog_open) {
+        return;
+    }
+    const float disp_w = (float) sapp_width();
+    const float disp_h = (float) sapp_height();
+    ImGui::SetNextWindowPos({ disp_w / 2, disp_h - 150 }, ImGuiCond_Once, { 0.5f, 0.0f });
+    ImGui::SetNextWindowSize({ 600, 128 }, ImGuiCond_Once);
+    if (ImGui::Begin("Trace Log", &app.ui.tracelog_open, ImGuiWindowFlags_None)) {
+        ImGui::Text("cycle ab   db rw pc   a  x  y  s  p        ir mnemonic   "); ImGui::NextColumn();
+        ImGui::Separator();
+        ImGui::BeginChild("##trace_data");
+        if (trace_num_items() > 0) {
+            uint8_t last_ir = 0xFF;
+            for (int32_t i = trace_num_items()-1; i >= 0; i--) {
+                const uint8_t ir = trace_get_ir(i);
+                const uint8_t p = trace_get_p(i);
+                char p_str[9] = {
+                    (p & (1<<7)) ? 'N':'n',
+                    (p & (1<<6)) ? 'V':'v',
+                    (p & (1<<5)) ? 'X':'x',
+                    (p & (1<<4)) ? 'B':'b',
+                    (p & (1<<3)) ? 'D':'d',
+                    (p & (1<<2)) ? 'I':'i',
+                    (p & (1<<1)) ? 'Z':'z',
+                    (p & (1<<0)) ? 'C':'c',
+                    0,
+                };
+                ImGui::Text("%5d %04X %02X %s  %04X %02X %02X %02X %02X %s %02X %s",
+                    trace_get_cycle(i),
+                    trace_get_addr(i),
+                    trace_get_data(i),
+                    trace_get_rw(i)?"R":"W",
+                    trace_get_pc(i),
+                    trace_get_a(i),
+                    trace_get_x(i),
+                    trace_get_y(i),
+                    trace_get_sp(i),
+                    p_str,
+                    ir,
+                    ir!=last_ir?util_opcode_to_str(ir):"");
+                last_ir = ir;
+            }
+            if (app.ui.tracelog_scroll_to_end) {
+                app.ui.tracelog_scroll_to_end = false;
+                ImGui::SetScrollHere();
+            }
+        }
         ImGui::EndChild();
     }
     ImGui::End();
