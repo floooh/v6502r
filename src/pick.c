@@ -86,15 +86,15 @@ pick_result_t pick(float2_t mouse_pos, float2_t disp_size, float2_t offset, floa
         uint32_t tri_index = pick_tris[ii][1];
         // get the triangle corner points (each vertex is 4 uint16s)
         uint32_t vi = tri_index * 3 * 4;
-        uint16_t x0 = (int16_t) vb[layer_index][vi+0];
-        uint16_t y0 = (int16_t) vb[layer_index][vi+1];
-        uint16_t x1 = (int16_t) vb[layer_index][vi+4];
-        uint16_t y1 = (int16_t) vb[layer_index][vi+5];
-        uint16_t x2 = (int16_t) vb[layer_index][vi+8];
-        uint16_t y2 = (int16_t) vb[layer_index][vi+9];
-        float2_t a = { (float)x0,(float)y0 };
-        float2_t b = { (float)x1,(float)y1 };
-        float2_t c = { (float)x2,(float)y2 };
+        float x0 = (float) vb[layer_index][vi+0];
+        float y0 = (float) vb[layer_index][vi+1];
+        float x1 = (float) vb[layer_index][vi+4];
+        float y1 = (float) vb[layer_index][vi+5];
+        float x2 = (float) vb[layer_index][vi+8];
+        float y2 = (float) vb[layer_index][vi+9];
+        float2_t a = { x0, y0 };
+        float2_t b = { x1, y1 };
+        float2_t c = { x2, y2 };
         if (point_in_triangle(p, a, b, c)) {
             if (res.num_hits < PICK_MAX_HITS) {
                 // node index of first triangle corner (will be the same for all corners
