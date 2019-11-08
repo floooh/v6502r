@@ -718,3 +718,24 @@ int read_transistor_on(state_t* state, uint8_t* ptr, int max_bytes) {
     }
 }
 
+int write_node_values(state_t* state, const uint8_t* ptr, int max_bytes) {
+    int bytes_to_copy = WORDS_FOR_BITS(state->nodes) * sizeof(bitmap_t);
+    if (bytes_to_copy <= max_bytes) {
+        memcpy(state->nodes_value, ptr, bytes_to_copy);
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
+int write_transistor_on(state_t* state, const uint8_t* ptr, int max_bytes) {
+    int bytes_to_copy = WORDS_FOR_BITS(state->transistors) * sizeof(bitmap_t);
+    if (bytes_to_copy <= max_bytes) {
+        memcpy(state->transistors_on, ptr, bytes_to_copy);
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}

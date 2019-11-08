@@ -269,6 +269,14 @@ void ui_controls(void) {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 7.0f, 7.0f } );
         ImGui::PushStyleColor(ImGuiCol_Button, 0xFFFFFFFF);
         ImGui::PushStyleColor(ImGuiCol_Text, 0xFF000000);
+        if (ImGui::Button(ICON_FA_STEP_BACKWARD, { 28, 25 })) {
+            sim_pause(true);
+            trace_pop();
+        }
+        if (ImGui::IsItemHovered()) {
+            tooltip = "Step back one half-cycle";
+        }
+        ImGui::SameLine();
         if (sim_paused()) {
             if (ImGui::Button(ICON_FA_PLAY, { 28, 25 })) {
                 sim_pause(false);
@@ -287,9 +295,7 @@ void ui_controls(void) {
         }
         ImGui::SameLine();
         if (ImGui::Button(ICON_FA_STEP_FORWARD, { 28, 25 })) {
-            if (!sim_paused()) {
-                sim_pause(true);
-            }
+            sim_pause(true);
             sim_step(1);
         }
         if (ImGui::IsItemHovered()) {
@@ -297,9 +303,7 @@ void ui_controls(void) {
         }
         ImGui::SameLine();
         if (ImGui::Button(ICON_FA_FAST_FORWARD, { 28, 25 })) {
-            if (!sim_paused()) {
-                sim_pause(true);
-            }
+            sim_pause(true);
             sim_step(2);
         }
         if (ImGui::IsItemHovered()) {
@@ -307,9 +311,7 @@ void ui_controls(void) {
         }
         ImGui::SameLine();
         if (ImGui::Button(ICON_FA_ARROW_RIGHT, { 28, 25 })) {
-            if (!sim_paused()) {
-                sim_pause(true);
-            }
+            sim_pause(true);
             sim_step_op();
         }
         if (ImGui::IsItemHovered()) {
@@ -317,6 +319,7 @@ void ui_controls(void) {
         }
         ImGui::SameLine();
         if (ImGui::Button(ICON_FA_EJECT, { 28, 25 })) {
+            trace_clear();
             sim_init_or_reset();
             sim_start(0x0000);
         }
@@ -344,15 +347,30 @@ void ui_tracelog(void) {
     }
     const float disp_w = (float) sapp_width();
     const float disp_h = (float) sapp_height();
+    const float footer_h = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
     ImGui::SetNextWindowPos({ disp_w / 2, disp_h - 150 }, ImGuiCond_Once, { 0.5f, 0.0f });
     ImGui::SetNextWindowSize({ 600, 128 }, ImGuiCond_Once);
     if (ImGui::Begin("Trace Log", &app.ui.tracelog_open, ImGuiWindowFlags_None)) {
-        ImGui::Text("cycle ab   db rw pc   a  x  y  s  p        ir mnemonic   "); ImGui::NextColumn();
+        ImGui::Text("cycle/h rw ab   db pc   a  x  y  s  p        sync ir mnemonic   "); ImGui::NextColumn();
         ImGui::Separator();
-        ImGui::BeginChild("##trace_data");
+        ImGui::BeginChild("##trace_data", ImVec2(0, -footer_h));
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        float text_height = ImGui::GetTextLineHeightWithSpacing();
+        float window_width = ImGui::GetWindowWidth();
         if (trace_num_items() > 0) {
-            uint8_t last_ir = 0xFF;
             for (int32_t i = trace_num_items()-1; i >= 0; i--) {
+                const uint32_t flip_bits = trace_get_flipbits(i);
+                uint32_t bg_color = 0;
+                switch (flip_bits) {
+                    case 0: bg_color = 0xFF327D2E; break;
+                    case 1: bg_color = 0xFF3C8E38; break;
+                    case 2: bg_color = 0xFFC06515; break;
+                    case 3: bg_color = 0xFFD17619; break;
+                }
+                ImVec2 p0 = ImGui::GetCursorScreenPos();
+                ImVec2 p1 = { p0.x + window_width, p0.y + text_height};
+                dl->AddRectFilled(p0, p1, bg_color);
+
                 const uint8_t ir = trace_get_ir(i);
                 const uint8_t p = trace_get_p(i);
                 char p_str[9] = {
@@ -366,20 +384,21 @@ void ui_tracelog(void) {
                     (p & (1<<0)) ? 'C':'c',
                     0,
                 };
-                ImGui::Text("%5d %04X %02X %s  %04X %02X %02X %02X %02X %s %02X %s",
-                    trace_get_cycle(i),
+                ImGui::Text("%5d/%c %s  %04X %02X %04X %02X %02X %02X %02X %s %s    %02X %s",
+                    trace_get_cycle(i)>>1,
+                    trace_get_clk0(i)?'1':'0',
+                    trace_get_rw(i)?"R":"W",
                     trace_get_addr(i),
                     trace_get_data(i),
-                    trace_get_rw(i)?"R":"W",
                     trace_get_pc(i),
                     trace_get_a(i),
                     trace_get_x(i),
                     trace_get_y(i),
                     trace_get_sp(i),
                     p_str,
+                    trace_get_sync(i)?"S":" ",
                     ir,
-                    ir!=last_ir?util_opcode_to_str(ir):"");
-                last_ir = ir;
+                    util_opcode_to_str(ir));
             }
             if (app.ui.tracelog_scroll_to_end) {
                 app.ui.tracelog_scroll_to_end = false;
@@ -387,6 +406,9 @@ void ui_tracelog(void) {
             }
         }
         ImGui::EndChild();
+        if (ImGui::Button("Clear Log")) {
+            trace_clear();
+        }
     }
     ImGui::End();
 }

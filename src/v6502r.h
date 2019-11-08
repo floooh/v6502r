@@ -23,6 +23,8 @@ extern "C" {
 #define PICK_MAX_HITS (16)
 #define MAX_NODES (2048)
 #define MAX_TRACE_ITEMS (256)
+#define TRACE_FLIPBIT_CLK0 (1<<0)
+#define TRACE_FLIPBIT_OP (1<<1)
 
 typedef struct {
     float x, y, z, w;
@@ -43,7 +45,8 @@ typedef struct {
 
 typedef struct {
     uint32_t cycle;
-    uint8_t mem[2048];   // only trace the first few KB of memory
+    uint32_t flip_bits;     // for grouping instruction and cycle ticks
+    uint8_t mem[2048];      // only trace the first few KB of memory
     uint32_t node_values[64];
     uint32_t transistors_on[128];
 } trace_item_t;
@@ -89,6 +92,7 @@ typedef struct {
         bool tracelog_scroll_to_end;
     } ui;
     struct {
+        uint32_t flip_bits;     // for visually separating instructions and cycles
         uint32_t head;
         uint32_t tail;
         trace_item_t items[MAX_TRACE_ITEMS];
@@ -127,6 +131,7 @@ void sim_w16(uint16_t addr, uint16_t val);
 uint16_t sim_r16(uint16_t addr);
 void sim_write(uint16_t addr, uint16_t num_bytes, const uint8_t* ptr);
 uint32_t sim_get_cycle(void);
+void sim_set_cycle(uint32_t c);
 uint8_t sim_get_a(void);
 uint8_t sim_get_x(void);
 uint8_t sim_get_y(void);
@@ -141,13 +146,17 @@ uint16_t sim_get_addr(void);
 uint8_t sim_get_data(void);
 bool sim_read_node_values(uint8_t* ptr, int max_bytes);
 bool sim_read_transistor_on(uint8_t* ptr, int max_bytes);
+void sim_write_node_values(const uint8_t* ptr, int max_bytes);
+void sim_write_transistor_on(const uint8_t* ptr, int max_bytes);
 
 void trace_init(void);
 void trace_shutdown(void);
+void trace_clear(void);
 void trace_store(void);
+void trace_pop(void);   // load the last trace into the simulator and remove from log
 uint32_t trace_num_items(void);  // number of stored trace items
-void trace_load(uint32_t index);  // 0 is last stored item, 1 the one before that etc...
 uint32_t trace_get_cycle(uint32_t index);
+uint32_t trace_get_flipbits(uint32_t index);
 uint8_t trace_get_a(uint32_t index);
 uint8_t trace_get_x(uint32_t index);
 uint8_t trace_get_y(uint32_t index);
@@ -155,6 +164,7 @@ uint8_t trace_get_sp(uint32_t index);
 uint16_t trace_get_pc(uint32_t index);
 uint8_t trace_get_ir(uint32_t index);
 uint8_t trace_get_p(uint32_t index);
+bool trace_get_clk0(uint32_t index);
 bool trace_get_rw(uint32_t index);
 bool trace_get_sync(uint32_t index);
 uint16_t trace_get_addr(uint32_t index);

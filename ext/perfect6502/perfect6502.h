@@ -28,3 +28,5 @@ extern unsigned int cycle;
 extern int p6502_read_node_state_as_bytes(state_t* state, uint8_t* ptr, int max_nodes);
 extern int p6502_read_node_values(state_t* state, uint8_t* ptr, int max_bytes);
 extern int p6502_read_transistor_on(state_t* state, uint8_t* ptr, int max_bytes);
+extern int p6502_write_node_values(state_t* state, const uint8_t* ptr, int max_bytes);
+extern int p6502_write_transistor_on(state_t* state, const uint8_t* ptr, int max_bytes);

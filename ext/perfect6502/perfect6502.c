@@ -45,6 +45,14 @@ int p6502_read_transistor_on(void* state, uint8_t* ptr, int max_bytes) {
     return read_transistor_on(state, ptr, max_bytes);
 }
 
+int p6502_write_node_values(void* state, const uint8_t* ptr, int max_bytes) {
+    return write_node_values(state, ptr, max_bytes);
+}
+
+int p6502_write_transistor_on(void* state, const uint8_t* ptr, int max_bytes) {
+    return write_transistor_on(state, ptr, max_bytes);
+}
+
 /************************************************************
  *
  * 6502-specific Interfacing

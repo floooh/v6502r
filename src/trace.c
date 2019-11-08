@@ -7,8 +7,11 @@
 #include <string.h>
 
 void trace_init(void) {
-    app.trace.head = 0;
-    app.trace.tail = 0;
+    memset(&app.trace, 0, sizeof(app.trace));
+}
+
+void trace_clear(void) {
+    memset(&app.trace, 0, sizeof(app.trace));
 }
 
 void trace_shutdown(void) {
@@ -22,6 +25,10 @@ static uint32_t ring_idx(uint32_t i) {
 
 static bool ring_full(void) {
     return ring_idx(app.trace.head+1) == app.trace.tail;
+}
+
+static bool ring_empty(void) {
+    return app.trace.head == app.trace.tail;
 }
 
 static uint32_t ring_count(void) {
@@ -42,22 +49,14 @@ static uint32_t ring_add(void) {
     return idx;
 }
 
-void trace_store(void) {
-    uint32_t idx = ring_add();
-    trace_item_t* item = &app.trace.items[idx];
-    item->cycle = sim_get_cycle();
-    memcpy(&item->mem, memory, sizeof(item->mem));
-    sim_read_node_values((uint8_t*)item->node_values, sizeof(item->node_values));
-    sim_read_transistor_on((uint8_t*)item->transistors_on, sizeof(item->transistors_on));
-    app.ui.tracelog_scroll_to_end = true;
+static void ring_pop(void) {
+    if (!ring_empty()) {
+        app.trace.head = ring_idx(app.trace.head-1);
+    }
 }
 
 uint32_t trace_num_items(void) {
     return ring_count();
-}
-
-void trace_load(uint32_t index) {
-
 }
 
 static uint32_t trace_to_ring_index(uint32_t trace_index) {
@@ -280,6 +279,11 @@ uint32_t trace_get_cycle(uint32_t index) {
     return app.trace.items[idx].cycle;
 }
 
+uint32_t trace_get_flipbits(uint32_t index) {
+    uint32_t idx = trace_to_ring_index(index);
+    return app.trace.items[idx].flip_bits;
+}
+
 uint8_t trace_get_a(uint32_t index) {
     return trace_read_nodes(index, 8, (uint32_t[]){ a0,a1,a2,a3,a4,a5,a6,a7 });
 }
@@ -324,6 +328,10 @@ bool trace_get_sync(uint32_t index) {
     return trace_is_node_high(index, sync_);
 }
 
+bool trace_get_clk0(uint32_t index) {
+    return trace_is_node_high(index, clk0);
+}
+
 uint16_t trace_get_addr(uint32_t index) {
     return trace_read_nodes(index, 16, (uint32_t[]){ ab0, ab1, ab2, ab3, ab4, ab5, ab6, ab7, ab8, ab9, ab10, ab11, ab12, ab13, ab14, ab15 });
 }
@@ -331,3 +339,37 @@ uint16_t trace_get_addr(uint32_t index) {
 uint8_t trace_get_data(uint32_t index) {
     return trace_read_nodes(index, 8, (uint32_t[]){ db0, db1, db2, db3, db4, db5, db6, db7 });
 }
+
+void trace_store(void) {
+    uint32_t idx = ring_add();
+    trace_item_t* item = &app.trace.items[idx];
+    item->cycle = sim_get_cycle();
+    memcpy(&item->mem, memory, sizeof(item->mem));
+    sim_read_node_values((uint8_t*)item->node_values, sizeof(item->node_values));
+    sim_read_transistor_on((uint8_t*)item->transistors_on, sizeof(item->transistors_on));
+    // find start of instruction (first half tick after sync)
+    if (!sim_get_sync() && trace_get_sync(1)) {
+        app.trace.flip_bits ^= TRACE_FLIPBIT_OP;
+    }
+    if (sim_get_clk0()) {
+        app.trace.flip_bits |= TRACE_FLIPBIT_CLK0;
+    }
+    else {
+        app.trace.flip_bits &= ~TRACE_FLIPBIT_CLK0;
+    }
+    item->flip_bits = app.trace.flip_bits;
+    app.ui.tracelog_scroll_to_end = true;
+}
+
+void trace_pop(void) {
+    uint32_t idx = trace_to_ring_index(1);
+    trace_item_t* item = &app.trace.items[idx];
+    app.trace.flip_bits = item->flip_bits;
+    sim_set_cycle(item->cycle);
+    memcpy(memory, &item->mem, sizeof(item->mem));
+    sim_write_node_values((const uint8_t*)item->node_values, sizeof(item->node_values));
+    sim_write_transistor_on((const uint8_t*)item->transistors_on, sizeof(item->transistors_on));
+    ring_pop();
+    app.ui.tracelog_scroll_to_end = true;
+}
+

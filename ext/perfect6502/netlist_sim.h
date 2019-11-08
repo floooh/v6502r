@@ -15,4 +15,5 @@ void stabilizeChip(state_t *state);
 // v6502r additions
 int read_node_values(state_t* state, uint8_t* ptr, int max_bytes);
 int read_transistor_on(state_t* state, uint8_t* ptr, int max_bytes);
-
+int write_node_values(state_t* state, const uint8_t* ptr, int max_bytes);
+int write_transistor_on(state_t* state, const uint8_t* ptr, int max_bytes);

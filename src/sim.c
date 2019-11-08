@@ -143,7 +143,11 @@ bool sim_get_sync(void) {
 }
 
 uint32_t sim_get_cycle(void) {
-    return cycle;
+    return cycle+1;
+}
+
+void sim_set_cycle(uint32_t c) {
+    cycle = c - 1;
 }
 
 bool sim_read_node_values(uint8_t* ptr, int max_bytes) {
@@ -152,4 +156,12 @@ bool sim_read_node_values(uint8_t* ptr, int max_bytes) {
 
 bool sim_read_transistor_on(uint8_t* ptr, int max_bytes) {
     return 0 != p6502_read_transistor_on(p6502_state, ptr, max_bytes);
+}
+
+void sim_write_node_values(const uint8_t* ptr, int max_bytes) {
+    p6502_write_node_values(p6502_state, ptr, max_bytes);
+}
+
+void sim_write_transistor_on(const uint8_t* ptr, int max_bytes) {
+    p6502_write_transistor_on(p6502_state, ptr, max_bytes);
 }
