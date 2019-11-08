@@ -46,9 +46,9 @@ typedef struct {
 typedef struct {
     uint32_t cycle;
     uint32_t flip_bits;     // for grouping instruction and cycle ticks
-    uint8_t mem[2048];      // only trace the first few KB of memory
     uint32_t node_values[64];
     uint32_t transistors_on[128];
+    uint8_t mem[4096];      // only trace the first few KB of memory
 } trace_item_t;
 
 typedef struct {
@@ -92,7 +92,9 @@ typedef struct {
         bool tracelog_scroll_to_end;
     } ui;
     struct {
-        uint32_t flip_bits;     // for visually separating instructions and cycles
+        uint32_t hovered_cycle;     // mouse-hovered cycle number
+        uint32_t selected_cycle;    // selected cycle number
+        uint32_t flip_bits;         // for visually separating instructions and cycles
         uint32_t head;
         uint32_t tail;
         trace_item_t items[MAX_TRACE_ITEMS];
@@ -154,6 +156,7 @@ void trace_shutdown(void);
 void trace_clear(void);
 void trace_store(void);
 void trace_pop(void);   // load the last trace into the simulator and remove from log
+bool trace_revert_to_selected(void);
 uint32_t trace_num_items(void);  // number of stored trace items
 uint32_t trace_get_cycle(uint32_t index);
 uint32_t trace_get_flipbits(uint32_t index);
@@ -167,6 +170,9 @@ uint8_t trace_get_p(uint32_t index);
 bool trace_get_clk0(uint32_t index);
 bool trace_get_rw(uint32_t index);
 bool trace_get_sync(uint32_t index);
+bool trace_get_irq(uint32_t index);
+bool trace_get_nmi(uint32_t index);
+bool trace_get_res(uint32_t index);
 uint16_t trace_get_addr(uint32_t index);
 uint8_t trace_get_data(uint32_t index);
 

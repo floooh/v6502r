@@ -6,22 +6,22 @@
 /* FIXME: undocumented instructions are current not marked as such */
 const char* util_opcode_to_str(uint8_t opcode) {
     switch (opcode) {
-        case 0x0: return "BRK         ";
-        case 0x1: return "ORA (zp,X)  ";
-        case 0x2: return "*INV        ";
-        case 0x3: return "*SLO (zp,X) ";
-        case 0x4: return "*NOP zp     ";
-        case 0x5: return "ORA zp      ";
-        case 0x6: return "ASL zp      ";
-        case 0x7: return "*SLO zp     ";
-        case 0x8: return "PHP         ";
-        case 0x9: return "ORA #       ";
-        case 0xa: return "ASLA        ";
-        case 0xb: return "*ANC #      ";
-        case 0xc: return "*NOP abs    ";
-        case 0xd: return "ORA abs     ";
-        case 0xe: return "ASL abs     ";
-        case 0xf: return "*SLO abs    ";
+        case 0x0:  return "BRK        ";
+        case 0x1:  return "ORA (zp,X) ";
+        case 0x2:  return "*INV       ";
+        case 0x3:  return "*SLO (zp,X)";
+        case 0x4:  return "*NOP zp    ";
+        case 0x5:  return "ORA zp     ";
+        case 0x6:  return "ASL zp     ";
+        case 0x7:  return "*SLO zp    ";
+        case 0x8:  return "PHP        ";
+        case 0x9:  return "ORA #      ";
+        case 0xa:  return "ASLA       ";
+        case 0xb:  return "*ANC #     ";
+        case 0xc:  return "*NOP abs   ";
+        case 0xd:  return "ORA abs    ";
+        case 0xe:  return "ASL abs    ";
+        case 0xf:  return "*SLO abs   ";
         case 0x10: return "BPL #      ";
         case 0x11: return "ORA (zp),Y ";
         case 0x12: return "*INV       ";

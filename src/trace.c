@@ -332,6 +332,18 @@ bool trace_get_clk0(uint32_t index) {
     return trace_is_node_high(index, clk0);
 }
 
+bool trace_get_irq(uint32_t index) {
+    return trace_is_node_high(index, irq);
+}
+
+bool trace_get_nmi(uint32_t index) {
+    return trace_is_node_high(index, nmi);
+}
+
+bool trace_get_res(uint32_t index) {
+    return trace_is_node_high(index, res);
+}
+
 uint16_t trace_get_addr(uint32_t index) {
     return trace_read_nodes(index, 16, (uint32_t[]){ ab0, ab1, ab2, ab3, ab4, ab5, ab6, ab7, ab8, ab9, ab10, ab11, ab12, ab13, ab14, ab15 });
 }
@@ -361,15 +373,33 @@ void trace_store(void) {
     app.ui.tracelog_scroll_to_end = true;
 }
 
-void trace_pop(void) {
-    uint32_t idx = trace_to_ring_index(1);
-    trace_item_t* item = &app.trace.items[idx];
+static void load_item(trace_item_t* item) {
     app.trace.flip_bits = item->flip_bits;
     sim_set_cycle(item->cycle);
     memcpy(memory, &item->mem, sizeof(item->mem));
     sim_write_node_values((const uint8_t*)item->node_values, sizeof(item->node_values));
     sim_write_transistor_on((const uint8_t*)item->transistors_on, sizeof(item->transistors_on));
-    ring_pop();
-    app.ui.tracelog_scroll_to_end = true;
 }
 
+void trace_pop(void) {
+    uint32_t idx = trace_to_ring_index(1);
+    trace_item_t* item = &app.trace.items[idx];
+    load_item(item);
+    ring_pop();
+}
+
+bool trace_revert_to_selected(void) {
+    uint32_t idx;
+    for (idx = app.trace.tail; idx != app.trace.head; idx = ring_idx(idx+1)) {
+        if (app.trace.selected_cycle == app.trace.items[idx].cycle) {
+            break;
+        }
+    }
+    if (idx == app.trace.head) {
+        return false;
+    }
+    trace_item_t* item = &app.trace.items[idx];
+    load_item(item);
+    app.trace.head = ring_idx(idx+1);
+    return true;
+}
