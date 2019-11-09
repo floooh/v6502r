@@ -93,9 +93,11 @@ void ui_init() {
         desc.y = 50;
         ui_dasm_init(&app.ui.dasm, &desc);
     }
+    ui_asm_init();
 }
 
 void ui_shutdown() {
+    ui_asm_discard();
     ui_dasm_discard(&app.ui.dasm);
     ui_memedit_discard(&app.ui.memedit);
     ui_memedit_discard(&app.ui.memedit_integrated);
@@ -131,6 +133,7 @@ void ui_frame() {
     ui_dasm_draw(&app.ui.dasm);
     ui_tracelog();
     ui_controls();
+    ui_asm_draw();
     sg_imgui_draw(&app.ui.sg_imgui);
 }
 
@@ -164,6 +167,7 @@ void ui_menu(void) {
         if (ImGui::BeginMenu("Windows")) {
             ImGui::MenuItem("Controls", 0, &app.ui.cpu_controls_open);
             ImGui::MenuItem("Trace Log", 0, &app.ui.tracelog_open);
+            ImGui::MenuItem("Assembler", 0, &app.ui.asm_open);
             ImGui::MenuItem("Memory Editor", 0, &app.ui.memedit.open);
             ImGui::MenuItem("Disassembler", 0, &app.ui.dasm.open);
             ImGui::EndMenu();

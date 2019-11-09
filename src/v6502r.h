@@ -89,6 +89,7 @@ typedef struct {
         sg_imgui_t sg_imgui;
         bool cpu_controls_open;
         bool tracelog_open;
+        bool asm_open;
         bool tracelog_scroll_to_end;
     } ui;
     struct {
@@ -115,6 +116,9 @@ void ui_shutdown(void);
 void ui_frame(void);
 void ui_draw(void);
 bool ui_input(const sapp_event* event);
+void ui_asm_init(void);
+void ui_asm_discard(void);
+void ui_asm_draw(void);
 
 void chipvis_init(void);
 void chipvis_draw(void);

@@ -12,6 +12,7 @@ add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 fips_setup()
 fips_import_fips_imgui_imgui()
 fips_add_subdirectory(ext/perfect6502)
+fips_add_subdirectory(ext/texteditor)
 fips_add_subdirectory(src)
 fips_finish()
 
