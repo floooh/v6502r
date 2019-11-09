@@ -3,7 +3,6 @@
 //------------------------------------------------------------------------------
 #include "v6502r.h"
 
-/* FIXME: undocumented instructions are current not marked as such */
 const char* util_opcode_to_str(uint8_t opcode) {
     switch (opcode) {
         case 0x0:  return "BRK        ";

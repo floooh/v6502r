@@ -271,7 +271,7 @@ void ui_controls(void) {
         ImGui::PushStyleColor(ImGuiCol_Text, 0xFF000000);
         if (ImGui::Button(ICON_FA_STEP_BACKWARD, { 28, 25 })) {
             sim_pause(true);
-            trace_pop();
+            trace_revert_to_previous();
         }
         if (ImGui::IsItemHovered()) {
             tooltip = "Step back one half-cycle";
@@ -345,9 +345,13 @@ void ui_tracelog(void) {
     if (!app.ui.tracelog_open) {
         return;
     }
-    // clear the selected item if it has fallen off the history
-    if (app.trace.selected_cycle <= app.trace.items[app.trace.tail].cycle) {
-        app.trace.selected_cycle = 0;
+    // clear the selected item is outside the trace log
+    if (!trace_empty()) {
+        if ((app.trace.selected_cycle < trace_get_cycle(trace_num_items()-1)) ||
+            (app.trace.selected_cycle > trace_get_cycle(0)))
+        {
+            app.trace.selected = false;
+        }
     }
 
     const float disp_w = (float) sapp_width();
@@ -375,10 +379,10 @@ void ui_tracelog(void) {
                     case 2: bg_color = 0xFFC06515; break;
                     case 3: bg_color = 0xFFD17619; break;
                 }
-                if (cur_cycle == app.trace.hovered_cycle) {
+                if (app.trace.hovered && (cur_cycle == app.trace.hovered_cycle)) {
                     bg_color = 0xFF3643F4;
                 }
-                if (cur_cycle == app.trace.selected_cycle) {
+                if (app.trace.selected && (cur_cycle == app.trace.selected_cycle)) {
                     bg_color = 0xFF0000D5;
                 }
                 ImVec2 p0 = ImGui::GetCursorScreenPos();
@@ -416,10 +420,11 @@ void ui_tracelog(void) {
                     trace_get_irq(i)?"   ":"IRQ",
                     trace_get_nmi(i)?"   ":"NMI",
                     trace_get_res(i)?"   ":"RES");
-                if (ImGui::IsMouseHoveringRect(p0, p1)) {
+                if (ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(p0, p1)) {
                     any_item_hovered = true;
                     app.trace.hovered_cycle = trace_get_cycle(i);
                     if (ImGui::IsMouseClicked(0)) {
+                        app.trace.selected = true;
                         app.trace.selected_cycle = app.trace.hovered_cycle;
                     }
                 }
@@ -429,17 +434,14 @@ void ui_tracelog(void) {
                 ImGui::SetScrollHere();
             }
         }
-        if (!any_item_hovered) {
-            // set hovered item to an impossible value
-            app.trace.hovered_cycle = sim_get_cycle() + 2;
-        }
+        app.trace.hovered = any_item_hovered;
         ImGui::EndChild();
         ImGui::Separator();
         if (ImGui::Button("Clear Log")) {
             trace_clear();
         }
         ImGui::SameLine();
-        if (0 != app.trace.selected_cycle) {
+        if (app.trace.selected) {
             if (ImGui::Button("Revert to Selected")) {
                 trace_revert_to_selected();
             }

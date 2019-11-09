@@ -59,9 +59,14 @@ uint32_t trace_num_items(void) {
     return ring_count();
 }
 
-static uint32_t trace_to_ring_index(uint32_t trace_index) {
-    return ring_idx(app.trace.head - 1 - trace_index);
+bool trace_empty(void) {
+    return ring_empty();
+}
 
+static uint32_t trace_to_ring_index(uint32_t trace_index) {
+    uint32_t idx = ring_idx(app.trace.head - 1 - trace_index);
+    assert(idx != app.trace.head);
+    return idx;
 }
 
 static int trace_get_bitmap(const uint32_t* bm, uint32_t index) {
@@ -360,7 +365,7 @@ void trace_store(void) {
     sim_read_node_values((uint8_t*)item->node_values, sizeof(item->node_values));
     sim_read_transistor_on((uint8_t*)item->transistors_on, sizeof(item->transistors_on));
     // find start of instruction (first half tick after sync)
-    if (!sim_get_sync() && trace_get_sync(1)) {
+    if (!sim_get_sync() && (trace_num_items() > 1) && trace_get_sync(1)) {
         app.trace.flip_bits ^= TRACE_FLIPBIT_OP;
     }
     if (sim_get_clk0()) {
@@ -381,14 +386,24 @@ static void load_item(trace_item_t* item) {
     sim_write_transistor_on((const uint8_t*)item->transistors_on, sizeof(item->transistors_on));
 }
 
-void trace_pop(void) {
+// load the previous trace item into the simulator and pop it from the trace log
+bool trace_revert_to_previous(void) {
+    if (trace_num_items() < 1) {
+        return false;
+    }
     uint32_t idx = trace_to_ring_index(1);
     trace_item_t* item = &app.trace.items[idx];
     load_item(item);
     ring_pop();
+    return true;
 }
 
+// load the selected trace item into the simulator, and drop following trace items
 bool trace_revert_to_selected(void) {
+    if (!app.trace.selected) {
+        return false;
+    }
+    // find the selected item by cycle
     uint32_t idx;
     for (idx = app.trace.tail; idx != app.trace.head; idx = ring_idx(idx+1)) {
         if (app.trace.selected_cycle == app.trace.items[idx].cycle) {

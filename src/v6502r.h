@@ -92,6 +92,8 @@ typedef struct {
         bool tracelog_scroll_to_end;
     } ui;
     struct {
+        bool hovered;               // true if mouse is currently hovering a UI trace item
+        bool selected;              // true if a trace item is currently selected in the UI
         uint32_t hovered_cycle;     // mouse-hovered cycle number
         uint32_t selected_cycle;    // selected cycle number
         uint32_t flip_bits;         // for visually separating instructions and cycles
@@ -155,9 +157,10 @@ void trace_init(void);
 void trace_shutdown(void);
 void trace_clear(void);
 void trace_store(void);
-void trace_pop(void);   // load the last trace into the simulator and remove from log
+bool trace_revert_to_previous(void);
 bool trace_revert_to_selected(void);
 uint32_t trace_num_items(void);  // number of stored trace items
+bool trace_empty(void);
 uint32_t trace_get_cycle(uint32_t index);
 uint32_t trace_get_flipbits(uint32_t index);
 uint8_t trace_get_a(uint32_t index);
