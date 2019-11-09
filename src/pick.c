@@ -45,10 +45,9 @@ pick_result_t pick(float2_t mouse_pos, float2_t disp_size, float2_t offset, floa
     // next convert into vertex coordinate space (see chipvis.glsl)
     float half_size_x = (seg_max_x>>1)/65535.0f;
     float half_size_y = (seg_max_y>>1)/65535.0f;
-    // NOTE: don't need to care about underflow
     float vx = ((sx / scale.x) - offset.x + half_size_x) * 65535.0f;
     float vy = ((sy / scale.y) - offset.y + half_size_y) * 65535.0f;
-    if (((int)vx >= seg_max_x) || ((int)vy >= seg_max_y)) {
+    if (((int)vx<=0) || ((int)vy<=0) || ((int)vx>=seg_max_x) || ((int)vy>=seg_max_y)) {
         // out of bounds
         return res;
     }
