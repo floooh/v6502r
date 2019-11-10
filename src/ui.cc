@@ -116,6 +116,11 @@ bool ui_input(const sapp_event* ev) {
             case SAPP_KEYCODE_4: l = 3; break;
             case SAPP_KEYCODE_5: l = 4; break;
             case SAPP_KEYCODE_6: l = 5; break;
+            case SAPP_KEYCODE_C: app.ui.cpu_controls_open = !app.ui.cpu_controls_open; break;
+            case SAPP_KEYCODE_L: app.ui.tracelog_open = !app.ui.tracelog_open; break;
+            case SAPP_KEYCODE_A: app.ui.asm_open = !app.ui.asm_open; break;
+            case SAPP_KEYCODE_M: app.ui.memedit.open = !app.ui.memedit.open; break;
+            case SAPP_KEYCODE_D: app.ui.dasm.open = !app.ui.dasm.open; break;
             default: break;
         }
         if (l != -1) {
@@ -165,11 +170,11 @@ void ui_menu(void) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Windows")) {
-            ImGui::MenuItem("Controls", 0, &app.ui.cpu_controls_open);
-            ImGui::MenuItem("Trace Log", 0, &app.ui.tracelog_open);
-            ImGui::MenuItem("Assembler", 0, &app.ui.asm_open);
-            ImGui::MenuItem("Memory Editor", 0, &app.ui.memedit.open);
-            ImGui::MenuItem("Disassembler", 0, &app.ui.dasm.open);
+            ImGui::MenuItem("Controls", "Alt+C", &app.ui.cpu_controls_open);
+            ImGui::MenuItem("Trace Log", "Alt+L", &app.ui.tracelog_open);
+            ImGui::MenuItem("Assembler", "Alt+A", &app.ui.asm_open);
+            ImGui::MenuItem("Memory Editor", "Alt+M", &app.ui.memedit.open);
+            ImGui::MenuItem("Disassembler", "Alt+D", &app.ui.dasm.open);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Theme")) {
