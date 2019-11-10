@@ -1,0 +1,1271 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> -->
+<HTML>
+<HEAD>
+  <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=us-ascii">
+  <TITLE>asmx multi-CPU assembler documentation</TITLE>
+</HEAD>
+<BODY TEXT="#000000" BGCOLOR="#FFFFFF">
+<H1>asmx semi-generic assembler</H1>
+
+<H2>FOREWORD</H2>
+
+Okay, so it's not really generic, just semi generic.  This started
+from an 8080 assembler I wrote in Turbo Pascal back in my college days
+when I had a class where I had to write an 8080 emulator.  The assembler
+wasn't part of the class, but no way was I going to hand assemble code
+again like I did back in my early TRS-80 days.  Then when I started
+dabbling with ColecoVision and Atari 2600 code, I made a Z-80 and a 6502
+assembler from it.
+<P>
+But Turbo Pascal and MS-DOS are way out of style now, so I ported the
+code to plain standard C.  It should run on any Unix-like operating
+system.  It should also run on any operating system that provides
+Unix-style file and command-line handling.  In particular, it runs fine
+under Mac OS X, which is what I use on my laptop.
+<P>
+Porting it to C wasn't enough, though.  I had added some nice features
+like macros to the 6502 assembler and I wanted them in the Z-80
+assembler too.  But I didn't want to have to copy and paste code every
+time I added a new feature.  So I turned the code inside out, and made
+the common code into a gigantic <tt>.h</tt> file.  This made writing an
+assembler for a new CPU easy enough that I was able to write a 6809
+assembler in one day, plus another day for debugging.
+<P>
+Unlike most "generic" assemblers, I make an effort to conform to the
+standard mnemonics and syntax for a CPU, as you'd find them in the chip
+manufacturer's documentation.  I'm a bit looser on the pseudo-ops,
+trying to be inclusive whenever possible so that existing code has a
+better chance of working with fewer changes, especially code written
+back in the '80s.
+<P>
+This is a two-pass assembler.  That means that on the first pass it
+figures out where all the labels go, then on the second pass it
+generates code.  I know there are popular multi-pass assemblers out
+there (like DASM for 6502), and they have their own design philosophy.
+I'm sticking with the philosopy that was used by the old EDTASM
+assemblers for the TRS-80.  There are a few EDTASM-isms that you might
+notice, if you know what to look for.
+<P>
+But being a two-pass assembler, there are some things you can't do.
+You can't <tt>ORG</tt> to a label that hasn't been defined yet, because on
+the second pass it'll have a value, and your code will go into a
+different location, and all your labels will be at the wrong
+address.  This is called a "phase error".  You also can't use a
+label that hasn't been defined yet with <tt>DS</tt> or <tt>ALIGN</tt> because they
+affect the current location.
+<P>
+Some CPUs like the 6502 and 6809 have different instructions which
+can provide smaller faster code based on the size of an operand.
+To make this work, the assembler keeps an extra flag in the symbol
+table during the second pass, which tells if the symbol was known
+yet at this point in the first pass.  Then the assembler can know
+to use the longer form to avoid a phase error.  The 6809 assembler
+syntax uses "<tt>&lt;</tt>" (force 8-bits) and "<tt>&gt;</tt>" (force 16-bits) to override
+this decision.  The 6502 assembler can also override this with a
+"<tt>&gt;</tt>" before an absolute or absolute-indexed address operand.  (Note
+that this usage is different from "<tt>&lt;</tt>" and "<tt>&gt;</tt>" as a high/low byte
+of a word value.)
+<P>
+Some assemblers can only output code in binary.  This might be nice
+if you're making a video game cartridge ROM, but it's really not
+very flexible.  Intel and Motorola both came up with very nice text
+file formats which don't require any kind of padding when you do an
+<tt>ORG</tt> instruction, and don't require silly "segment" definitions
+just to keep <tt>DS</tt> instructions from generating object code.  Then,
+following the Unix philosophy of making tools that can connect to
+other tools, you can pipe the object code to another utility which
+makes the ROM image.
+<P>
+Anyhow, it works pretty well for what I want it to do.
+<P>
+ - Bruce -
+
+<HR>
+
+<H2>HOW TO BUILD asmx</H2>
+
+The standard way to build asmx is using the makefile:
+<p>
+<pre>  make</pre>
+<p>
+This will create the asmx binary in the src sub-directory.
+That's it.  Now you will might want to copy it to your
+<tt>/usr/local/bin</tt> or <tt>~/bin</tt> directory, but that's your choice.
+<p>
+If you are using a unix-like OS such as Linux, OS X, or BSD, you
+can also use:
+<p>
+<pre>  make install</pre>
+<p>
+This will install the binaries to <tt>~/bin</tt>, unless you change the
+makefile to install it somewhere else. Symbolic links are generated
+so that each CPU assembler can be used with a separate command.
+<p>
+If you can't use the makefile, the simplest way is this:
+<p>
+<pre>  gcc *.c -o asmx</pre>
+<p>
+Windows users should install Cygwin as the easiest way to get GCC.
+
+<HR>
+
+<H2>RUNNING IT</H2>
+
+Just give it the name of your assembler source file, and
+whatever options you want.
+<P>
+  <tt>asmx [options] srcfile</tt>
+<P>
+Here are the command line options:
+<P>
+<pre>
+    --                  end of options
+    -e                  show errors to screen
+    -w                  show warnings to screen
+    -l [filename]       make a listing file, default is srcfile.lst
+    -o [filename]       make an object file, default is srcfile.hex or srcfile.s9
+    -d label[[:]=value] define a label, and assign an optional value
+    -s9                 output object file in Motorola S9 format (16-bit address)
+    -s19                output object file in Motorola S9 format (16-bit address)
+    -s28                output object file in Motorola S9 format (24-bit address)
+    -s37                output object file in Motorola S9 format (32-bit address)
+    -b [base[-end]]     output object file as binary with optional base/end addresses
+    -c                  send object code to stdout
+    -C cputype          specify default CPU type (currently 6502)
+</pre><P>
+Example:
+<P>
+  <tt>asmx -l -o -w -e program.asm</tt>
+<P>
+This assembles the source file "<tt>program.asm</tt>", shows warnings and
+errors to the screen, creates a listing file "<tt>program.asm.lst</tt>", and
+puts the object code in an Intel hex format file named "<tt>program.asm.hex</tt>".
+(Binary files get named "<tt>program.asm.bin</tt>", and Motorola S9 files get an
+extension of <tt>.s9</tt>, <tt>.s19</tt>, <tt>.s28</tt>, or <tt>.s37</tt>.)
+<P>
+Notes:
+<P>
+  The '<tt>--</tt>' option is needed when you use <tt>-l</tt>, <tt>-o</tt>, or <tt>-b</tt> as the last option
+  on the command line with no parameters, so that they don't try to eat up your source file
+  name.  It's really better to just put <tt>-l</tt> and <tt>-o</tt> first in the options.
+<P>
+  The value in <tt>-d</tt> must be a number.  No expressions are allowed.  The
+  valid forms are:
+<P>
+<table style='margin-left:20pt'>
+    <tr><td><tt>-d label</tt>          <td> &nbsp; defines the label as <tt>EQU 0</tt>
+    <tr><td><tt>-d label=value</tt>    <td> &nbsp; defines the label as <tt>EQU value</tt>
+    <tr><td><tt>-d label:=value</tt>   <td> &nbsp; defines the label as <tt>SET value</tt>
+</table>
+<P>
+  By default, object code is written as an Intel hex file unless the <tt>-s</tt> or
+  <tt>-b</tt> option is specified.
+<P>
+  The value in <tt>-b</tt> specifies the start address for your binary file. If you
+  are making code for a ROM at address range 0xC000-0xFFFF, use "<tt>-b 0xC000-0xFFFF</tt>"
+  and the first byte of the object file will be whatever belongs at 0xC000. Anything
+  at a lower address is not written to the file, any gaps are filled
+  with 0xFF, and no bytes past 0xFFFF are written to the file. The object file is <i>not</i>
+  padded to the full address range. Be careful about using large <tt>ORG</tt> values without
+  an end address, or the resulting binary file could become VERY large.
+<P>
+  The <tt>-c</tt> and <tt>-o</tt> options are incompatible.  Attempting to use both will
+  result in an error.  Normal screen output (pass number, total errors,
+  error messages, etc.) always goes to stderr.
+
+<HR>
+
+<H2>EXPRESSIONS</H2>
+
+Whenever a value is needed, it goes through the expression evaluator.
+The expression evaluator will attempt to do the arithmetic needed to
+get a result.
+<P>
+Unary operations take a single value and do something with it.  The
+supported unary operations are:
+<P>
+<table border=1>
+  <tr><td>+ val        <td>positive of val
+  <tr><td>- val        <td>negative of val
+  <tr><td>~ val        <td>bitwise NOT of val
+  <tr><td>! val        <td>logical NOT of val (returns 1 if val is zero, else 0)
+  <tr><td>&lt; val        <td>low 8 bits of val
+  <tr><td>&gt; val        <td>high 8 bits of val
+  <tr><td>..DEF sym    <td>returns 1 if symbol 'sym' has already been defined
+  <tr><td>..UNDEF sym  <td>returns 1 if symbol 'sym' has not been defined yet
+  <tr><td>( expr )     <td>parentheses for grouping sub-expressions
+  <tr><td>[ expr ]     <td>square brackets can be used as parentheses when necessary
+  <tr><td>'c'          <td>One or two character constants, equal to the ASCII value
+  <tr><td>'cc'           <td>of c or cc.  In the two-byte case, the first character
+                 is the high byte.
+  <tr><td>H(val)       <td>high 8 bits of val; whitespace not allowed before '('
+  <tr><td>L(val)       <td>low 8 bits of val; whitespace not allowed before '('
+</table>
+<P>
+NOTE: with the Z-80, <tt>(expr)</tt>, <tt>H(val)</tt>, and <tt>L(val)</tt> will likely not work at
+the start of an expression because of Z-80 operand syntax.  Likewise
+with the 6809, <tt>&lt;val</tt> and <tt>&gt;val</tt> may have special meaning at the start of
+an operand.
+<P>
+Binary operations take two values and do something with them.  The
+supported binary operations are:
+<P>
+<table border=1>
+  <tr><td>x * y        <td>x multipled by y
+  <tr><td>x / y        <td>x divided by y
+  <tr><td>x % y        <td>x modulo y
+  <tr><td>x + y        <td>x plus y
+  <tr><td>x - y        <td>x minus y
+  <tr><td>x &lt;&lt; y       <td>x shifted left by y bits
+  <tr><td>x &gt;&gt; y       <td>x shifted right by y bits
+  <tr><td>x &amp; y        <td>bitwise x AND y
+  <tr><td>x | y        <td>bitwise x OR y
+  <tr><td>x ^ y        <td>bitwise x XOR y
+  <tr><td>x = y        <td rowspan=6>comparison operators, return 1 if condition is true<br>(note that = and == are the same)
+  <tr><td>x == y 
+  <tr><td>x &lt; y
+  <tr><td>x &lt;= y
+  <tr><td>x &gt; y
+  <tr><td>x &gt;= y
+  <tr><td>x &amp;&amp; y       <td>logical AND of x and y (returns 1 if x !=0 and y != 0)
+  <tr><td>x || y       <td>logical OR of x and y (returns 1 if x != 0 or y != 0)
+</table>
+<P>
+Numbers:
+<P>
+<table border=1>
+  <tr><td>.            <td rowspan=3>current program counter
+  <tr><td>*
+  <tr><td>$
+  <tr><td>$nnnn        <td rowspan=3>hexadecimal constant
+  <tr><td>nnnnH
+  <tr><td>0xnnnn
+  <tr><td>nnnn         <td rowspan=2>decimal constant
+  <tr><td>nnnnD
+  <tr><td>nnnnO        <td>octal constant
+  <tr><td>%nnnn        <td rowspan=2>binary constant
+  <tr><td>nnnnB
+</table>
+<P>
+  Hexadecimal constants of the form "<tt>nnnnH</tt>" don't need a leading zero if
+  there is no label defined with that name.
+<P>
+Operator precedence:
+<P>
+  <tt>( ) [ ]</tt><br>
+  unary operators: <tt>+ - ~ ! &lt; &gt; ..DEF ..UNDEF</tt><br>
+  <tt>* / %</tt><br>
+  <tt>+ -</tt><br>
+  <tt>&lt; &lt;= &gt; &gt;= = == !=</tt><br>
+  <tt>&amp; &amp;&amp; | || ^ &lt;&lt; &gt;&gt;</tt>
+<P>
+WARNING:<br>
+  Shifts and AND, OR, and XOR have a lower precedence than the comparison
+  operators!  You must use parentheses when combining them with comparison operators!
+<P>
+  Example:<br>
+    Use "<tt>(OPTIONS &amp; 3) = 2</tt>", not "<tt>OPTIONS &amp; 3 = 2</tt>".  The former checks the
+    lowest two bits of the label <tt>OPTIONS</tt>, the latter compares "<tt>3 = 2</tt>"
+    first, which always results in zero.
+<P>
+  Also, unary operators have higher precedence, so if X = 255, "<tt>&lt;X + 1</tt>" is
+  256, but "<tt>&lt;(X + 1)</tt>" is 0.
+<P>
+  With the 6809 assembler, a leading "<tt>&lt;</tt>" or "<tt>&gt;</tt>" often refers to an addressing
+  mode.  If you really want to use the low-byte or high-byte operator, surround
+  the whole thing with parentheses, like "<tt>(&lt;LABEL)</tt>".  This does not apply to
+  immediate mode, so "<tt>LDA #&lt;LABEL</tt>" will use the low byte of <tt>LABEL</tt>.
+<P>
+NOTE:
+  <tt>..def</tt> and <tt>..undef</tt> do not work with local labels.  (the ones that start with
+  '<tt>@</tt>' or '<tt>.</tt>')
+
+<HR>
+
+<H2>LABELS AND COMMENTS</H2>
+
+Labels must consist of alphanumeric characters or underscores, and must
+not begin with a digit.  Examples are "<tt>FOO</tt>", "<tt>_BAR</tt>", and "<tt>BAZ_99</tt>".  Labels
+are limited to 255 characters.  Labels may also contain '<tt>$</tt>' characters, but
+must not start with one.
+<P>
+Labels must begin in the first column of the source file when they are
+declared, and may optionally have a "<tt>:</tt>" following them.  Opcodes with no
+label must have at least one blank character before them.
+<P>
+Local labels are defined starting with "<tt>@</tt>" or "<tt>.</tt>".  This glues whatever
+is after the "<tt>@</tt>" or "<tt>.</tt>" to the last non-temporary code label defined so far,
+making a unique label.  Example: "<tt>@1</tt>", "<tt>@99</tt>", "<tt>.TEMP</tt>", and "<tt>@LOOP</tt>".  These
+can be used until the next non-local label, by using this short form.  They
+appear in the symbol table with a long form of "<tt>LABEL@1</tt>" or "<tt>LABEL.1</tt>", but
+can not be referenced by this full name.  Local labels starting with a "<tt>.</tt>"
+can also be defined as subroutine local, by using the <tt>SUBROUTINE</tt> pseudo-op.
+<P>
+Comments may either be started with a "<tt>*</tt>" as the first non-blank character
+of a line, or with a "<tt>;</tt>" in the middle of the line.
+<P>
+Lines after the <tt>END</tt> pseudo-op are ignored as though they were comments,
+except for <tt>LIST</tt> and <tt>OPT</tt> lines.
+
+<HR>
+
+<H2>PSEUDO-OPS</H2>
+
+These are all the opcodes that have nothing to do with the instruction
+set of the CPU.  All pseudo-ops can be preceeded with a "<tt>.</tt>" (example:
+"<tt>.BYTE</tt>" works the same as "<tt>BYTE</tt>")
+<P>
+NOTE:
+  All of the data pseudo-ops like <tt>DB</tt>, <tt>DW</tt>, and <tt>DS</tt> have a limit of 1023
+  bytes of initialized data.  (This can be changed in <tt>asmx.h</tt> if
+  you really need it bigger.)
+
+<H3>.6502 / .68HC11 / etc.</H3>
+
+  The CPU type can be specified this way in addition to the <tt>CPU</tt> and
+  <tt>PROCESSOR</tt> pseudo-ops.
+
+<H3>ASCIC</H3>
+
+  Creates a text string preceeded by a single byte indicating the length
+  of the string.  This is equivalent to a Pascal-style string.
+
+<H3>ASSERT expr</H3>
+
+  Generates an error if expr is false (equals zero).
+
+<H3>ALIGN</H3>
+
+  This ensures that the next instruction or data will be located on a
+  power-of-two boundary.  The parameter must be a power of two (2, 4,
+  8, 16, etc.)
+
+<H3>CPU</H3>
+
+  This is an alias for <tt>PROCESSOR</tt>.
+
+<H3>DB / BYTE / DC.B / FCB</H3>
+
+  Defines one or more constant bytes in the code.  You can use as many
+  comma-separated values as you like.  Strings use either single or
+  double quotes.  Doubled quotes inside a string assemble to a quote
+  character.  The backslash ("<tt>\</tt>") can escape a quote, or it can
+  represent a tab ("<tt>\t</tt>"), linefeed ("<tt>\n</tt>"), or carriage return ("<tt>\r</tt>")
+  character.  Hex escapes ("<tt>\xFF</tt>") are also supported.
+
+<H3>DW / WORD / DC.W / FDB</H3>
+
+  Defines one or more constant 16-bit words in the code, using the
+  native endian-ness of the CPU.  With the 6502, Z-80, and 8080, the
+  low word comes first; with the 6809, the high word comes first.
+  Quoted text strings are padded to a multiple of two bytes.  The
+  data is not aligned to a 2-byte address.
+
+<H3>DL / LONG / DC.L</H3>
+
+  Defines one or more constant 32-bit words in the code, using the
+  native endian-ness of the CPU.  With the 6502, Z-80, and 8080, the
+  low word comes first; with the 6809, the high word comes first.
+  Quoted text strings are padded to a multiple of four bytes.  The
+  data is not aligned to a 4-byte address.
+
+<H3>DRW</H3>
+
+  Define Reverse Word - just like <tt>DW</tt>, except the bytes are reversed
+  from the current endian setting.
+
+<H3>DS / RMB / BLKB</H3>
+
+  Skips a number of bytes, optionally initialized.
+<P>
+  Examples:
+<pre>
+     DS 5     ; skip 5 bytes (generates no object code)
+     DS 6,"*" ; assemble 6 asterisks</pre>
+<P>
+   Note that no forward-reference values are allowed for the length
+   because this would cause phase errors.
+
+<H3>ERROR message</H3>
+
+  This prints a custom error message.
+
+<H3>EVEN</H3>
+
+  This is an alias for <tt>ALIGN 2</tt>.
+
+<H3>FCC</H3>
+
+  Motorola's equivalent to <tt>DB</tt> with a string.  Each string starts and
+  ends with the same character.  The start/end character must not be
+  alphanumeric or an underscore.
+<P>
+  Examples:
+<pre>
+     FCC /TEXT/     ; 4 bytes "TEXT"
+     FCC \TEXT\     ; 4 bytes "TEXT"</pre>
+<P>
+  In this assembler, <tt>FCC</tt> is extended by allowing it to work like <tt>DB</tt>
+  afterward, only with a different quote character.  Also, the
+  string delimiter can be repeated twice inside the string to
+  include the delimiter in the string.
+<P>
+  Examples:
+<pre>
+     FCC /TEXT//TEXT/    ; 9 bytes "TEXT/TEXT"
+     FCC /TEXT/,0        ; 5 bytes "TEXT" followed by a null
+     FCC /TEXT/,0,/TEXT/ ; 9 bytes "TEXT", null, "TEXT"</pre>
+<P>
+  There is also a second mode where the length is specified, the text has
+  no quotes, and the text is padded to the specified length with blanks.
+  Be aware that if the text is too short, it will copy more data from your
+  source line, even if you have a comment in the line!  However, it will
+  stop copying when it encounters a tab character.
+<P>
+  Example:
+<pre>
+     FCC 9,TEXT          &lt;- this is 9 bytes "TEXT     "
+     FCC 9,TEXT;comm     &lt;- this is 9 bytes "TEXT;comm"
+     FCC 9,TEXT;comment  &lt;- this is 9 bytes "TEXT;comm", then an error from "ent"</pre>
+
+<H3>END</H3>
+
+  This marks the end of code.  After the <tt>END</tt> statement, all input is 
+  ignored except for <tt>LIST</tt> and <tt>OPT</tt> lines.
+
+<H3>EQU / = / SET / :=</H3>
+
+  Sets a label to a value.  The difference between <tt>EQU</tt> and <tt>SET</tt> is that
+  a <tt>SET</tt> label is allowed to be redefined later in the source code.
+  <tt>EQU</tt> and '<tt>=</tt>' are equivalent, and <tt>SET</tt> and '<tt>:=</tt>' are equivalent.
+
+<H3>HEX</H3>
+
+  Defines raw hexadecimal data.  Individual hex bytes may be separated by
+  spaces.
+<P>
+  Examples:
+<pre>
+     HEX 123456     ; assembles to hex bytes 12, 34, and 56
+     HEX 78 9ABC DE ;  assembles to hex bytes 78, 9A, BC and DE
+     HEX 1 2 3 4    ; Error: hexadecimal digits must be in pairs</pre>
+
+<H3>IF expr / ELSE / ELSIF expr / ENDIF</H3>
+
+  Conditional assembly.  Depending on the value in the <tt>IF</tt> statement,
+  code between it and the next <tt>ELSE</tt> / <tt>ELSIF</tt> / <tt>ENDIF</tt>, and code between
+  an <tt>ELSE</tt> and an <tt>ENDIF</tt>, may or may not be assembled.
+<P>
+  <tt>ELSIF</tt> is the same as "<tt>ELSE</tt>" followed by "<tt>IF</tt>", only without the need
+  for an extra <tt>ENDIF</tt>.
+<P>
+  Example:
+<pre>
+     IF .undef mode
+       ERROR mode not defined!
+     ELSIF mode = 1
+       JSR mode1
+     ELSIF mode = 2
+       JSR mode2
+     ELSE
+       ERROR Invalid value of mode!
+     ENDIF</pre>
+<P>
+  IF statements inside a macro only work inside that macro.  When
+  a macro is defined, <tt>IF</tt> statements are checked for matching <tt>ENDIF</tt>
+  statements.
+
+<H3>INCBIN filename</H3>
+
+  This inserts the contents of the named binary file into the object
+  code output. The size of the binary file is shown in the listing.
+
+<H3>INCLUDE filename</H3>
+
+  This starts reading source code from the named file.  The file is
+  read once in each pass.  <tt>INCLUDE</tt> files can be nested to a maximum
+  of 10 levels.  (This can be changed in <tt>asmx.c</tt> if you really need
+  it bigger.)
+
+<H3>LIST / OPT</H3>
+
+  These set assembler options.  Currently, the options are:
+<P>
+<table border=1>
+  <tr><td><tt>LIST ON</tt> / <tt>OPT LIST</tt>            <td>Turn on listing
+  <tr><td><tt>LIST OFF</tt> / <tt>OPT NOLIST</tt>         <td>Turn off listing
+  <tr><td><tt>LIST MACRO</tt> / <tt>OPT MACRO</tt>        <td>Turn on macro expansion in listing
+  <tr><td><tt>LIST NOMACRO</tt> / <tt>OPT NOMACRO</tt>    <td>Turn off macro expansion in listing
+  <tr><td><tt>LIST EXPAND</tt> / <tt>OPT EXPAND</tt>      <td>Turn on data expansion in listing
+  <tr><td><tt>LIST NOEXPAND</tt> / <tt>OPT NOEXPAND</tt>  <td>Turn off data expansion in listing
+  <tr><td><tt>LIST SYM</tt> / <tt>OPT SYM</tt>            <td>Turn on symbol table in listing
+  <tr><td><tt>LIST NOSYM</tt> / <tt>OPT NOSYM</tt>        <td>Turn off symbol table in listing
+  <tr><td><tt>LIST TEMP</tt> / <tt>OPT TEMP</tt>          <td>Turn on temp symbols in symbol table listing
+  <tr><td><tt>LIST NOTEMP</tt> / <tt>OPT NOTEMP</tt>      <td>Turn off temp symbols in symbol table listing
+</table>
+<P>
+  The default is listing on, macro expansion off, data expansion on,
+  symbol table on.
+
+<H3>MACRO / ENDM</H3>
+
+  Defines a macro.  This macro is used whenver the macro name is
+  used as an opcode.  Parameters are defined on the <tt>MACRO</tt> line,
+  and replace values used inside the macro.
+<P>
+  Macro calls can be nested to a maximum of 10 levels.  (This can
+  be changed in <tt>asmx.c</tt> if you really need it bigger.)
+<P>
+  Example:
+<pre>
+     TWOBYTES  MACRO parm1, parm2     ; start recording the macro
+               DB    parm1, parm2
+               ENDM                   ; stop recording the macro
+
+     TWOBYTES  1, 2        ; use the macro - expands to "DB 1, 2"</pre>
+<P>
+  An alternate form with the macro name after <tt>MACRO</tt>, instead of as
+  a label, is also accepted.  A comma after the macro name is
+  optional.
+<pre>
+               MACRO plusfive parm
+               DB    (parm)+5
+               ENDM</pre>
+<P>
+  When a macro is invoked with insufficient parameters, the remaining
+  parameters are replaced with a null string.  It is an error to invoke
+  a macro with too many parameters.
+<P>
+  Macro parameters can be inserted without surrounding whitespace
+  by using the '<tt>##</tt>' concatenation operator.
+<pre>
+     TEST      MACRO labl
+     labl ## 1 DB    1
+     labl ## 2 DB    2
+               ENDM
+
+               TEST  HERE ; labl ## 1 gets replaced with "HERE1"
+                          ; labl ## 2 gets replaced with "HERE2"</pre>
+<P>
+  Macro parameters can also be inserted by using the backslash ("<tt>\</tt>")
+  character.  This method also includes a way to access the actual
+  number of macro parameters supplied, and a unique identifier for
+  creating temporary labels.
+<P>
+  <tt>\0</tt> = number of macro parameters<br>
+  <tt>\1</tt>..<tt>\9</tt> = nth macro parameter<br>
+  <tt>\?</tt> = unique ID per macro invocation (padded with leading zeros to five digits)
+<P>
+  NOTE:  The line with the <tt>ENDM</tt> may have a label, and that will be included in the
+  macro definition.  However if you include a backslash escape before the <tt>ENDM</tt>, the
+  <tt>ENDM</tt> will not be recognized, and the macro definition will not end.  Be careful!
+
+<H3>ORG</H3>
+
+  Sets the origin address of the following code.  This defaults to
+  zero at the start of each assembler pass.
+
+<H3>PROCESSOR</H3>
+
+  This selects a specific CPU type to assemble code for.  Some assemblers
+  support multiple CPU sub-types.  Currently supported CPU types are:
+<P>
+<table border=1>
+   <tr><td>NONE          <td>No CPU type selected
+   <tr><td>1802          <td>RCA 1802
+   <tr><td>6502          <td>MOS Technology 6502
+   <tr><td>6502U         <td>MOS Technology 6502 with undocumented instructions
+   <tr><td>65C02         <td>Rockwell 65C02
+   <tr><td>6809          <td>Motorola 6809
+   <tr><td>6800 6802     <td>Motorola 6800
+   <tr><td>6801 6803     <td>Motorola 6801
+   <tr><td>6805          <td>Motorola 6805
+   <tr><td>6303          <td>Hitachi 6303 (6800 variant)
+   <tr><td>6811 68HC11
+       <br>68HC711 68HC811
+       <br>68HC99        <td>Motorola 68HC11 variants
+   <tr><td>68HC16        <td>Motorola 68HC16
+   <tr><td>68HSC08       <td>Motorola 68HSC08 (6805 variant)
+   <tr><td>68K 68000     <td>Motorola 68000
+   <tr><td>68010         <td>Motorola 68010
+   <tr><td>8051          <td>Intel 8051 variants
+   <tr><td>8080          <td>Intel 8080
+   <tr><td>8085          <td>Intel 8085
+   <tr><td>8085U         <td>Intel 8085 with undocumented instructions
+   <tr><td>ARM           <td>ARM (32-bit little-endian)
+   <tr><td>ARM_BE        <td>ARM big-endian
+   <tr><td>ARM_LE        <td>ARM little-endian
+   <tr><td>THUMB         <td>ARM Thumb (16-bit little-endian)
+   <tr><td>THUMB_BE      <td>ARM Thumb big-endian
+   <tr><td>THUMB_LE      <td>ARM Thumb little-endian
+   <tr><td>F8            <td>Fairchild F8
+   <tr><td>TOM           <td>Atari Jaguar GPU
+   <tr><td>JERRY         <td>Atari Jaguar DSP
+   <tr><td>Z80           <td>Zilog Z-80
+   <tr><td>GBZ80         <td>Gameboy Z-80 variant
+</table>
+<P>
+  At the start of each pass, this defaults to the assembler specified
+  in the "<tt>-C</tt>" command line option, if any, or the assembler type determined
+  from the name of the executable used on the command line.  The latter is
+  useful with soft-links when using Unix-type systems.  In that case, the
+  default assembler name can be determined by looking at the end of the
+  executable name used to invoke asmx, then selecting that CPU type.
+<P>
+  If no default assembler is specified, the <tt>DW</tt>/<tt>WORD</tt> and <tt>DL</tt>/<tt>LONG</tt> pseudo-ops
+  will generate errors because they do not know which endian order to use.
+<P>
+  Opcodes for the selected processor will have priority over generic
+  pseudo-ops.  However, assemblers for CPUs which have a "<tt>SET</tt>" opcode have
+  been specifically designed to pass control to the generic "<tt>SET</tt>" pseudo-op.
+
+<H3>REND</H3>
+
+  Ends an <tt>RORG</tt> block.  A label in front of <tt>REND</tt> receives the relocated
+  address + 1 of the last relocated byte in the <tt>RORG</tt> / <tt>REND</tt> block.
+
+<H3>RORG</H3>
+
+  Sets the relocated origin address of the following code.  Code
+  in the object file still goes to the same addresses that follow
+  the previous <tt>ORG</tt>, but labels and branches are handled as though
+  the code were being assembled starting at the <tt>RORG</tt> address.
+
+<H3>SEG / RSEG / SEG.U segment</H3>
+
+  Switches to a new code segment.  Code segments are simply different
+  sections of code which get assembled to different addresses.  They
+  remember their last location when you switch back to them.  If no 
+  segment name is specified, the null segment is used.
+<P>
+  At the start of each assembler pass, all segment pointers are reset
+  to zero, and the null segment becomes the current segment.
+<P>
+  <tt>SEG.U</tt> is for DASM compatibility.  DASM uses <tt>SEG.U</tt> to indicate an
+  "unitialized" segment.  This is necessary because its <tt>DS</tt> pseudo-op
+  always generates data even when none is specified.  Since the <tt>DS</tt>
+  pseudo-op in this assembler normally doesn't generate any data,
+  unitialized segments aren't supported as such.
+<P>
+  <tt>RSEG</tt> is for compatibility with vintage Atari 7800 source code.
+
+<H3>SUBROUTINE / SUBR name</H3>
+
+  This sets the scope for temporary labels beginning with a dot.
+  At the start of each pass, and when this pseudo-op is used with
+  no name specified, temporary labels beginning with a dot use the
+  previous non-temporary label, just as the temporary labels
+  beginning with an '<tt>@</tt>'.
+<P>
+  Example:
+
+<pre>
+       START
+       .LABEL  NOP        ; this becomes "START.LABEL"
+               SUBROUTINE foo
+       .LABEL  NOP        ; this becomes "FOO.LABEL"
+               SUBROUTINE bar
+       .LABEL  NOP        ; this becomes "BAR.LABEL"
+               SUBROUTINE
+       LABEL
+       .LABEL  NOP        ; this becomes "LABEL.LABEL"</pre>
+
+<H3>WORDSIZE n</H3>
+
+  Specifies the CPU's word size in bits.  This is for CPUs which do not
+  support byte addressing.  If the word size is zero, the native CPU
+  word size is used.  Currently only the Jaguar DSP/GSP uses a word
+  size that is not equal to 8.
+<P>
+  This is primarily intended for using <tt>DS</tt> pseudo-ops to create data
+  structure offsets, using <tt>WORDSIZE 8</tt>.
+
+<H3>ZSCII</H3>
+
+  Creates a compressed text string in the version 1 Infocom format.
+  Otherwise, this works exactly like the <tt>DB</tt> pseudo-op.  Note that this
+  will always generate a multiple of two bytes of data.
+<P>
+  WARNING: using a forward-referenced value could cause phase errors!
+<P>
+  See <A HREF="http://www.wolldingwacht.de/if/z-spec.html">
+  http://www.wolldingwacht.de/if/z-spec.html</A> for more information
+  on the compressed text format.
+<P>
+There is also one CPU-specific pseudo-op:
+
+<H3>SETDP value</H3>
+
+  With the 6809 assembler, this sets the current value of the
+  direct page register, for determining whether to use direct or
+  extended mode.  It defaults to zero at the start of each
+  assembler pass.
+
+<HR>
+
+<H2>SYMBOL TABLE DUMP</H2>
+
+The symbol table is dumped at the end of the listing file.  Each
+symbol shows its name, value, and flags.  The flags are:
+<P>
+<table border=1>
+  <tr><td>U<td>Undefined<td>this symbol was referenced but never defined
+  <tr><td>M<td>Multiply defined<td>this symbol was defined more than once with
+                        different values (only the first is kept)
+  <tr><td>S<td>SET<td>this symbol was defined with the <tt>SET</tt> pseudo-op, or from
+           the <tt>-dLABEL:=VALUE</tt> command line option
+  <tr><td>E<td>EQU<td>this symbol was defined with the <tt>EQU</tt> pseudo-op, or from
+           the <tt>-dLABEL=VALUE</tt> command line option
+</table>
+
+<HR>
+
+<H2>CHANGE HISTORY</H2>
+
+<H3>Version 1.1 changes (April 1995)</H3>
+(this version was on the original Starpath "Stella Gets a New Brain" CD)
+
+<UL>
+  <LI>Fixed a bug that would prevent using any label beginning with the letter
+      'A' as the first parameter of an opcode.
+  <LI>Prevented output of unnecessary origin commands to <tt>.DAT</tt> file to avoid
+      complaints from <tt>MAKEROM</tt>.
+  <LI>Fixed the "data overwritten" error in <tt>MAKEROM</tt>, which was only displaying
+      the low byte of the offending address.
+  <LI>Improved <tt>MAKEROM</tt>'s handling of out-of-range memory addresses.
+  <LI>Added a basic macro feature, controlled by the following pseudo-ops:
+     <pre>
+    &lt;label&gt;  MACRO         start recording the macro with the name &lt;label&gt;
+             ENDM          end the macro
+             LIST MACRO    enable macro expansion in listings
+             LIST NOMACRO  disable macro expansion in listings (default)
+             &lt;label&gt;       use the macro
+</pre>
+      Note that macros can not currently call other macros.
+</UL>
+
+<HR>
+
+<H3>Version 1.2 changes (September 1996)</H3>
+
+<UL>
+  <LI>Added macro parameters
+  <LI>Added <tt>FCB</tt>, <tt>FDB</tt>, <tt>RMB</tt>, <tt>BYTE</tt>, <tt>WORD</tt>, and <tt>BLKB</tt> pseudo-ops
+  <LI>Added binary constants (<tt>xxxxxxxxB</tt> and <tt>%xxxxxxxx</tt>)
+  <LI>Added <tt>ASLA</tt>, <tt>ROLA</tt>, <tt>LSRA</tt>, and <tt>RORA</tt> opcodes
+  <LI>Added '<tt>$</tt>' by itself as the current location, in addition to '<tt>.</tt>' and '<tt>*</tt>'
+  <LI><tt>DB</tt> and <tt>DW</tt> opcodes now work properly with multiple operands
+  <LI>Added <tt>&amp;</tt>, <tt>|</tt>, <tt>&lt;&lt;</tt>, and <tt>&gt;&gt;</tt> to expression evaluator.  Each of these operators
+      has the same precedence, below <tt>+</tt> and <tt>-</tt>.
+  <LI>Default file extension was changed from <tt>.A65</tt> to <tt>.ASM</tt>
+  <LI>Allowed command line options to be specified in lowercase
+  <LI>Added a new <tt>RORG</tt> "relative <tt>ORG</tt>" pseudo-op to allow assembling code that
+      will later be moved to a different address
+</UL>
+
+<HR>
+
+<H3>Version 1.3 changes (December 1996)</H3>
+
+<UL>
+  <LI>No more than one macro could be defined, because the macro list wasn't
+      being linked properly.
+  <LI>Errorlevel 1 is now returned if any errors occurred during assembly.
+</UL>
+
+<HR>
+
+<H3>Version 1.4 changes (February 2002)</H3>
+
+<UL>
+  <LI>Added <tt>FCC</tt> pseudo-op
+  <LI>Lines beginning with "<tt>*</tt>" are now comments
+  <LI>Jump indirect wouldn't work correctly if the line had a comment
+  <LI>No error was generated if too many macro parameters were used
+  <LI>Maximum macro parameters increased from 5 to 10
+  <LI>Lines from macro expansions with errors are now displayed
+  <LI>Symbol table is now displayed with more than one column
+  <LI>Lines that generate more than 3 bytes are flagged with a "+"
+</UL>
+
+<HR>
+ 
+<H3>Version 1.5 changes (2004-02-24)</H3>
+
+<UL>
+  <LI>Converted from Pascal to C.
+  <LI>Added 65C02 opcodes.  They can be disabled at compile time with a <tt>#define</tt>.
+  <LI>Improved output with more than 3 bytes of object code from a line.
+  <LI>Now outputs code in Intel Hex format.  Old object format still available
+      by changing a <tt>#define</tt>.
+</UL>
+
+<HR>
+
+<H3>Version 1.6 changes (2004-04-30)</H3>
+
+<UL>
+  <LI>Separated common code so that my Z-80 assembler could use the new features
+      like macros and <tt>INCLUDE</tt>.
+  <LI>Fixed a bug that would cause phase errors with one-character label names.
+  <LI>Fixed a bug that would prevent control pseudo-ops from working after <tt>END</tt>
+      pseudo-op.
+  <LI>Added <tt>DC.B</tt>, <tt>DC.W</tt>, <tt>.BYTE</tt>, and <tt>.WORD</tt> pseudo-ops for compatibility with source
+      code written for various other assemblers.
+  <LI><tt>DB</tt> now handles double quotes, <tt>\r</tt> <tt>\n</tt> <tt>\t</tt> <tt>\'</tt> and <tt>\"</tt>.  A bug in the handlng of
+      paired quotes (<tt>"foo""bar"</tt>) was fixed.
+  <LI>new <tt>DRW</tt> pseudo-op to do a <tt>DW</tt> in reverse order (such as for Atari 7800 Maria
+      chip display lists)
+  <LI>added <tt>INCLUDE</tt> pseudo-op.  Maximum nesting level is set to 10 by a <tt>#define</tt>.
+  <LI>added <tt>PROCESSOR 6502</tt>/<tt>PROCESSOR 65C02</tt> pseudo-op to select 65C02 instructions,
+      and for improved DASM compatiblity.  The default is 6502 instructions only.
+  <LI>increased the size of <tt>bytStr[]</tt> from 256 to 1024 bytes.  This will allow more
+      data for long-data pseudo-ops like <tt>DB</tt>, etc.
+  <LI>added support for <tt>DS</tt> pseudo-op with an initializer.  This is currently
+      limited to a max of 1024 bytes.  (<tt>DB</tt>, <tt>DW</tt>, and <tt>FCC</tt> also have this limit, but
+      do not yet have a bounds check for it.)
+  <LI>added <tt>HEX</tt> pseudo-op.  This also currently limited to a max of 1024 bytes.
+  <LI>[ and ] can now be used as parentheses in expressions, for better DASM source
+      compatibility.
+  <LI><tt>REND</tt> pseudo-op added for better DASM source compatibility.  Note that a label
+      on the <tt>REND</tt> line will receive the relocated value of the last relocated code
+      byte + 1.
+</UL>
+
+<HR>
+
+<H3>Version 1.7 changes (2004-08-25)</H3>
+
+<UL>
+  <LI>Added a 6809 assembler back-end.
+  <LI>Added an 8085 assembler back-end.  Couldn't just add 8080/8085 style opcodes
+      to the Z-80 assembler because the <tt>JP</tt> opcode with no condition in the Z-80
+      style mnemonics conflicts with <tt>JP</tt> in the 8080/8085 style mnemonics.
+      Irony: this assembler originally started out a long time ago as an 8080
+      assembler, and now it is again!  I did this new 8080 code from scratch,
+      rather than porting the old Turbo Pascal code to C.
+  <LI>Added a 68HC11 assembler back-end, with support for 6800, 6801, and 6303
+      instruction set variations.
+  <LI>Added support for undocumented 6502 instructions, enabled with "<tt>PROCESSOR
+      6502U</tt>".  Only the most reliable and useful instructions are implemented:
+      3-cycle <tt>NOP</tt> (mnemonic <tt>NOP3</tt>), <tt>LAX</tt>, <tt>DCP</tt>, <tt>ISB</tt>, <tt>RLA</tt>, <tt>RRA</tt>, <tt>SAX</tt>, <tt>SLO</tt>, <tt>SRE</tt>, <tt>ANC</tt>,
+      <tt>ARR</tt>, <tt>ASR</tt>, and <tt>SBX</tt>.
+  <LI>Added pseudo-ops to 6502 assembler to select CPU type without <tt>PROCESSOR</tt>
+      pseudo-op:  <tt>.6502</tt>, <tt>.6502U</tt>, <tt>.65C02</tt>
+  <LI>Added conditional assembly using <tt>IF &lt;expr&gt;</tt> / <tt>ELSE</tt> / <tt>ELSIF &lt;expr&gt;</tt> / <tt>ENDIF</tt>.
+      Maximum official nesting level is 255, but beyond that it will still work if
+      you don't try wierd stuff like multiple <tt>ELSE</tt> statements in a row.  <tt>&lt;expr&gt;</tt> is
+      an expression that is false if it is equal to 0 and true if it is not equal
+      to 0.
+  <LI>Added new operators to the expression evaluator, because IF needed them:<br>
+      <tt>..def</tt> symbol (returns 1 if symbol is defined)<br>
+      <tt>..undef</tt> symbol (returns 1 if symbol is not defined)<br>
+      <tt>&amp;&amp;</tt>, <tt>||</tt> (boolean and/or, returns either 1 or 0)<br>
+      <tt>&lt;</tt> <tt>&lt;=</tt> <tt>&gt;</tt> <tt>&gt;=</tt> <tt>=</tt> <tt>==</tt> <tt>!=</tt> (returns either 1 or 0; <tt>=</tt> and <tt>==</tt> are the same)<br>
+      Beware the operator precedence when using these!
+  <LI>Added new <tt>H()</tt> and <tt>L()</tt> operators for compatiblity with vintage Atari 7800
+      source code, equivalent to <tt>&gt;()</tt> and <tt>&lt;()</tt>.  Note that no whitespace is allowed
+      before the left paren.
+  <LI>Symbols may now contain the '$' character, but they must not start with it.
+      This, combined with <tt>H()</tt> and <tt>L()</tt>, will allow the original Atari 7800 ROM
+      source code to compile as-is.
+  <LI>Single quote operator can now handle 2-byte constants.  The first character
+      becomes the high byte of the constant.
+  <LI>Added <tt>0xnnnn</tt> hexadecimal constants (but not <tt>0nnn</tt> octal constants).
+  <LI>Fixed problems with <tt>DB</tt>, <tt>DW</tt>, <tt>DS</tt>, and <tt>FCC</tt> pseudo-ops.
+  <LI>Added bounds checking to <tt>DB</tt>, <tt>DW</tt>, and <tt>FCC</tt> pseudo-ops.  They are now limited to
+      <tt>MAX_BYTSTR - 1</tt> bytes (1023).
+  <LI>Added <tt>ERROR</tt> pseudo-op.
+  <LI>Added <tt>ALIGN</tt> pseudo-op.
+  <LI>Added <tt>SEG</tt>/<tt>RSEG</tt>/<tt>SEG.U</tt> pseudo-op.
+  <LI><tt>INCLUDE</tt> pseudo-op can now accept file names surrounded by single or double
+      quotes.
+  <LI>Handled division by zero.
+  <LI>Improved handling of form feed characters in source files.
+  <LI>Fixed some bugs in macro handling, and expanded maximum macro parameters from
+      10 to 30.
+  <LI>Temporary labels can now start with '<tt>.</tt>' in addition to '<tt>@</tt>'.
+  <LI>Labels can be defined from the command line with "<tt>-d label=value</tt>".  If value
+      is not specified, the label is set to zero.
+  <LI>Added <tt>-9</tt> command line option to generate Motorola S9-record code output.
+  <LI>Added <tt>-c</tt> command line option to send object code to stdout, to allow piping
+      to makerom.
+  <LI>Console output now goes to stderr.
+  <LI>Error messages now include file name and line number.
+  <LI>Bytes out of -127..256 range now generate a warning instead of an error.
+  <LI>Rewrote the documentation.
+</UL>
+
+<HR>
+
+<H3>Version 1.7.1 changes (2004-10-20)</H3>
+
+<UL>
+  <LI>Added exclusive-or ("<tt>^</tt>") to the expression evaluator.  This has the same
+      precedence as the existing <tt>AND</tt> and <tt>OR</tt> operators.
+  <LI><tt>DB</tt> has been modified to handle the case of arithmetic parameters which
+      start with a single-quoted character, such as "<tt>DB 'X'+$80</tt>".
+  <LI>6809 conditional long branches were off by one.
+  <LI>Changed 68HC11 assembler file name to all lowercase.
+  <LI>Found out that <tt>asm68hc11.c</tt> wasn't being included in the zip archive anyhow.
+  <LI>Added an F8 assembler back-end.  Since I have no real code to test this on,
+      it should be considered experimental.
+</UL>
+
+<HR>
+
+<H3>Version 1.7.2 changes (2005-08-21)</H3>
+
+<UL>
+  <LI>Added the <tt>SUBROUTINE</tt> pseudo-op.
+  <LI>Added <tt>BLKB</tt> pseudo-op as an alias to <tt>DS</tt>.
+  <LI>Fixed a bug that would cause errors if the line after an <tt>ENDM</tt>
+      was not a blank line.
+  <LI>F8 assembler relative branches were off by one.
+  <LI>Other minor changes to F8 assembler, including allowing expressions for
+      register numbers in more places, and 'A' and 'B' as hex register numbers
+      when not inappropriate.
+  <LI>Tweaked symbol table output to show up to 19 characters of symbol names,
+      and to fit in 80 columns.
+  <LI><tt>ENDIF</tt> lines and the guts of <tt>MACRO</tt> declarations did not respect the
+      <tt>LIST OFF</tt> setting.
+  <LI>Macro parameters can now be inserted without surrounding whitespace using
+      the '<tt>##</tt>' concatenation operator, similar to how it works in C macros.
+  <LI>6502 assembler can now force absolute or absolute-indexed addressing mode
+      (instead of zero-page and zero-page-indexed) by using '<tt>&gt;</tt>' in front of the
+      address, similar to how the 6809 does it.
+  <LI>When not using the <tt>-w</tt> option, warning lines would still print to the
+      console.
+  <LI>Z-80 assembler can now take parameters after a <tt>RST</tt> instruction, which are
+      interpreted as <tt>DB</tt> bytes.  Example:  <tt>RST 08H,'('</tt>
+  <LI>Fixed a bug that could cause phase errors if a forward-referenced label was
+      used with <tt>DW</tt>.
+  <LI>started work on <tt>REP</tt> pseudo-op (code still under construction)
+  <LI>Added an 1802 assembler back-end.
+  <LI>Added opcode table of common pseudo-ops to <tt>asmguts.h</tt>, and removed "<tt>DoStdOpcode</tt>"
+      pass-thru in order to keep more generic stuff out of the CPU-specific .c files.
+  <LI><tt>CPU_BIG_ENDIAN</tt>/<tt>CPU_LITTLE_ENDIAN</tt> <tt>#define</tt> now automatically controls
+      <tt>DW</tt>/<tt>DRW</tt> opcodes and <tt>Instr3W</tt>/<tt>Instr4W</tt>/<tt>Instr5W</tt> calls.
+  <LI>Cleanups for GCC 4 stricter type checking: string signedness with <tt>Str255</tt> type
+      and forward declaration of <tt>OpcdTab</tt>.
+  <LI>Short branch range check was allowing branches too far forward.
+  <LI>Z-80 assembler couldn't do "<tt>CP (a+b)/256</tt>" (or <tt>SUB</tt>, </tt>AND</tt>, <tt>OR</tt>, <tt>XOR</tt>) because it was
+      expecting "<tt>CP (HL)</tt>" etc.  Now it falls back and tries to evaluate the parens as
+      an immediate operand.
+  <LI>Added <tt>OPT NOEXPAND</tt> to disable expanding hex output for more than one listing line.
+  <LI>All standard pseudo-ops can now optionally start with a period, such as <tt>.DB</tt>, <tt>.DW</tt>,
+      <tt>.EQU</tt>, etc.
+  <LI>Standard pseudo-ops can now start with a period in column 1.
+  <LI>Symbol table output handles long symbols better by stretching really long symbol
+      names into multiple columns.
+</UL>
+
+<HR>
+
+<H3>Version 1.7.3 changes (2006-01-23)</H3>
+
+<UL>
+  <LI>Added "<tt>\0</tt>".."<tt>\9</tt>" macro parameter substitution as per the ASnn series of
+      assemblers at <A HREF="http://www.kingswood-consulting.co.uk/assemblers/">
+      http://www.kingswood-consulting.co.uk/assemblers/</A>.  Even though
+      it seems a bit silly to have more than one way to access macro parameters,
+      this does provide a way to get the number of macro parameters, and to generate
+      unique labels inside a macro.
+<P>
+      <tt>\0</tt> = number of macro parameters<BR>
+      <tt>\1</tt>..<tt>\9</tt> = nth macro parameter<BR>
+      <tt>\?</tt> = unique ID per macro invocation (padded with leading zeros to five digits)
+  <LI>6809 <tt>SETDP</tt> pseudo-op was broken by the opcode table rearrangement in 1.7.2.
+      It has been fixed.
+  <LI>Added the "<tt>:=</tt>" pseudo-op as an alias for the "<tt>SET</tt>" pseudo-op.
+  <LI>Multi-level nested macros have been implemented.
+  <LI>The "<tt>SET</tt>" pseudo-op now works properly for Z-80.  The <tt>SET</tt> opcode was hiding
+      access to the pseudo-op, though other variations ("<tt>.SET</tt>" and "<tt>:=</tt>") would still
+      work.  This fix is tricky enough that there may be some wierd side-effects in
+      error situations.  Some bugs with Z-80 <tt>SET</tt> opcode error handling were fixed as
+      well.
+  <LI>Added backslash hex escapes ("<tt>\xFF</tt>") for strings in <tt>DB</tt> pseudo-op.
+  <LI>"Short branch out of range" was changed from a warning to an error.
+  <LI>Added an 8051 assembler back-end.
+</UL>
+
+<HR>
+
+<H3>Version 1.7.4 changes (2006-11-09)</H3>
+
+<UL>
+  <LI>Updated Z-80 assembler with improved parsing techniques from the 8051
+      assembler.
+  <LI>In Z-80 assembler, "<tt>LD BC,(foo - 1) * 256</tt>" wouldn't assemble properly.
+  <LI>Added <tt>ZSCII</tt> pseudo-op to generate Infocom-style compressed text strings
+      in the version 1 format.  (versions 2 and later use a dictionary table
+      which is impractical to supply or generate)
+  <LI>Fixed a bug that caused long <tt>DB</tt>, <tt>DW</tt>, etc. statements to list most of their
+      lines in a macro when macro listing was turned off.
+  <LI>Fixed a bug that could cause a negative result to appear as "FFFF" in the
+      listing for the <tt>EQU</tt> and <tt>RORG</tt> pseudo-ops.
+  <LI>Added <tt>LIST SYM</tt> / <tt>LIST NOSYM</tt> to disable symbol table in listing file.
+  <LI>Added "FLAG.BIT" format to <tt>EQU</tt> / <tt>SET</tt> pseudo-op in 8051 assembler.
+  <LI><tt>ELSIF</tt> pseudo-op would cause a "Too many operands" error if its matching <tt>IF</tt>
+      expression evaluated to true.
+</UL>
+
+<HR>
+
+<H3>Version 1.8 changes (2007-01-11)</H3>
+
+<UL>
+  <LI>made changes to allow for unified assembler
+  <UL>
+    <LI>got rid of <tt>instr[]</tt> vs <tt>bytStr[]</tt> distinction and <tt>INSTR_MAX</tt>
+    <LI>new common error calls: <tt>BadMode()</tt> <tt>MissingOperand()</tt>
+    <LI><tt>InstrFoo()</tt> calls renamed to be a bit more descriptive (<tt>Instr5W</tt> -&gt; <tt>InstrBBBW</tt>, etc.)
+    <LI>made endian a variable, not a <tt>#define</tt>
+    <LI>removed <tt>usage()</tt> from invidivual assemblers
+    <LI>NUKED HARD TABS in C source code
+    <LI>updated other assemblers to use <tt>FindReg</tt>/<tt>GetReg</tt> from Z80
+    <LI>listing files now use eight more columns for hex data, and with new <tt>InstrFoo()</tt> calls,
+        spaces can now be put between opcodes and operands in hex data
+    <LI>common assembler code is now mostly 32-bit clean
+  </UL>
+  <LI>added a 68000 assembler. 68010-only instructions can be enabled with a <tt>#define</tt>, except
+      <tt>BKPT</tt> was left enabled because it is still semi-valid for 68000/68008
+  <LI>68HC16 referred to <tt>PSHM</tt> as "PUSHM" in a few places
+  <LI>68HC16 was mis-assembling <tt>ANDP</tt> and <tt>ORP</tt> as 8-bit immediate instructions
+  <LI>8051 was mis-assembling <tt>ORL</tt>/<tt>ANL</tt>/<tt>XRL dir,#imm</tt> instructions
+  <LI>8051 was mis-assembling <tt>ORL</tt>/<tt>ANL</tt>/<tt>XRL dir,A</tt> instructions
+  <LI>added new <tt>ASCIIC</tt> pseudo-op for counted-length (Pascal-style) strings
+  <LI>single-quoted character constants can now use the same backslash escapes as
+      the double-quoted strings in the <tt>DB</tt> pesudo-op
+  <LI>added support for "three-tab" listing format with hex data in 24 columns
+      which puts blanks between parts of instructions
+  <LI>added support for 32-bit addresses and symbols in listings (requires three-tab)
+  <LI>symbols can now start with a <tt>$</tt> if you set a <tt>#define</tt>, but this prevents
+      hexadecimal constants starting with a <tt>$</tt> from working
+  <LI>single-quoted constants are no longer limited to two bytes
+  <LI>CR-terminated source files would do bad things
+  <LI>object code output for Intel hex records now supports 32-bit addresses using record
+      types 04 and 05
+  <LI>object code output for Motorola S9 records now supports 32-bit addresses using new
+      "<tt>-s##</tt>" command line option, where <tt>##</tt> is the type of file: 9, 19, 28, or 37.  The number
+      is used for the file name of the object code output file.  9 and 19 are identical except
+      for the name of the object code output file.
+  <LI>fixed a really subtle bug that would cause <tt>ALIGN</tt>/<tt>EVEN</tt> to use up bytes when they weren't
+      supposed to (this bug dates back to the first appearance of <tt>ALIGN</tt>!)
+  <LI><tt>DS</tt> pseudo-op no longer allows forward-declared lengths, which cause phase errors
+  <LI><tt>DC.W</tt> and <tt>DC.L</tt> now suport text strings with null padding alignment after every string literal.
+      Note that alignment is internal-only, and any alignment error at the start will be preserved.
+</UL>
+
+<HR>
+
+<H3>Version 2.0a1 changes (2007-01-12)</H3>
+
+<UL>
+  <LI>Unified all assemblers into one binary. CPU type selection is as follows:
+      <UL>
+        <LI>if the CPU type can be determined from the executable name (either by renaming the
+            executable or creating a Unix file link to it), that becomes the default CPU type at
+            the start of each assembler pass
+        <LI>using the <tt>CPU</tt> or <tt>PROCESSOR</tt> pseudo-op selects a new CPU type
+        <LI>using a "." followed by the CPU type ("<tt>.68000</tt>") also selects a new CPU type
+        <LI>note that if no CPU has been selected and there is no default, the <tt>DW</tt> and <tt>DL</tt> pseudo-ops
+            will generate an error because they don't know what the current endian setting should be
+      <LI>symbol table dump is in the widest address width used
+      </UL>
+  <LI>8080 and 8085 are now broken up in to separate CPU types along with 8085U for the
+      undocumented 8085 instructions
+  <LI><tt>SUB</tt> pseudo-op alias was changed to <tt>SUBR</tt> because so many CPUs already have a <tt>SUB</tt> opcode
+  <LI>added an 8048 assembler, with no specific support for 8041/8021/8022 subsets yet
+</UL>
+
+<HR>
+
+<H3>Version 2.0a2 changes (2006-01-13)</H3>
+
+<UL>
+  <LI>Z80 would allow <tt>LD r,I</tt> or <tt>LD r,R</tt> with destination registers other than A
+  <LI>added Gameboy variant to Z80 assembler
+  <LI>fix from 2.0a1: "<tt>.CPUTYPE</tt>" in column 1 now works
+  <LI>Z80 <tt>ADD</tt>/<tt>ADC</tt>/<tt>SBC</tt> can be made to not require the "<tt>A,</tt>" if you <tt>#define NICE_ADD</tt>
+</UL>
+
+<HR>
+
+<H3>Version 2.0a3 changes (2007-01-14)</H3>
+
+<UL>
+  <LI>Fixed a bug with 68K "<tt>CMP Dn,Dn</tt>" that got the registers reversed
+  <LI>68K branches are made as short as possible if the destination is a known value
+</UL>
+
+<HR>
+
+<H3>Version 2.0a4 changes (2007-02-02)</H3>
+
+<UL>
+  <LI>added a 6805 assembler
+  <LI>fix from 2.0a1: symbol table dump was always 32-bits, now fixed
+  <LI>fix from 2.0a2: Gameboy Z80 support had CPU type flags moved from opcode table parm
+      to opcode type instead.
+  <LI>fixed a problem with <tt>..DEF</tt>/<tt>..UNDEF</tt> which would cause them to return incorrect results
+      during the first assembler pass, resulting in phase errors if they were used for
+      conditional assembly
+  <LI>68K: EA of "<tt>(operand)</tt>" or "<tt>(operand.W)</tt>" or "<tt>(operand.L)</tt>" did not work
+  <LI>68K: EA of "<tt>0(An)</tt>" or "<tt>(0,An)</tt>" now assembles as "<tt>(An)</tt>" if offset contains no forward defs
+  <LI>68K: "<tt>TST (1)*4(A1)</tt>" didn't work but "<tt>MOVE.L (A0,D0.W),1*4(A1)</tt>" did
+  <LI>68K: <tt>ADD</tt>/<tt>CMP</tt>/<tt>SUB Dn,An</tt> now assembles as <tt>ADDA</tt>/<tt>CMPA</tt>/<tt>SUBA</tt>, but <tt>EA,An</tt> still reports an error
+  <LI><tt>-d</tt> command line option now does a <tt>SET</tt> rather than an <tt>EQU</tt> if you use "<tt>:=</tt>" instead of "<tt>=</tt>"
+  <LI>added 65C816 support to 6502 assembler
+  <LI>rearranged multi-CPU handling so that each CPU type could have its own endian and listing
+      parameters, and its own opcode table, too.  This was primarily done because of 65C816.
+  <LI>added a new <tt>ADDR_24</tt> listing parameter for CPUs with 24-bit address such as 68000 and 65C816
+  <LI>Macros could be used before they are defined.  In the first pass there would be an error,
+      but in the second pass code would be generated and phase errors would happen.  Now an
+      error is generated if a macro is used before it is defined.
+</UL>
+
+<HR>
+
+<H3>Version 2.0b1 changes (2007-02-05)</H3>
+
+<UL>
+  <LI>68K: "<tt>EOR Dn,Dn</tt>" did not assemble properly
+  <LI><tt>ADDR_24</tt> list mode was one character too wide for <tt>DB</tt> data
+  <LI>Added Atari Jaguar GPU/DSP support.
+<P>
+      Bonuses:
+    <UL>
+      <LI><tt>ROLQ</tt> instruction equivalent to <tt>RORQ 32-n,Rn</tt>
+      <LI>pre-defined <tt>JR</tt>/<tt>JUMP</tt> condition codes
+    </UL>
+    <BR>
+    Caveat: labels are byte addresses, so if you use <tt>MOVE PC,Rn</tt> and compare the address,
+    or if you make a table of addresses, you need to divide by two.  This needs some way
+    to inherently divide Tom/Jerry code addresses by 2. I'll probably figure something
+    out before the final 2.0 version.
+</UL>
+
+<HR>
+
+<H3>Version 2.0b2 changes (2007-02-22)</H3>
+
+<UL>
+  <LI>added a CPU type of "NONE"
+  <LI>when printing an error message, extra hex data listing lines are no longer printed to stderr
+  <LI>68K/GBZ80 changed some value range warnings to errors
+  <LI>68K: longwords in instructions are now spaced in the listing as longwords when possible
+  <LI>68K: <tt>ADDI</tt>/<tt>CMPI</tt>/<tt>SUBI #imm,An</tt> now assembles as <tt>ADDA</tt>/<tt>CMPA</tt>/<tt>SUBA</tt>
+  <LI>68K: <tt>ADD</tt>/<tt>CMP</tt>/<tt>SUB EA,An</tt> now assembles as <tt>ADDA</tt>/<tt>CMPA</tt>/<tt>SUBA</tt>
+  <LI>68K: warning when branch could be shorter
+  <LI>68K: merged changes back to 1.8.2
+  <LI>assembler labels in column 1 are now checked for starting with a non-numeric character
+  <LI>added <tt>INCBIN</tt> pseudo-op to include binary files
+  <LI><tt>INCLUDE</tt> wasn't allowing blanks in file names, even when quotes were used
+  <LI>a binary object file can now be generated with with the "<tt>-b [baseaddr]</tt>" option
+      <UL>
+        <LI>hex baseaddr must be specified with a leading "<tt>0x</tt>"
+        <LI>out-of-order bytes will cause a padding fill of 0xFF bytes
+        <LI>bytes below <tt>baseaddr</tt> will not be put into file
+      </UL>
+  <LI>added support for CPUs with an addressing granularity (the resolution of a pointer)
+      larger than a byte, such as the Jaguar GPU/DSP. When a code label is defined, or the
+      current location pointer is read (with '<tt>.</tt>', '<tt>*</tt>', or '<tt>$</tt>'), it is divided by the number
+      of bytes per word. This can be overriden with the <tt>WORDSIZE</tt> pseudo-op, which either
+      specifies a new word size or, if zero, returns to the CPU's native width.
+<P>
+      This is a somewhat shaky feature right now, and doesn't handle things like word
+      alignment when the <tt>DB</tt> pseudo-op is used, or even adjusting the address at the left
+      margin of the listing file. I'll see about improving it if someone starts using this
+      for Jaguar.
+  <LI>added <tt>ASCIZ</tt>/<tt>ASCIIZ</tt> pseudo-op, which is like <tt>DB</tt> except that it adds a null to the end
+      of the data
+  <LI>added a new listing option <tt>TEMP</tt>/<tt>NOTEMP</tt> to not list temp symbols (containing a "<tt>.</tt>"
+      or "<tt>@</tt>") in symbol table at end of listing file
+</UL>
+
+<HR>
+
+<H3>Version 2.0b3 changes (2007-07-07)</H3>
+
+<UL>
+  <LI>Added 68HSC08 support to 6805 assembler.
+  <LI>Fixed a bug with some direct-page instructions in the 6805 assembler.
+  <LI>Invalid CPU type in <tt>-C</tt> command line option is now a fatal error.
+  <LI>Fixed a really old bug in the expression evaluator that would allow missing
+      operands, then fixed some bugs in the 8048 assembler that the fix brought out.
+  <LI>Fixed a serious bug in conditonal assembly. In an <tt>IF</tt>...<tt>ELSIF</tt>...<tt>ELSE</tt>...<tt>ENDIF</tt> block, if
+      any condition before the last <tt>ELSIF</tt> was true, the <tt>ELSE</tt> block would be assembled.
+</UL>
+
+<HR>
+
+<H3>Version 2.0b4 changes (2007-08-06)</H3>
+
+<UL>
+  <LI>Made HTML version of documentation.
+  <LI>Started adding ARM and ARM Thumb instruction sets, at the ARM5 level.
+      (Thumb is currently complete, ARM is missing LDC/STC and ADR/ADRL.)
+  <LI>Changed 'parm' in opcode table to a u_long to handle more complex
+      instruction sets.
+  <LI>Changed opcode parser to accept opcodes ending in wildcards.
+</UL>
+
+<HR>
+
+<H3>Version 2.0b5 changes (2009-10-31)</H3>
+
+<UL>
+  <LI>Added ARM LDC/STC instructions.
+     <BR>- ARM still needs range checks
+  <LI>Added ASSERT pseudo-op.
+  <LI>-b command line option now takes an end address (ex: "0x0000-0xFFFF")
+  <LI>Error checking is now done on numbers in -b and -d command line options.
+  <LI>Added -t command line option to output TRSDOS format binary files.
+  <LI>Started to deprecate "@" for temp labels (#define TEMP_LBLAT to enable @-labels)
+  <LI>Z80 can now use labels starting with and containing '$' and '@' (for some old TRSDOS code I had)
+      <BR>This is enabled by OPT_ATSYM and OPT_DOLLARSYM options in the AddCPU call)
+  <LI>Added 6309 support to 6809 assembler
+</UL>
+
+<HR>
+
+<H2>To do:</H2>
+
+<UL>
+  <LI>Code needs to be reformatted to Linux kernel style for reliable SCM merges
+  <LI>* error or warning if <tt>-b</tt> and data is out of range? (reset warning at <tt>ORG</tt>?)
+  <LI>* make test files for assembler pseudo-ops
+  <LI><tt>DS</tt> should be scaled by the <tt>WORDSIZE</tt>?
+  <LI>The <tt>SUBROUTINE</tt> pseudo-op needs to be tweaked.  It should either define the subroutine name
+      as a label, or use the label on the left side of the line as the name of the subroutine.
+  <LI>change "out of range" warnings in <tt>DB</tt>/<tt>DW</tt> to errors?
+  <LI>need to test what happens with 32-bit symbols on 16-bit and 24-bit address CPUs
+      <UL>
+        <LI>negative symbols vs $8000-$FFFF symbols?  maybe <tt>RefSym</tt> should sign-extend from 16 bits?
+        <LI>masking or wraparound of values for location counter?  (sign-extend <tt>locPtr</tt> as "<tt>.</tt>" too?)
+      </UL>
+  <LI>65C816: need addressing mode force characters
+  <LI>add Z80 undocumented instructions
+  <LI>double-check 8048 instruction set, and add support for 8048 variants
+  <LI>see if it's possible to get labels starting with "<tt>$</tt>" compatible with <tt>$xxxx</tt> hex constants,
+      maybe in <tt>RefSym</tt>?
+  <LI>Implement <tt>REP</tt> (or <tt>REPEAT</tt>) pseudo-op (currently under construction).
+  <LI>Implement "<tt>.FOO.</tt>" operators? (<tt>.SHL.</tt> <tt>.AND.</tt> <tt>.OR.</tt>, etc.)  If I do this, I will probably change
+      <tt>..DEF</tt> and <tt>..UNDEF</tt> to <tt>.DEF.</tt> and <tt>.UNDEF.</tt>
+  <LI>6809 <tt>WARNDP</tt> pseudo-op? (I think this was for "direct page could be used here" warnings on absolute addressing mode?)
+  <LI>Linkable/relocatable object code files (long-term 3.0 goal).
+</UL>
+
+<HR>
+
+<H2>BUGS:</H2>
+
+<UL>
+<!--  <LI>(none currently known) -->
+<li>8051 EQU needs to AND with 0xFF87, not 0x87?
+</UL>
+
+</BODY>
+</HTML>

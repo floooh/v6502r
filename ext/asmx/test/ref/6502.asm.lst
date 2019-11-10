@@ -1,0 +1,292 @@
+0000  00                        BRK
+0001  01 FF                     ORA ($FF,X)
+0003  02                        DB  $02
+0004  03                        DB  $03
+0005  04                        DB  $04
+0006  05 FF                     ORA $FF
+0008  06 FF                     ASL $FF
+000A  07                        DB  $07
+
+000B  08                        PHP
+000C  09 FF                     ORA #$FF
+000E  0A                        ASL A
+000F  0B                        DB  $0B
+0010  0C                        DB  $0C
+0011  0D FFFF                   ORA $FFFF
+0014  0E FFFF                   ASL $FFFF
+0017  0F                        DB  $0F
+
+0018  10 FE                     BPL *
+001A  11 FF                     ORA ($FF),Y
+001C  12                        DB  $12
+001D  13                        DB  $13
+001E  14                        DB  $14
+001F  15 FF                     ORA $FF,X
+0021  16 FF                     ASL $FF,X
+0023  17                        DB  $17
+
+0024  18                        CLC
+0025  19 FFFF                   ORA $FFFF,Y
+0028  1A                        DB  $1A
+0029  1B                        DB  $1B
+002A  1C                        DB  $1C
+002B  1D FFFF                   ORA $FFFF,X
+002E  1E FFFF                   ASL $FFFF,X
+0031  1F                        DB  $1F
+
+0032  20 FFFF                   JSR $FFFF
+0035  21 FF                     AND ($FF,X)
+0037  22                        DB  $22
+0038  23                        DB  $23
+0039  24 FF                     BIT $FF
+003B  25 FF                     AND $FF
+003D  26 FF                     ROL $FF
+003F  27                        DB  $27
+
+0040  28                        PLP
+0041  29 FF                     AND #$FF
+0043  2A                        ROL A
+0044  2B                        DB  $2B
+0045  2C FFFF                   BIT $FFFF
+0048  2D FFFF                   AND $FFFF
+004B  2E FFFF                   ROL $FFFF
+004E  2F                        DB  $2F
+
+004F  30 FE                     BMI *
+0051  31 FF                     AND ($FF),Y
+0053  32                        DB  $32
+0054  33                        DB  $33
+0055  34                        DB  $34
+0056  35 FF                     AND $FF,X
+0058  36 FF                     ROL $FF,X
+005A  37                        DB  $37
+
+005B  38                        SEC
+005C  39 FFFF                   AND $FFFF,Y
+005F  3A                        DB  $3A
+0060  3B                        DB  $3B
+0061  3C                        DB  $3C
+0062  3D FFFF                   AND $FFFF,X
+0065  3E FFFF                   ROL $FFFF,X
+0068  3F                        DB  $3F
+
+0069  40                        RTI
+006A  41 FF                     EOR ($FF,X)
+006C  42                        DB  $42
+006D  43                        DB  $43
+006E  44                        DB  $44
+006F  45 FF                     EOR $FF
+0071  46 FF                     LSR $FF
+0073  47                        DB  $47
+
+0074  48                        PHA
+0075  49 FF                     EOR #$FF
+0077  4A                        LSR A
+0078  4B                        DB  $4B
+0079  4C FFFF                   JMP $FFFF
+007C  4D FFFF                   EOR $FFFF
+007F  4E FFFF                   LSR $FFFF
+0082  4F                        DB  $4F
+
+0083  50 FE                     BVC *
+0085  51 FF                     EOR ($FF),Y
+0087  52                        DB  $52
+0088  53                        DB  $53
+0089  54                        DB  $54
+008A  55 FF                     EOR $FF,X
+008C  56 FF                     LSR $FF,X
+008E  57                        DB  $57
+
+008F  58                        CLI
+0090  59 FFFF                   EOR $FFFF,Y
+0093  5A                        DB  $5A
+0094  5B                        DB  $5B
+0095  5C                        DB  $5C
+0096  5D FFFF                   EOR $FFFF,X
+0099  5E FFFF                   LSR $FFFF,X
+009C  5F                        DB  $5F
+
+009D  60                        RTS
+009E  61 FF                     ADC ($FF,X)
+00A0  62                        DB  $62
+00A1  63                        DB  $63
+00A2  64                        DB  $64
+00A3  65 FF                     ADC $FF
+00A5  66 FF                     ROR $FF
+00A7  67                        DB  $67
+
+00A8  68                        PLA
+00A9  69 FF                     ADC #$FF
+00AB  6A                        ROR A
+00AC  6B                        DB  $6B
+00AD  6C FFFF                   JMP ($FFFF)
+00B0  6D FFFF                   ADC $FFFF
+00B3  6E FFFF                   ROR $FFFF
+00B6  6F                        DB  $6F
+
+00B7  70 FE                     BVS *
+00B9  71 FF                     ADC ($FF),Y
+00BB  72                        DB  $72
+00BC  73                        DB  $73
+00BD  74                        DB  $74
+00BE  75 FF                     ADC $FF,X
+00C0  76 FF                     ROR $FF,X
+00C2  77                        DB  $77
+
+00C3  78                        SEI
+00C4  79 FFFF                   ADC $FFFF,Y
+00C7  7A                        DB  $7A
+00C8  7B                        DB  $7B
+00C9  7C                        DB  $7C
+00CA  7D FFFF                   ADC $FFFF,X
+00CD  7E FFFF                   ROR $FFFF,X
+00D0  7F                        DB  $7F
+
+00D1  80                        DB  $80
+00D2  81 FF                     STA ($FF,X)
+00D4  82                        DB  $82
+00D5  83                        DB  $83
+00D6  84 FF                     STY $FF
+00D8  85 FF                     STA $FF
+00DA  86 FF                     STX $FF
+00DC  87                        DB  $87
+
+00DD  88                        DEY
+00DE  89                        DB  $89
+00DF  8A                        TXA
+00E0  8B                        DB  $8B
+00E1  8C FFFF                   STY $FFFF
+00E4  8D FFFF                   STA $FFFF
+00E7  8E FFFF                   STX $FFFF
+00EA  8F                        DB  $8F
+
+00EB  90 FE                     BCC *
+00ED  91 FF                     STA ($FF),Y
+00EF  92                        DB  $92
+00F0  93                        DB  $93
+00F1  94 FF                     STY $FF,X
+00F3  95 FF                     STA $FF,X
+00F5  96 FF                     STX $FF,Y
+00F7  97                        DB  $97
+
+00F8  98                        TYA
+00F9  99 FFFF                   STA $FFFF,Y
+00FC  9A                        TXS
+00FD  9B                        DB  $9B
+00FE  9C                        DB  $9C
+00FF  9D FFFF                   STA $FFFF,X
+0102  9E                        DB  $9E
+0103  9F                        DB  $9F
+
+0104  A0 FF                     LDY #$FF
+0106  A1 FF                     LDA ($FF,X)
+0108  A2 FF                     LDX #$FF
+010A  A3                        DB  $A3
+010B  A4 FF                     LDY $FF
+010D  A5 FF                     LDA $FF
+010F  A6 FF                     LDX $FF
+0111  A7                        DB  $A7
+
+0112  A8                        TAY
+0113  A9 FF                     LDA #$FF
+0115  AA                        TAX
+0116  AB                        DB  $AB
+0117  AC FFFF                   LDY $FFFF
+011A  AD FFFF                   LDA $FFFF
+011D  AE FFFF                   LDX $FFFF
+0120  AF                        DB  $AF
+
+0121  B0 FE                     BCS *
+0123  B1 FF                     LDA ($FF),Y
+0125  B2                        DB  $B2
+0126  B3                        DB  $B3
+0127  B4 FF                     LDY $FF,X
+0129  B5 FF                     LDA $FF,X
+012B  B6 FF                     LDX $FF,Y
+012D  B7                        DB  $B7
+
+012E  B8                        CLV
+012F  B9 FFFF                   LDA $FFFF,Y
+0132  BA                        TSX
+0133  BB                        DB  $BB
+0134  BC FFFF                   LDY $FFFF,X
+0137  BD FFFF                   LDA $FFFF,X
+013A  BE FFFF                   LDX $FFFF,Y
+013D  BF                        DB  $BF
+
+013E  C0 FF                     CPY #$FF
+0140  C1 FF                     CMP ($FF,X)
+0142  C2                        DB  $C2
+0143  C3                        DB  $C3
+0144  C4 FF                     CPY $FF
+0146  C5 FF                     CMP $FF
+0148  C6 FF                     DEC $FF
+014A  C7                        DB  $C7
+
+014B  C8                        INY
+014C  C9 FF                     CMP #$FF
+014E  CA                        DEX
+014F  CB                        DB  $CB
+0150  CC FFFF                   CPY $FFFF
+0153  CD FFFF                   CMP $FFFF
+0156  CE FFFF                   DEC $FFFF
+0159  CF                        DB  $CF
+
+015A  D0 FE                     BNE *
+015C  D1 FF                     CMP ($FF),Y
+015E  D2                        DB  $D2
+015F  D3                        DB  $D3
+0160  D4                        DB  $D4
+0161  D5 FF                     CMP $FF,X
+0163  D6 FF                     DEC $FF,X
+0165  D7                        DB  $D7
+
+0166  D8                        CLD
+0167  D9 FFFF                   CMP $FFFF,Y
+016A  DA                        DB  $DA
+016B  DB                        DB  $DB
+016C  DC                        DB  $DC
+016D  DD FFFF                   CMP $FFFF,X
+0170  DE FFFF                   DEC $FFFF,X
+0173  DF                        DB  $DF
+
+0174  E0 FF                     CPX #$FF
+0176  E1 FF                     SBC ($FF,X)
+0178  E2                        DB  $E2
+0179  E3                        DB  $E3
+017A  E4 FF                     CPX $FF
+017C  E5 FF                     SBC $FF
+017E  E6 FF                     INC $FF
+0180  E7                        DB  $E7
+
+0181  E8                        INX
+0182  E9 FF                     SBC #$FF
+0184  EA                        NOP
+0185  EB                        DB  $EB
+0186  EC FFFF                   CPX $FFFF
+0189  ED FFFF                   SBC $FFFF
+018C  EE FFFF                   INC $FFFF
+018F  EF                        DB  $EF
+
+0190  F0 FE                     BEQ *
+0192  F1 FF                     SBC ($FF),Y
+0194  F2                        DB  $F2
+0195  F3                        DB  $F3
+0196  F4                        DB  $F4
+0197  F5 FF                     SBC $FF,X
+0199  F6 FF                     INC $FF,X
+019B  F7                        DB  $F7
+
+019C  F8                        SED
+019D  F9 FFFF                   SBC $FFFF,Y
+01A0  FA                        DB  $FA
+01A1  FB                        DB  $FB
+01A2  FC                        DB  $FC
+01A3  FD FFFF                   SBC $FFFF,X
+01A6  FE FFFF                   INC $FFFF,X
+01A9  FF                        DB  $FF
+
+01AA                            END
+
+00000 Total Error(s)
+
