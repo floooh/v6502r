@@ -3,70 +3,99 @@
 #ifndef _ASMX_H_
 #define _ASMX_H_
 
-#define MAX_BYTSTR  1024    // size of bytStr[]
+#define ASMX_MAX_BYTSTR  (1024)     // size of bytStr[]
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <stdint.h>
+#include <stdbool.h>
 
-#if 0
-// these should already be defined in sys/types.h (included from stdio.h)
-typedef unsigned char  u_char;
-typedef unsigned short u_short;
-typedef unsigned int   u_int;
-typedef unsigned long  u_long;
-#endif
+// redirected CRT wrapper functions
+typedef uint32_t asmx_FILE;
+typedef uint32_t asmx_size_t;
+extern uint32_t* asmx_stderr;
+extern uint32_t* asmx_stdout;
+enum {
+    ASMX_SEEK_SET = 0,
+    ASMX_SEEK_CUR = 1,
+    ASMX_SEEK_END = 2
+};
+enum {
+    ASMX_EOF = -1
+};
+extern asmx_FILE* asmx_fopen(const char* filename, const char* mode);
+extern int asmx_fclose(asmx_FILE* stream);
+extern asmx_size_t asmx_fwrite(const void* ptr, asmx_size_t size, asmx_size_t count, asmx_FILE* stream);
+extern asmx_size_t asmx_fread(void* ptr, asmx_size_t size, asmx_size_t count, asmx_FILE* stream);
+extern int asmx_fgetc(asmx_FILE* stream);
+extern int asmx_ungetc(int character, asmx_FILE* stream);
+extern long int asmx_ftell(asmx_FILE* stream);
+extern int asmx_fseek(asmx_FILE* stream, long int offset, int origin);
+extern int asmx_fputc(int character, asmx_FILE* stream);
+extern int asmx_fprintf(asmx_FILE* stream, const char* format, ...);
+extern int asmx_printf(const char* format, ...);
+extern void* asmx_malloc(asmx_size_t size);
+extern void asmx_free(void* ptr);
+extern asmx_size_t asmx_strlen(const char* str);
+extern char* asmx_strcpy(char* destination, const char* source);
+extern char* asmx_strncpy(char* destination, const char* source, asmx_size_t num);
+extern int asmx_strcmp(const char* str1, const char* str2);
+extern char* asmx_strchr(const char* str, int c);
+extern char* asmx_strcat(char * destination, const char * source);
+extern int asmx_toupper(int c);
+extern int asmx_isdigit(int c);
+extern int asmx_sprintf(char* str, const char* format, ...);
+extern void* asmx_memcpy(void* dest, const void* src, asmx_size_t count);
+extern int asmx_abs(int n);
+extern void asmx_exit(int status);
+extern int asmx_getopt(int argc, char* const argv[], const char* optstring);
+extern char* asmx_optarg;
+extern int asmx_optind;
 
 // a few useful typedefs
-typedef unsigned char  bool;    // define a bool type
 enum { FALSE = 0, TRUE = 1 };
-typedef char Str255[256];       // generic string type
+typedef char asmx_Str255[256];       // generic string type
 
-#define maxOpcdLen  11          // max opcode length (for building opcode table)
-typedef char OpcdStr[maxOpcdLen+1];
-struct OpcdRec
+#define ASMX_MAXOPCDLEN  11          // max opcode length (for building opcode table)
+typedef char asmx_OpcdStr[ASMX_MAXOPCDLEN+1];
+struct asmx_OpcdRec
 {
-    OpcdStr         name;       // opcode name
+    asmx_OpcdStr    name;       // opcode name
     short           typ;        // opcode type
-    u_long          parm;       // opcode parameter
+    uint32_t        parm;       // opcode parameter
 };
-typedef struct OpcdRec *OpcdPtr;
+typedef struct asmx_OpcdRec *asmx_OpcdPtr;
 
 // CPU option flags
 enum
 {
-    OPT_ATSYM     = 0x01,   // allow symbols to start with '@'
-    OPT_DOLLARSYM = 0x02,   // allow symbols to start with '$'
+    ASMX_OPT_ATSYM     = 0x01,   // allow symbols to start with '@'
+    ASMX_OPT_DOLLARSYM = 0x02,   // allow symbols to start with '$'
 };
 
-void *AddAsm(char *name,        // assembler name
-              int (*DoCPUOpcode) (int typ, int parm),
-              int (*DoCPULabelOp) (int typ, int parm, char *labl),
-              void (*PassInit) (void) );
-void AddCPU(void *as,           // assembler for this CPU
-            char *name,         // uppercase name of this CPU
-            int index,          // index number for this CPU
-            int endian,         // assembler endian
-            int addrWid,        // assembler 32-bit
-            int listWid,        // listing width
-            int wordSize,       // addressing word size in bits
-            int opts,           // option flags
-            struct OpcdRec opcdTab[]); // assembler opcode table
+void *asmx_AddAsm(char *name,        // assembler name
+    int (*DoCPUOpcode) (int typ, int parm),
+    int (*DoCPULabelOp) (int typ, int parm, char *labl),
+    void (*PassInit) (void) );
+void asmx_AddCPU(void *as,           // assembler for this CPU
+    char *name,         // uppercase name of this CPU
+    int index,          // index number for this CPU
+    int endian,         // assembler endian
+    int addrWid,        // assembler 32-bit
+    int listWid,        // listing width
+    int wordSize,       // addressing word size in bits
+    int opts,           // option flags
+    struct asmx_OpcdRec opcdTab[]); // assembler opcode table
 
 // assembler endian, address width, and listing hex width settings
 // 0 = little endian, 1 = big endian, -1 = undefined endian
-enum { UNKNOWN_END = -1, LITTLE_END, BIG_END };
-enum { ADDR_16, ADDR_24, ADDR_32 };
-enum { LIST_16, LIST_24 }; // Note: ADDR_24 and ADDR_32 should always use LIST_24
+enum { ASMX_UNKNOWN_END = -1, ASMX_LITTLE_END, ASMX_BIG_END };
+enum { ASMX_ADDR_16, ASMX_ADDR_24, ASMX_ADDR_32 };
+enum { ASMX_LIST_16, ASMX_LIST_24 }; // Note: ADDR_24 and ADDR_32 should always use LIST_24
 
 // special register numbers for FindReg/GetReg
 enum
 {
-    reg_EOL = -2,   // -2
-    reg_None,       // -1
+    asmx_reg_EOL = -2,   // -2
+    asmx_reg_None,       // -1
 };
 
 // opcode constants
@@ -75,85 +104,91 @@ enum
 #define o_LabelOp 0x1000
 #define o_EQU (o_LabelOp + 0x100)
 
-void Error(char *message);
-void Warning(char *message);
-void DefSym(char *symName, u_long val, bool setSym, bool equSym);
-int GetWord(char *word);
-bool Expect(char *expected);
-bool Comma();
-bool RParen();
-void EatIt();
-void IllegalOperand();
-void MissingOperand();
-void BadMode();
-int FindReg(const char *regName, const char *regList);
-int GetReg(const char *regList);
-int CheckReg(int reg);
-int Eval(void);
-void CheckByte(int val);
-void CheckStrictByte(int val);
-void CheckWord(int val);
-void CheckStrictWord(int val);
-int EvalByte(void);
-int EvalBranch(int instrLen);
-int EvalWBranch(int instrLen);
-int EvalLBranch(int instrLen);
-void DoLabelOp(int typ, int parm, char *labl);
+// FIXME!
+int asmx_main(int argc, char * const argv[]);
 
-void InstrClear(void);
-void InstrAddB(u_char b);
-void InstrAddX(u_long op);
-void InstrAddW(u_short w);
-void InstrAdd3(u_long l);
-void InstrAddL(u_long l);
+void asmx_Asm6502Init(void);
 
-void InstrB(u_char b1);
-void InstrBB(u_char b1, u_char b2);
-void InstrBBB(u_char b1, u_char b2, u_char b3);
-void InstrBBBB(u_char b1, u_char b2, u_char b3, u_char b4);
-void InstrBBBBB(u_char b1, u_char b2, u_char b3, u_char b4, u_char b5);
-void InstrBW(u_char b1, u_short w1);
-void InstrBBW(u_char b1, u_char b2, u_short w1);
-void InstrBBBW(u_char b1, u_char b2, u_char b3, u_short w1);
-void InstrX(u_long op);
-void InstrXB(u_long op, u_char b1);
-void InstrXBB(u_long op, u_char b1, u_char b2);
-void InstrXBBB(u_long op, u_char b1, u_char b2, u_char b3);
-void InstrXBBBB(u_long op, u_char b1, u_char b2, u_char b3, u_char b4);
-void InstrXW(u_long op, u_short w1);
-void InstrXBW(u_long op, u_char b1, u_short w1);
-void InstrXBWB(u_long op, u_char b1, u_short w1, u_char b2);
-void InstrXWW(u_long op, u_short w1, u_short w2);
-void InstrX3(u_long op, u_long l1);
-void InstrW(u_short w1);
-void InstrWW(u_short w1, u_short w2);
-void InstrWL(u_short w1, u_long l1);
-void InstrL(u_long l1);
-void InstrLL(u_long l1, u_long l2);
+void asmx_Error(char *message);
+void asmx_Warning(char *message);
+void asmx_DefSym(char *symName, uint32_t val, bool setSym, bool equSym);
+int asmx_GetWord(char *word);
+bool asmx_Expect(char *expected);
+bool asmx_Comma();
+bool asmx_RParen();
+void asmx_EatIt();
+void asmx_IllegalOperand();
+void asmx_MissingOperand();
+void asmx_BadMode();
+int asmx_FindReg(const char *regName, const char *regList);
+int asmx_GetReg(const char *regList);
+int asmx_CheckReg(int reg);
+int asmx_Eval(void);
+void asmx_CheckByte(int val);
+void asmx_CheckStrictByte(int val);
+void asmx_CheckWord(int val);
+void asmx_CheckStrictWord(int val);
+int asmx_EvalByte(void);
+int asmx_EvalBranch(int instrLen);
+int asmx_EvalWBranch(int instrLen);
+int asmx_EvalLBranch(int instrLen);
+void asmx_DoLabelOp(int typ, int parm, char *labl);
+
+void asmx_InstrClear(void);
+void asmx_InstrAddB(uint8_t b);
+void asmx_InstrAddX(uint32_t op);
+void asmx_InstrAddW(uint16_t w);
+void asmx_InstrAdd3(uint32_t l);
+void asmx_InstrAddL(uint32_t l);
+
+void asmx_InstrB(uint8_t b1);
+void asmx_InstrBB(uint8_t b1, uint8_t b2);
+void asmx_InstrBBB(uint8_t b1, uint8_t b2, uint8_t b3);
+void asmx_InstrBBBB(uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4);
+void asmx_InstrBBBBB(uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5);
+void asmx_InstrBW(uint8_t b1, uint16_t w1);
+void asmx_InstrBBW(uint8_t b1, uint8_t b2, uint16_t w1);
+void asmx_InstrBBBW(uint8_t b1, uint8_t b2, uint8_t b3, uint16_t w1);
+void asmx_InstrX(uint32_t op);
+void asmx_InstrXB(uint32_t op, uint8_t b1);
+void asmx_InstrXBB(uint32_t op, uint8_t b1, uint8_t b2);
+void asmx_InstrXBBB(uint32_t op, uint8_t b1, uint8_t b2, uint8_t b3);
+void asmx_InstrXBBBB(uint32_t op, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4);
+void asmx_InstrXW(uint32_t op, uint16_t w1);
+void asmx_InstrXBW(uint32_t op, uint8_t b1, uint16_t w1);
+void asmx_InstrXBWB(uint32_t op, uint8_t b1, uint16_t w1, uint8_t b2);
+void asmx_InstrXWW(uint32_t op, uint16_t w1, uint16_t w2);
+void asmx_InstrX3(uint32_t op, uint32_t l1);
+void asmx_InstrW(uint16_t w1);
+void asmx_InstrWW(uint16_t w1, uint16_t w2);
+void asmx_InstrWL(uint16_t w1, uint32_t l1);
+void asmx_InstrL(uint32_t l1);
+void asmx_InstrLL(uint32_t l1, uint32_t l2);
 
 //char * ListStr(char *l, char *s);
-char * ListByte(char *p, u_char b);
-//char * ListWord(char *p, u_short w);
-//char * ListLong(char *p, u_long l);
-//char * ListAddr(char *p,u_long addr);
-//char * ListLoc(u_long addr);
+char * asmx_ListByte(char *p, uint8_t b);
+//char * ListWord(char *p, uint16_t w);
+//char * ListLong(char *p, uint32_t l);
+//char * ListAddr(char *p,uint32_t addr);
+//char * ListLoc(uint32_t addr);
 
 // various internal variables used by the assemblers
-extern  bool            errFlag;            // TRUE if error occurred this line
-extern  int             pass;               // Current assembler pass
-extern  char           *linePtr;            // pointer into current line
-extern  int             instrLen;           // Current instruction length (negative to display as long DB)
-extern  Str255          line;               // Current line from input file
-extern  char           *linePtr;            // pointer into current line
-extern  u_long          locPtr;             // Current program address
-extern  int             instrLen;           // Current instruction length (negative to display as long DB)
-extern  u_char          bytStr[MAX_BYTSTR]; // Current instruction / buffer for long DB statements
-extern  bool            showAddr;           // TRUE to show LocPtr on listing
-extern  int             endian;             // 0 = little endian, 1 = big endian, -1 = undefined endian
-extern  bool            evalKnown;          // TRUE if all operands in Eval were "known"
-extern  int             curCPU;             // current CPU index for current assembler
-extern  Str255          listLine;           // Current listing line
-extern  int             hexSpaces;          // flags for spaces in hex output for instructions
-extern  int             listWid;            // listing width: LIST_16, LIST_24
+typedef struct {
+    bool            errFlag;            // TRUE if error occurred this line
+    int             pass;               // Current assembler pass
+    char           *linePtr;            // pointer into current line
+    int             instrLen;           // Current instruction length (negative to display as long DB)
+    asmx_Str255     curLine;            // Current line from input file
+    uint32_t        locPtr;             // Current program address
+    uint8_t         bytStr[ASMX_MAX_BYTSTR];    // Current instruction / buffer for long DB statements
+    bool            showAddr;           // TRUE to show LocPtr on listing
+    int             curEndian;          // 0 = little endian, 1 = big endian, -1 = undefined endian
+    bool            evalKnown;          // TRUE if all operands in Eval were "known"
+    int             curCPU;             // current CPU index for current assembler
+    asmx_Str255     listLine;           // Current listing line
+    int             hexSpaces;          // flags for spaces in hex output for instructions
+    int             curListWid;         // listing width: LIST_16, LIST_24
+} asmx_Shared_t;
+extern asmx_Shared_t asmx_Shared;
 
 #endif // _ASMX_H_

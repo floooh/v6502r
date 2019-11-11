@@ -118,7 +118,7 @@ enum addrOps
 };
 
 
-const u_char mode2op6502[] = // [o_Max * a_Max] =
+static const uint8_t mode2op6502[] = // [o_Max * a_Max] =
 {//Imm=0 Abs=1 Zpg=2 Acc=3 Inx=4 Iny=5 Zpx=6 Abx=7 Aby=8 Ind=9 Zpy=10 Zpi=11
     0x09, 0x0D, 0x05,    0, 0x01, 0x11, 0x15, 0x1D, 0x19,    0,    0,    0, 0,0,0,0,0,0, //  0 ORA
        0, 0x0E, 0x06, 0x0A,    0,    0, 0x16, 0x1E,    0,    0,    0,    0, 0,0,0,0,0,0, //  1 ASL
@@ -160,7 +160,7 @@ const u_char mode2op6502[] = // [o_Max * a_Max] =
 };
 
 
-const u_char mode2op65C02[] = // [o_Max * a_Max] =
+static const uint8_t mode2op65C02[] = // [o_Max * a_Max] =
 {//Imm=0 Abs=1 Zpg=2 Acc=3 Inx=4 Iny=5 Zpx=6 Abx=7 Aby=8 Ind=9 Zpy=10 Zpi=11
     0x09, 0x0D, 0x05,    0, 0x01, 0x11, 0x15, 0x1D, 0x19,    0,    0, 0x12, 0,0,0,0,0,0, //  0 ORA
        0, 0x0E, 0x06, 0x0A,    0,    0, 0x16, 0x1E,    0,    0,    0,    0, 0,0,0,0,0,0, //  1 ASL
@@ -192,7 +192,7 @@ const u_char mode2op65C02[] = // [o_Max * a_Max] =
 };
 
 
-const u_char mode2op65C816[] = // [o_Max * a_Max] =
+static const uint8_t mode2op65C816[] = // [o_Max * a_Max] =
 {//Imm=0 Abs=1 Zpg=2 Acc=3 Inx=4 Iny=5 Zpx=6 Abx=7 Aby=8 Ind=9 Zpy10 Zpi11 AbL12 ALX13 DIL14 DIY15 Stk16 SIY17
     0x09, 0x0D, 0x05,    0, 0x01, 0x11, 0x15, 0x1D, 0x19,    0,    0, 0x12, 0x0F, 0x1F, 0x07, 0x17, 0x03, 0x13, //  0 ORA
        0, 0x0E, 0x06, 0x0A,    0,    0, 0x16, 0x1E,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, //  1 ASL
@@ -235,7 +235,7 @@ const u_char mode2op65C816[] = // [o_Max * a_Max] =
 // 30 D4 PEI zp
 // 31 F4 PEA absolute
 
-struct OpcdRec M6502_opcdTab[] =
+struct asmx_OpcdRec M6502_opcdTab[] =
 {
     {"BRK",  o_Implied, 0x00},
     {"PHP",  o_Implied, 0x08},
@@ -408,19 +408,19 @@ struct OpcdRec M6502_opcdTab[] =
 // --------------------------------------------------------------
 
 
-void InstrB3(u_char b, u_long l)
+static void InstrB3(uint8_t b, uint32_t l)
 {
-    InstrClear();
-    InstrAddB(b);
-    InstrAdd3(l);
+    asmx_InstrClear();
+    asmx_InstrAddB(b);
+    asmx_InstrAdd3(l);
 }
 
 
-int M6502_DoCPUOpcode(int typ, int parm)
+static int M6502_DoCPUOpcode(int typ, int parm)
 {
     int     val;
     int     i;
-    Str255  word;
+    asmx_Str255 word;
     char    *oldLine;
     int     token;
 //  char    ch;
@@ -428,42 +428,42 @@ int M6502_DoCPUOpcode(int typ, int parm)
     bool    forceabs;
     int     opcode;
     int     mode;
-    const u_char *modes;     // pointer to current o_Mode instruction's opcodes
+    const uint8_t *modes;     // pointer to current o_Mode instruction's opcodes
 
     switch(typ)
     {
         case o_Implied_65C816:
-            if (curCPU != CPU_65C816) return 0;
+            if (asmx_Shared.curCPU != CPU_65C816) return 0;
         case o_Implied_65C02:
-            if (curCPU != CPU_65C02 && curCPU != CPU_65C816) return 0;
+            if (asmx_Shared.curCPU != CPU_65C02 && asmx_Shared.curCPU != CPU_65C816) return 0;
         case o_Implied_6502U:
-            if (typ == o_Implied_6502U && curCPU != CPU_6502U) return 0;
+            if (typ == o_Implied_6502U && asmx_Shared.curCPU != CPU_6502U) return 0;
         case o_Implied:
-            if (parm > 256) InstrBB(parm >> 8, parm & 255);
-                    else    InstrB (parm);
+            if (parm > 256) asmx_InstrBB(parm >> 8, parm & 255);
+                    else    asmx_InstrB (parm);
             break;
 
         case o_Branch_65C02:
-            if (curCPU == CPU_6502) return 0;
+            if (asmx_Shared.curCPU == CPU_6502) return 0;
         case o_Branch:
-            val = EvalBranch(2);
-            InstrBB(parm,val);
+            val = asmx_EvalBranch(2);
+            asmx_InstrBB(parm,val);
             break;
 
         case o_Mode_65C816:
-            if (curCPU != CPU_65C816) return 0;
+            if (asmx_Shared.curCPU != CPU_65C816) return 0;
         case o_Mode_65C02:
-            if (curCPU != CPU_65C02 && curCPU != CPU_65C816) return 0;
+            if (asmx_Shared.curCPU != CPU_65C02 && asmx_Shared.curCPU != CPU_65C816) return 0;
         case o_Mode_6502U:
-            if (typ == o_Mode_6502U && curCPU != CPU_6502U) return 0;
+            if (typ == o_Mode_6502U && asmx_Shared.curCPU != CPU_6502U) return 0;
         case o_Mode:
-            instrLen = 0;
-            oldLine = linePtr;
-            token = GetWord(word);
+            asmx_Shared.instrLen = 0;
+            oldLine = asmx_Shared.linePtr;
+            token = asmx_GetWord(word);
 
-                 if (curCPU == CPU_65C02)  modes = mode2op65C02;
-            else if (curCPU == CPU_65C816) modes = mode2op65C816;
-                                      else modes = mode2op6502;
+                 if (asmx_Shared.curCPU == CPU_65C02)  modes = mode2op65C02;
+            else if (asmx_Shared.curCPU == CPU_65C816) modes = mode2op65C816;
+                                                  else modes = mode2op6502;
             modes = modes + parm * a_Max;
 
             mode = a_None;
@@ -476,31 +476,31 @@ int M6502_DoCPUOpcode(int typ, int parm)
                 switch(token)
                 {
                     case '#':   // immediate
-                        val  = Eval();
+                        val  = asmx_Eval();
                         mode = a_Imm;
                         break;
 
                     case '(':   // indirect X,Y
-                        val   = Eval();
-                        token = GetWord(word);
+                        val   = asmx_Eval();
+                        token = asmx_GetWord(word);
                         switch (token)
                         {
                             case ',':   // (val,X)
-                                token = GetWord(word);
+                                token = asmx_GetWord(word);
                                 if (!word[1]) token = word[0];
                                 switch(token)
                                 {
                                     case 'X':
-                                        RParen();
+                                        asmx_RParen();
                                         mode = a_Inx;
                                         break;
 
                                     case 'S':
-                                        if (curCPU == CPU_65C816)
+                                        if (asmx_Shared.curCPU == CPU_65C816)
                                         {
-                                            if (RParen()) break;
-                                            if (Comma()) break;
-                                            if (Expect("Y")) break;
+                                            if (asmx_RParen()) break;
+                                            if (asmx_Comma()) break;
+                                            if (asmx_Expect("Y")) break;
                                             mode = a_SIY;
                                         }
                                     default:
@@ -509,18 +509,18 @@ int M6502_DoCPUOpcode(int typ, int parm)
                                 break;
 
                             case ')':   // (val) -and- (val),Y
-                                token = GetWord(word);
+                                token = asmx_GetWord(word);
                                 switch(token)
                                 {
                                     case 0:
                                         mode = a_Ind;
-                                        if (val >= 0 && val < 256 && evalKnown &&
+                                        if (val >= 0 && val < 256 && asmx_Shared.evalKnown &&
                                             (modes[a_Zpi] != 0))
                                                     mode = a_Zpi;
                                             else    mode = a_Ind;
                                         break;
                                     case ',':
-                                        Expect("Y");
+                                        asmx_Expect("Y");
                                         mode = a_Iny;
                                         break;
                                 }
@@ -533,23 +533,23 @@ int M6502_DoCPUOpcode(int typ, int parm)
                         break;
 
                     case '[':   // a_DIL [d] and a_DIY [d],Y
-                        if (curCPU == CPU_65C816)
+                        if (asmx_Shared.curCPU == CPU_65C816)
                         {
-                            val = Eval();
-                            Expect("]");
+                            val = asmx_Eval();
+                            asmx_Expect("]");
                             mode = a_DIL;
-                            oldLine = linePtr;
-                            switch(GetWord(word))
+                            oldLine = asmx_Shared.linePtr;
+                            switch(asmx_GetWord(word))
                             {
                                 default:
-                                    linePtr = oldLine;
+                                    asmx_Shared.linePtr = oldLine;
                                     // fall through to let garbage be handled as too many operands
                                 case 0:
                                     break;
 
                                 case ',':
-                                    GetWord(word);
-                                    if ((toupper(word[0]) == 'Y') && (!word[1]))
+                                    asmx_GetWord(word);
+                                    if ((asmx_toupper(word[0]) == 'Y') && (!word[1]))
                                         mode = a_DIY;
                                     else mode = a_None;
                             }
@@ -558,9 +558,9 @@ int M6502_DoCPUOpcode(int typ, int parm)
                         // else fall through letting eval() treat the '[' as an open paren
 
                     default:    // everything else
-                        if ((!word[1]) && (toupper(word[0]) == 'A'))
+                        if ((!word[1]) && (asmx_toupper(word[0]) == 'A'))
                         {       // accumulator
-                            token = GetWord(word);
+                            token = asmx_GetWord(word);
                             if (token == 0)     // mustn't have anything after the 'A'
                                 mode = a_Acc;
                         }
@@ -570,46 +570,46 @@ int M6502_DoCPUOpcode(int typ, int parm)
                             // modes instead of zero-page addressing modes
                             forceabs = FALSE;
                             if (token == '>')   forceabs = TRUE;
-                                        else    linePtr = oldLine;
+                                        else    asmx_Shared.linePtr = oldLine;
 
-                            val   = Eval();
-                            token = GetWord(word);
+                            val   = asmx_Eval();
+                            token = asmx_GetWord(word);
 
                             switch(token)
                             {
                                 case 0:     // abs or zpg
                                     if (val >= 0 && val < 256 && !forceabs &&
-                                        evalKnown && (modes[a_Zpg] != 0))
+                                        asmx_Shared.evalKnown && (modes[a_Zpg] != 0))
                                                 mode = a_Zpg;
                                         else    mode = a_Abs;
-                                        if (evalKnown && modes[a_AbL] != 0 && (val & 0xFF0000) != 0)
+                                        if (asmx_Shared.evalKnown && modes[a_AbL] != 0 && (val & 0xFF0000) != 0)
                                             mode = a_AbL;
                                     break;
 
                                 case ',':   // indexed ,x or ,y or ,s
-                                    token = GetWord(word);
+                                    token = asmx_GetWord(word);
 
-                                    if ((toupper(word[0]) == 'X') && (word[1] == 0))
+                                    if ((asmx_toupper(word[0]) == 'X') && (word[1] == 0))
                                     {
                                         if (val >= 0 && val < 256 && !forceabs &&
-                                            (evalKnown || modes[a_Abx] == 0))
+                                            (asmx_Shared.evalKnown || modes[a_Abx] == 0))
                                                     mode = a_Zpx;
                                             else    mode = a_Abx;
-                                        if (evalKnown && modes[a_ALX] != 0 && (val & 0xFF0000) != 0)
+                                        if (asmx_Shared.evalKnown && modes[a_ALX] != 0 && (val & 0xFF0000) != 0)
                                             mode = a_ALX;
                                     }
-                                    else if ((toupper(word[0]) == 'Y') && (word[1] == 0))
+                                    else if ((asmx_toupper(word[0]) == 'Y') && (word[1] == 0))
                                     {
                                         if (val >= 0 && val < 256 && !forceabs &&
-                                            (evalKnown || modes[a_Aby] == 0)
+                                            (asmx_Shared.evalKnown || modes[a_Aby] == 0)
                                                 && modes[a_Zpy] != 0)
                                                     mode = a_Zpy;
                                             else    mode = a_Aby;
                                     }
-                                    else if (curCPU == CPU_65C816 && // 65C816 ofs,S
-                                             (toupper(word[0]) == 'S') && (word[1] == 0))
+                                    else if (asmx_Shared.curCPU == CPU_65C816 && // 65C816 ofs,S
+                                             (asmx_toupper(word[0]) == 'S') && (word[1] == 0))
                                     {
-                                        if (forceabs) BadMode();
+                                        if (forceabs) asmx_BadMode();
                                         else mode = a_Stk;
                                     }
                             }
@@ -625,21 +625,21 @@ int M6502_DoCPUOpcode(int typ, int parm)
                     mode = a_None;
             }
 
-            instrLen = 0;
+            asmx_Shared.instrLen = 0;
             switch(mode)
             {
                 case a_None:  
-                    Error("Invalid addressing mode");
+                    asmx_Error("Invalid addressing mode");
                     break;
 
                 case a_Acc:
-                    InstrB(opcode);
+                    asmx_InstrB(opcode);
                     break;
 
                 case a_Inx:
                     if (opcode == 0x7C || opcode == 0xFC) // 65C02 JMP (abs,X) / 65C816 JSR (abs,X)
                     {
-                        InstrBW(opcode, val);
+                        asmx_InstrBW(opcode, val);
                         break;
                     }
                     // else fall through
@@ -654,23 +654,23 @@ int M6502_DoCPUOpcode(int typ, int parm)
                 case a_DIY:
                 case a_SIY:
                     val = (short) val;
-                    if (!errFlag && (val < 0 || val > 255))
-                        Error("Byte out of range");
-                    InstrBB(opcode, val & 0xFF);
+                    if (!asmx_Shared.errFlag && (val < 0 || val > 255))
+                        asmx_Error("Byte out of range");
+                    asmx_InstrBB(opcode, val & 0xFF);
                     break;
 
                 case a_Imm:
                     val = (short) val;
-                    if (!errFlag && (val < -128 || val > 255))
-                        Error("Byte out of range");
-                    InstrBB(opcode, val & 0xFF);
+                    if (!asmx_Shared.errFlag && (val < -128 || val > 255))
+                        asmx_Error("Byte out of range");
+                    asmx_InstrBB(opcode, val & 0xFF);
                     break;
 
                 case a_Abs:
                 case a_Abx:
                 case a_Aby:
                 case a_Ind:
-                    InstrBW(opcode, val);
+                    asmx_InstrBW(opcode, val);
                     break;
 
                 case a_AbL:
@@ -680,54 +680,54 @@ int M6502_DoCPUOpcode(int typ, int parm)
             break;
 
         case o_RSMB:        //    RMBn/SMBn instructions
-            if (curCPU != CPU_65C02) return 0;
+            if (asmx_Shared.curCPU != CPU_65C02) return 0;
 
             // RMB/SMB zpg
-            val = Eval();
-            InstrBB(parm,val);
+            val = asmx_Eval();
+            asmx_InstrBB(parm,val);
             break;
 
         case o_BBRS:        //    BBRn/BBSn instructions
-            if (curCPU != CPU_65C02) return 0;
+            if (asmx_Shared.curCPU != CPU_65C02) return 0;
 
-            i = Eval();
-            Expect(",");
-            val = EvalBranch(3);
-            InstrBBB(parm,i,val);
+            i = asmx_Eval();
+            asmx_Expect(",");
+            val = asmx_EvalBranch(3);
+            asmx_InstrBBB(parm,i,val);
             break;
 
         case o_BranchW:
-            if (curCPU != CPU_65C816) return 0;
+            if (asmx_Shared.curCPU != CPU_65C816) return 0;
 
-            val = EvalWBranch(3);
-            InstrBW(parm,val);
+            val = asmx_EvalWBranch(3);
+            asmx_InstrBW(parm,val);
             break;
 
         case o_BlockMove:
-            if (curCPU != CPU_65C816) return 0;
+            if (asmx_Shared.curCPU != CPU_65C816) return 0;
 
-            val = Eval();
-            if (!errFlag && (val < 0 || val > 255))
-                Error("Byte out of range");
+            val = asmx_Eval();
+            if (!asmx_Shared.errFlag && (val < 0 || val > 255))
+                asmx_Error("Byte out of range");
 
-            if (Comma()) break;
+            if (asmx_Comma()) break;
 
-            i = Eval();
-            if (!errFlag && (val < 0 || val > 255))
-                Error("Byte out of range");
+            i = asmx_Eval();
+            if (!asmx_Shared.errFlag && (val < 0 || val > 255))
+                asmx_Error("Byte out of range");
 
-            InstrBBB(parm,i,val);
+            asmx_InstrBBB(parm,i,val);
 
             break;
 
         case o_COP:
-            if (curCPU != CPU_65C816) return 0;
+            if (asmx_Shared.curCPU != CPU_65C816) return 0;
 
-            val = Eval();
-            if (!errFlag && (val < 0 || val > 255))
-                Error("Byte out of range");
+            val = asmx_Eval();
+            if (!asmx_Shared.errFlag && (val < 0 || val > 255))
+                asmx_Error("Byte out of range");
 
-            InstrBB(parm,val);
+            asmx_InstrBB(parm,val);
 
             break;
 
@@ -739,14 +739,14 @@ int M6502_DoCPUOpcode(int typ, int parm)
 }
 
 
-void Asm6502Init(void)
+void asmx_Asm6502Init(void)
 {
     char *p;
 
-    p = AddAsm(versionName, &M6502_DoCPUOpcode, NULL, NULL);
-    AddCPU(p, "6502",   CPU_6502,   LITTLE_END, ADDR_16, LIST_24, 8, 0, M6502_opcdTab);
-    AddCPU(p, "65C02",  CPU_65C02,  LITTLE_END, ADDR_16, LIST_24, 8, 0, M6502_opcdTab);
-    AddCPU(p, "6502U",  CPU_6502U,  LITTLE_END, ADDR_16, LIST_24, 8, 0, M6502_opcdTab);
-    AddCPU(p, "65C816", CPU_65C816, LITTLE_END, ADDR_24, LIST_24, 8, 0, M6502_opcdTab);
-    AddCPU(p, "65C816", CPU_65C816, LITTLE_END, ADDR_24, LIST_24, 8, 0, M6502_opcdTab);
+    p = asmx_AddAsm(versionName, &M6502_DoCPUOpcode, 0, 0);
+    asmx_AddCPU(p, "6502",   CPU_6502,   ASMX_LITTLE_END, ASMX_ADDR_16, ASMX_LIST_24, 8, 0, M6502_opcdTab);
+    asmx_AddCPU(p, "65C02",  CPU_65C02,  ASMX_LITTLE_END, ASMX_ADDR_16, ASMX_LIST_24, 8, 0, M6502_opcdTab);
+    asmx_AddCPU(p, "6502U",  CPU_6502U,  ASMX_LITTLE_END, ASMX_ADDR_16, ASMX_LIST_24, 8, 0, M6502_opcdTab);
+    asmx_AddCPU(p, "65C816", CPU_65C816, ASMX_LITTLE_END, ASMX_ADDR_24, ASMX_LIST_24, 8, 0, M6502_opcdTab);
+    asmx_AddCPU(p, "65C816", CPU_65C816, ASMX_LITTLE_END, ASMX_ADDR_24, ASMX_LIST_24, 8, 0, M6502_opcdTab);
 }
