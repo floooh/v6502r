@@ -11,8 +11,7 @@
 // redirected CRT wrapper functions
 typedef uint32_t asmx_FILE;
 typedef uint32_t asmx_size_t;
-extern uint32_t* asmx_stderr;
-extern uint32_t* asmx_stdout;
+extern asmx_FILE* asmx_stderr;
 enum {
     ASMX_SEEK_SET = 0,
     ASMX_SEEK_CUR = 1,
@@ -45,10 +44,6 @@ extern int asmx_isdigit(int c);
 extern int asmx_sprintf(char* str, const char* format, ...);
 extern void* asmx_memcpy(void* dest, const void* src, asmx_size_t count);
 extern int asmx_abs(int n);
-extern void asmx_exit(int status);
-extern int asmx_getopt(int argc, char* const argv[], const char* optstring);
-extern char* asmx_optarg;
-extern int asmx_optind;
 
 // a few useful typedefs
 enum { FALSE = 0, TRUE = 1 };
@@ -103,9 +98,6 @@ enum
 #define o_Illegal 0x0100
 #define o_LabelOp 0x1000
 #define o_EQU (o_LabelOp + 0x100)
-
-// FIXME!
-int asmx_main(int argc, char * const argv[]);
 
 void asmx_Asm6502Init(void);
 
@@ -190,5 +182,18 @@ typedef struct {
     int             curListWid;         // listing width: LIST_16, LIST_24
 } asmx_Shared_t;
 extern asmx_Shared_t asmx_Shared;
+
+#define ASMX_OPTIONS_MAX_DEFINES (16)
+typedef struct {
+    const char* srcName;
+    const char* objName;
+    const char* lstName;
+    const char* cpuType;
+    bool showErrors;
+    bool showWarnings;
+    const char* defines[16];            // label=value
+} asmx_Options;
+
+bool asmx_Assemble(const asmx_Options* opts);
 
 #endif // _ASMX_H_

@@ -1,6 +1,7 @@
 // asmx.c - copyright 1998-2007 Bruce Tomlin
 
 #include "asmx.h"
+#include <assert.h>
 
 #define VERSION_NAME "asmx multi-assembler"
 
@@ -167,12 +168,9 @@ static bool            cl_Warn;            // TRUE for warnings to screen
 static bool            cl_List;            // TRUE to generate listing file
 static bool            cl_Obj;             // TRUE to generate object file
 static int             cl_ObjType;         // type of object file to generate:
-enum { OBJ_HEX, OBJ_S9, OBJ_BIN, OBJ_TRSDOS };  // values for cl_Obj
+enum { OBJ_HEX, OBJ_BIN };  // values for cl_Obj
 static uint32_t        cl_Binbase;         // base address for OBJ_BIN
 static uint32_t        cl_Binend;          // end address for OBJ_BIN
-static int             cl_S9type;          // type of S9 file: 9, 19, 28, or 37
-static bool            cl_Stdout;          // TRUE to send object file to stdout
-static bool            cl_ListP1;          // TRUE to show listing in first assembler pass
 
 static asmx_FILE       *source;            // source input file
 static asmx_FILE       *object;            // object output file
@@ -1217,7 +1215,7 @@ static void GetFName(char *word)
     if (quote)
     {
         if (*linePtr == quote)
-            *linePtr++;
+            linePtr++;
         else
             Error("Missing close quote");
     }
@@ -2696,70 +2694,6 @@ static void write_ihex(uint32_t addr, uint8_t *buf, uint32_t len, int rectype)
 }
 
 
-// Motorola S-record format:
-//
-// Sabbcc...ccdd...ddee
-//
-// a     = record type
-//         0 starting record (optional)
-//         1 data record with 16-bit address
-//         2 data record with 24-bit address
-//         3 data record with 32-bit address
-//         4 symbol record (LSI extension) - S4<length><address><name>,<checksum>
-//         5 number of data records in preceeding block
-//         6 unused
-//         7 ending record for S3 records
-//         8 ending record for S2 records
-//         9 ending record for S1 records
-// bb    = record data length (from bb through ee)
-// cc... = address for this record, 2 bytes for S1/S9, 3 bytes for S2/S8, 4 bytes for S3/S7
-// dd... = data bytes if record type needs it
-// ee    = checksum byte: add all bytes bb through dd
-//                        and subtract from 255 (1's complement)
-
-static void write_srec(uint32_t addr, uint8_t *buf, uint32_t len, int rectype)
-{
-    int i,chksum;
-
-    if (rectype > REC_XFER) return; // should output S0 record?
-
-    // start checksum with length and 16-bit address
-    chksum = len+3 + ((addr >> 8) & 0xFF) + (addr & 0xFF);
-
-    // determine S9 record type
-    if (rectype == REC_XFER) i = cl_S9type % 10;    // xfer record = S9/S8/S7
-                        else i = cl_S9type / 10;    // code record = S1/S2/S3
-
-    // print length and address, and update checksum for long address
-    switch(cl_S9type)
-    {
-        case 37:
-            asmx_fprintf(object,"S%d%.2lX%.8lX", i, len+5, addr);
-            chksum = chksum + ((addr >> 24) & 0xFF) + ((addr >> 16) & 0xFF) + 2;
-            break;
-
-        case 28:
-            asmx_fprintf(object,"S%d%.2lX%.6lX", i, len+4, addr & 0xFFFFFF) + 1;
-            chksum = chksum + ((addr >> 16) & 0xFF);
-            break;
-
-        default:
-            if (i == 0) i = 1; // handle "-s9" option
-            asmx_fprintf(object,"S%d%.2lX%.4lX", i, len+3, addr & 0xFFFF);
-    }
-
-    // print data while updating checksum
-    for (i=0; i<(int)len; i++)
-    {
-        asmx_fprintf(object,"%.2X",buf[i]);
-        chksum = chksum + buf[i];
-    }
-
-    // print final checksum
-    asmx_fprintf(object,"%.2X\n",~chksum & 0xFF);
-}
-
-
 static void write_bin(uint32_t addr, uint8_t *buf, uint32_t len, int rectype)
 {
     uint32_t i;
@@ -2805,91 +2739,16 @@ static void write_bin(uint32_t addr, uint8_t *buf, uint32_t len, int rectype)
 }
 
 
-static uint8_t trs_buf[256]; // buffer for current object code data, used instead of hex_buf
-
-static void write_trsdos(uint32_t addr, uint8_t *buf, uint32_t len, int rectype)
-{
-    switch(rectype)
-    {
-        case REC_DATA:  // write data record
-            // 01 len+2 ll hh data...
-            // NOTE: buf is ignored in favor of using trs_buf
-            asmx_fputc(0x01, object);
-            asmx_fputc((len+2) & 0xFF, object);
-            asmx_fputc(addr & 0xFF, object);
-            asmx_fputc((addr >> 8) & 0xFF, object);
-
-            asmx_fwrite(trs_buf, len, 1, object);
-
-            break;
-
-        case REC_XFER:  // write transfer record
-            // 02 02 ll hh
-            asmx_fputc(0x02, object);
-            asmx_fputc(0x02, object);
-            asmx_fputc(addr & 0xFF, object);
-            asmx_fputc((addr >> 8) & 0xFF, object);
-
-            break;
-
-        case REC_HEDR:  // write header record
-        {
-            // 05 06 dd dd dd dd dd dd - dd = header data, padded with blanks
-            int i;
-
-#if 1
-            // Note: trimming to six chars uppercase for now only to keep with standard usage
-            asmx_fputc(0x05, object);
-            asmx_fputc(0x06, object);
-
-            for (i=0; i<6; i++)
-            {
-                if (*buf == 0 || *buf == '.')
-                    asmx_fputc(' ', object);
-                else
-                    asmx_fputc(asmx_toupper(*buf++), object);
-            }
-#else
-            asmx_fputc(0x05, object);
-            asmx_fputc(len, object);
-
-            asmx_fwrite(buf, len, 1, object);
-#endif
-
-            break;
-        }
-
-#ifdef CODE_COMMENTS
-        case REC_CMNT:  // write copyright record
-        {
-            // 1F len data
-            int i;
-
-            asmx_fputc(0x1F, object);
-            asmx_fputc(len,  object);
-
-            for (i=0; i<len; i++)
-                asmx_fputc(*buf++, object);
-
-            break;
-        }
-#endif // CODE_COMMENTS
-    }
-}
-
-
 // rectype 0 = code, rectype 1 = xfer
 static void write_hex(uint32_t addr, uint8_t *buf, uint32_t len, int rectype)
 {
-    if (cl_Obj || cl_Stdout)
+    if (cl_Obj)
     {
         switch(cl_ObjType)
         {
             default:
             case OBJ_HEX:    write_ihex  (addr, buf, len, rectype); break;
-            case OBJ_S9:     write_srec  (addr, buf, len, rectype); break;
             case OBJ_BIN:    write_bin   (addr, buf, len, rectype); break;
-            case OBJ_TRSDOS: write_trsdos(addr, buf, len, rectype); break;
         }
     }
 }
@@ -2927,23 +2786,10 @@ static void CodeOut(int byte)
             hex_base = codPtr;
             hex_addr = codPtr;
         }
-
-        if (cl_ObjType == OBJ_TRSDOS)
-        {
-            trs_buf[hex_len++] = byte;
-            hex_addr++;
-
-            if (hex_len == 256)
-                CodeFlush();
-        }
-        else
-        {
-            hex_buf[hex_len++] = byte;
-            hex_addr++;
-
-            if (hex_len == IHEX_SIZE)
-                CodeFlush();
-        }
+        hex_buf[hex_len++] = byte;
+        hex_addr++;
+        if (hex_len == IHEX_SIZE)
+            CodeFlush();
     }
     locPtr++;
     codPtr++;
@@ -4405,7 +4251,7 @@ static void DoLabelOp(int typ, int parm, char *labl)
                 i = ReadSourceLine(curLine, sizeof(curLine));
                 while (i && typ != o_ENDM)
                 {
-                    if ((pass == 2 || cl_ListP1) && (listFlag || errFlag))
+                    if ((pass == 2) && (listFlag || errFlag))
                         ListOut(TRUE);
                     CopyListLine();
 
@@ -4594,7 +4440,7 @@ static void DoLabelOp(int typ, int parm, char *labl)
                 i = ReadSourceLine(line, sizeof(line));
                 while (i && typ != o_REPEND)
                 {
-                    if ((pass == 2 || cl_ListP1) && (listFlag || errFlag))
+                    if ((pass == 2) && (listFlag || errFlag))
                         ListOut(TRUE);
                     CopyListLine();
 
@@ -4924,7 +4770,7 @@ static void DoLine()
             }
         }
 
-        if ((pass == 2 || cl_ListP1) && listThisLine && (errFlag || listMacFlag || !macLineFlag))
+        if ((pass == 2) && listThisLine && (errFlag || listMacFlag || !macLineFlag))
             ListOut(TRUE);
     }
     else
@@ -4987,7 +4833,7 @@ static void DoLine()
                     Error("Too many operands");
         }
 
-        if (pass == 1 && !cl_ListP1)
+        if (pass == 1)
             AddLocPtr(asmx_abs(instrLen));
         else
         {
@@ -5133,9 +4979,6 @@ static void DoPass()
 
     asmx_fprintf(asmx_stderr,"Pass %d\n",pass);
 
-    if (cl_ListP1)
-        asmx_fprintf(listing,"Pass %d\n",pass);
-
     errCount      = 0;
     condLevel     = 0;
     condState[condLevel] = condTRUE; // top level always true
@@ -5190,7 +5033,7 @@ static void DoPass()
     // any lines which have invalid syntax, etc., because whatever
     // is found after an END statement should esentially be ignored.
 
-    if (pass == 2 || cl_ListP1)
+    if (pass == 2)
     {
         while (i)
         {
@@ -5219,278 +5062,88 @@ static void DoPass()
 // initialization and parameters
 
 
-static void stdversion(void)
+static bool ParseOptions(const asmx_Options* opts)
 {
-    asmx_fprintf(asmx_stderr,"%s version %s\n",VERSION_NAME,VERSION);
-    asmx_fprintf(asmx_stderr,"%s\n",COPYRIGHT);
-}
+    assert(opts);
 
-
-static void usage(void)
-{
-    stdversion();
-    asmx_fprintf(asmx_stderr, "\n");
-    asmx_fprintf(asmx_stderr, "Usage:\n");
-//    asmx_fprintf(asmx_stderr, "    %s [options] srcfile\n",progname);
-    asmx_fprintf(asmx_stderr, "\n");
-    asmx_fprintf(asmx_stderr, "Options:\n");
-    asmx_fprintf(asmx_stderr, "    --                  end of options\n");
-    asmx_fprintf(asmx_stderr, "    -e                  show errors to screen\n");
-    asmx_fprintf(asmx_stderr, "    -w                  show warnings to screen\n");
-//  asmx_fprintf(asmx_stderr, "    -1                  output listing during first pass\n");
-    asmx_fprintf(asmx_stderr, "    -l [filename]       make a listing file, default is srcfile.lst\n");
-    asmx_fprintf(asmx_stderr, "    -o [filename]       make an object file, default is srcfile.hex or srcfile.s9\n");
-    asmx_fprintf(asmx_stderr, "    -d label[[:]=value] define a label, and assign an optional value\n");
-//  asmx_fprintf(asmx_stderr, "    -9                  output object file in Motorola S9 format (16-bit address)\n");
-    asmx_fprintf(asmx_stderr, "    -s9                 output object file in Motorola S9 format (16-bit address)\n");
-    asmx_fprintf(asmx_stderr, "    -s19                output object file in Motorola S9 format (16-bit address)\n");
-    asmx_fprintf(asmx_stderr, "    -s28                output object file in Motorola S9 format (24-bit address)\n");
-    asmx_fprintf(asmx_stderr, "    -s37                output object file in Motorola S9 format (32-bit address)\n");
-    asmx_fprintf(asmx_stderr, "    -b [base[-end]]     output object file as binary with optional base/end addresses\n");
-    asmx_fprintf(asmx_stderr, "    -t                  output object file in TRSDOS executable format (implies -C Z80)\n");
-    asmx_fprintf(asmx_stderr, "    -c                  send object code to stdout\n");
-    asmx_fprintf(asmx_stderr, "    -C cputype          specify default CPU type (currently ");
-    if (defCPU[0]) asmx_fprintf(asmx_stderr, "%s",defCPU);
-              else asmx_fprintf(asmx_stderr, "no default");
-    asmx_fprintf(asmx_stderr,")\n");
-    asmx_exit(1);
-}
-
-
-static void getopts(int argc, char * const argv[])
-{
-    int     ch;
     int     val;
     asmx_Str255 labl,word;
     bool    setSym;
     int     token;
     int     neg;
 
-    while ((ch = asmx_getopt(argc, argv, "ew19tb:cd:l:o:s:C:?")) != -1)
-    {
-        errFlag = FALSE;
-        switch (ch)
+
+    if (opts->srcName) {
+        asmx_strncpy(cl_SrcName, opts->srcName, 255);
+    }
+    else {
+        asmx_strncpy(cl_SrcName, "src.asm", 255);
+    }
+    if (opts->objName) {
+        asmx_strncpy(cl_ObjName, opts->objName, 255);
+    }
+    else {
+        asmx_strncpy(cl_ObjName, "out.obj", 255);
+    }
+    if (opts->lstName) {
+        asmx_strncpy(cl_ListName, opts->lstName, 255);
+    }
+    else {
+        asmx_strncpy(cl_ListName, "list.lst", 255);
+    }
+    if (opts->cpuType) {
+        asmx_strncpy(word, opts->cpuType, 255);
+        Uprcase(word);
+        if (!FindCPU(word))
         {
-            case 'e':
-                cl_Err = TRUE;
-                break;
-
-            case 'w':
-                cl_Warn = TRUE;
-                break;
-
-            case '1':
-                cl_ListP1 = TRUE;
-                break;
-
-            case '9': // -9 option is deprecated
-                cl_S9type  = 9;
-                cl_ObjType = OBJ_S9;
-                break;
-
-            case 't':
-                cl_ObjType = OBJ_TRSDOS;
-                asmx_strcpy(defCPU, "Z80");
-                break;
-
-            case 's':
-                if (asmx_optarg[0] == '9' && asmx_optarg[1] == 0)
-                    cl_S9type = 9;
-                else if (asmx_optarg[0] == '1' && asmx_optarg[1] == '9' && asmx_optarg[2] == 0)
-                    cl_S9type = 19;
-                else if (asmx_optarg[0] == '2' && asmx_optarg[1] == '8' && asmx_optarg[2] == 0)
-                    cl_S9type = 28;
-                else if (asmx_optarg[0] == '3' && asmx_optarg[1] == '7' && asmx_optarg[2] == 0)
-                    cl_S9type = 37;
-                else usage();
-                cl_ObjType = OBJ_S9;
-                break;
-
-            case 'b':
-                cl_ObjType = OBJ_BIN;
-                cl_Binbase = 0;
-                cl_Binend = 0xFFFFFFFF;
-
-                if (asmx_optarg[0] =='-')
-                {   // -b with no parameter
-                    asmx_optarg = "";
-                    asmx_optind--;
-                }
-                else if (*asmx_optarg)
-                {   // - b with parameter
-                    asmx_strncpy(curLine, asmx_optarg, 255);
-                    linePtr = curLine;
-
-                    // get start parameter
-                    if (GetWord(word) != -1) usage();
-                    cl_Binbase = EvalNum(word);
-                    if (errFlag)
-                    {
-                        asmx_printf("Invalid number '%s' in -b option\n",word);
-                        usage();
-                    }
-
-                    // get optional end parameter
-                    token = GetWord(word);
-                    if (token)
-                    {
-                        if (token != '-') usage();
-
-                        if (GetWord(word) != -1) usage();
-                        cl_Binend = EvalNum(word);
-                        if (errFlag)
-                        {
-                            asmx_printf("Invalid number '%s' in -b option\n",word);
-                            usage();
-                        }
-                    }
-                }
-                break;
-
-            case 'c':
-                if (cl_Obj)
-                {
-                    //asmx_fprintf(asmx_stderr,"%s: Conflicting options: -c can not be used with -o\n",progname);
-                    usage();
-                }
-                cl_Stdout = TRUE;
-                break;
-
-            case 'd':
-                asmx_strncpy(curLine, asmx_optarg, 255);
-                linePtr = curLine;
-                GetWord(labl);
-                val = 0;
-                setSym = FALSE;
+            asmx_fprintf(asmx_stderr,"CPU type '%s' unknown\n",word);
+            return false;
+        }
+        asmx_strcpy(defCPU, word);
+    }
+    cl_Err = opts->showErrors;
+    cl_Warn = opts->showWarnings;
+    cl_ObjType = OBJ_BIN;
+    cl_Obj = TRUE;
+    cl_List = TRUE;
+    cl_Binbase = 0;
+    cl_Binend = 0xFFFFFFFF;
+    for (int i = 0; i < ASMX_OPTIONS_MAX_DEFINES; i++) {
+        if (opts->defines[i]) {
+            asmx_strncpy(curLine, opts->defines[i], 255);
+            linePtr = curLine;
+            GetWord(labl);
+            val = 0;
+            setSym = FALSE;
+            token = GetWord(word);
+            if (token == ':')
+            {
+                setSym = TRUE;
                 token = GetWord(word);
-                if (token == ':')
+            }
+            if (token == '=')
+            {
+                neg = 1;
+                if (GetWord(word) == '-')
                 {
-                    setSym = TRUE;
-                    token = GetWord(word);
+                    neg = -1;
+                    GetWord(word);
                 }
-                if (token == '=')
+                val = neg * EvalNum(word);
+                if (errFlag)
                 {
-                    neg = 1;
-                    if (GetWord(word) == '-')
-                    {
-                        neg = -1;
-                        GetWord(word);
-                    }
-                    val = neg * EvalNum(word);
-                    if (errFlag)
-                    {
-                        asmx_printf("Invalid number '%s' in -d option\n",word);
-                        usage();
-                    }
+                    asmx_printf("Invalid number '%s' in -d option\n",word);
+                    return false;
                 }
-                DefSym(labl,val,setSym,!setSym);
-                break;
-
-            case 'l':
-                cl_List = TRUE;
-                if (asmx_optarg[0] == '-')
-                {
-                    asmx_optarg = "";
-                    asmx_optind--;
-                }
-                asmx_strncpy(cl_ListName, asmx_optarg, 255);
-                break;
-
-            case 'o':
-                if (cl_Stdout)
-                {
-                    //asmx_fprintf(asmx_stderr,"%s: Conflicting options: -o can not be used with -c\n",progname);
-                    usage();
-                }
-                cl_Obj = TRUE;
-                if (asmx_optarg[0] == '-')
-                {
-                    asmx_optarg = "";
-                    asmx_optind--;
-                }
-                asmx_strncpy(cl_ObjName, asmx_optarg, 255);
-                break;
-
-            case 'C':
-                asmx_strncpy(word, asmx_optarg, 255);
-                Uprcase(word);
-                if (!FindCPU(word))
-                {
-                    asmx_fprintf(asmx_stderr,"CPU type '%s' unknown\n",word);
-                    usage();
-                }
-                asmx_strcpy(defCPU, word);
-                break;
-
-            case '?':
-            default:
-                usage();
+            }
+            DefSym(labl,val,setSym,!setSym);
         }
     }
-    argc -= asmx_optind;
-    argv += asmx_optind;
-
-    if (cl_Stdout && cl_ObjType == OBJ_BIN)
-    {
-        //asmx_fprintf(asmx_stderr,"%s: Conflicting options: -b can not be used with -c\n",progname);
-        usage();
-    }
-
-#if 1
-    // -b or -9 or -t must force -o!
-    if (cl_ObjType != OBJ_HEX && !cl_Stdout && !cl_Obj)
-        cl_Obj = TRUE;
-#endif
-
-    // now argc is the number of remaining arguments
-    // and argv[0] is the first remaining argument
-
-    if (argc != 1)
-        usage();
-
-    asmx_strncpy(cl_SrcName, argv[0], 255);
-
-    // note: this won't work if there's a single-char filename in the current directory!
-    if (cl_SrcName[0] == '?' && cl_SrcName[1] == 0)
-        usage();
-
-    if (cl_List && cl_ListName[0] == 0)
-    {
-        asmx_strncpy(cl_ListName, cl_SrcName, 255-4);
-        asmx_strcat (cl_ListName, ".lst");
-    }
-
-    if (cl_Obj  && cl_ObjName [0] == 0)
-    {
-        switch(cl_ObjType)
-        {
-            case OBJ_S9:
-                asmx_strncpy(cl_ObjName, cl_SrcName, 255-3);
-                asmx_sprintf(word,".s%d",cl_S9type);
-                asmx_strcat (cl_ObjName, word);
-                break;
-
-            case OBJ_BIN:
-                asmx_strncpy(cl_ObjName, cl_SrcName, 255-4);
-                asmx_strcat (cl_ObjName, ".bin");
-                break;
-
-            case OBJ_TRSDOS:
-                asmx_strncpy(cl_ObjName, cl_SrcName, 255-4);
-                asmx_strcat (cl_ObjName, ".cmd");
-                break;
-
-            default:
-            case OBJ_HEX:
-                asmx_strncpy(cl_ObjName, cl_SrcName, 255-4);
-                asmx_strcat (cl_ObjName, ".hex");
-                break;
-        }
-    }
+    return true;
 }
 
 
-int asmx_main(int argc, char * const argv[])
+bool asmx_Assemble(const asmx_Options* opts)
 {
     int i;
 
@@ -5514,7 +5167,6 @@ int asmx_main(int argc, char * const argv[])
     cl_List    = FALSE;
     cl_Obj     = FALSE;
     cl_ObjType = OBJ_HEX;
-    cl_ListP1  = FALSE;
 
     asmTab     = 0;
     cpuTab     = 0;
@@ -5531,7 +5183,9 @@ int asmx_main(int argc, char * const argv[])
 
     AsmInit();
 
-    getopts(argc, argv);
+    if (!ParseOptions(opts)) {
+        return false;
+    }
 
     // open files
 
@@ -5539,7 +5193,7 @@ int asmx_main(int argc, char * const argv[])
     if (source == 0)
     {
         asmx_fprintf(asmx_stderr,"Unable to open source input file '%s'!\n",cl_SrcName);
-        asmx_exit(1);
+        return false;
     }
 
     if (cl_List)
@@ -5550,15 +5204,11 @@ int asmx_main(int argc, char * const argv[])
             asmx_fprintf(asmx_stderr,"Unable to create listing output file '%s'!\n",cl_ListName);
             if (source)
                 asmx_fclose(source);
-            asmx_exit(1);
+            return false;
         }
     }
 
-    if (cl_Stdout)
-    {
-        object = asmx_stdout;
-    }
-    else if (cl_Obj)
+    if (cl_Obj)
     {
         object = asmx_fopen(cl_ObjName, "w");
         if (object == 0)
@@ -5568,7 +5218,7 @@ int asmx_main(int argc, char * const argv[])
                 asmx_fclose(source);
             if (listing)
                 asmx_fclose(listing);
-            asmx_exit(1);
+            return false;
         }
     }
 
@@ -5594,7 +5244,7 @@ int asmx_main(int argc, char * const argv[])
         asmx_fclose(source);
     if (listing)
         asmx_fclose(listing);
-    if (object && object != asmx_stdout)
+    if (object)
         asmx_fclose(object);
 
     return (errCount != 0);

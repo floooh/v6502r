@@ -175,6 +175,9 @@ void ui_menu(void) {
             ImGui::MenuItem("Assembler", "Alt+A", &app.ui.asm_open);
             ImGui::MenuItem("Memory Editor", "Alt+M", &app.ui.memedit.open);
             ImGui::MenuItem("Disassembler", "Alt+D", &app.ui.dasm.open);
+            if (ImGui::MenuItem("Test Assembler")) {
+                asm_test();
+            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Theme")) {

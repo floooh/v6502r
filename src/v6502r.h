@@ -189,6 +189,13 @@ pick_result_t pick(float2_t mouse_pos, float2_t disp_size, float2_t offset, floa
 
 const char* util_opcode_to_str(uint8_t op);
 
+void asm_init(void);
+void asm_source_open(void);
+void asm_source_write(const char* src);
+void asm_source_close(void);
+void asm_assemble(void);
+void asm_test(void);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
