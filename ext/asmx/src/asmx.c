@@ -5132,7 +5132,7 @@ static bool ParseOptions(const asmx_Options* opts)
                 val = neg * EvalNum(word);
                 if (errFlag)
                 {
-                    asmx_printf("Invalid number '%s' in -d option\n",word);
+                    asmx_fprintf(asmx_stderr, "Invalid number '%s' in -d option\n",word);
                     return false;
                 }
             }

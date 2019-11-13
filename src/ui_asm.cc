@@ -58,33 +58,59 @@ void ui_asm_draw(void) {
     ImGui::SetNextWindowSize({480, 260}, ImGuiCond_Once);
     if (ImGui::Begin("Assembler", &app.ui.asm_open, ImGuiWindowFlags_None)) {
         bool is_active = ImGui::IsWindowFocused();
-        ImGui::Text("%6d/%-6d %6d lines  | %s | %s", cpos.mLine + 1, cpos.mColumn + 1, editor->GetTotalLines(),
-            editor->IsOverwrite() ? "Ovr" : "Ins",
-            editor->CanUndo() ? "*" : " ");
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(editor->GetPalette()[(int)TextEditor::PaletteIndex::Background]));
-        ImGui::BeginChild("##asm", {0,-footer_h}, false, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
-        editor->Render("Assembler");
-        // set focus to text input field whenever the parent window is active
-        if (is_active) {
-            ImGui::SetFocusID(ImGui::GetCurrentWindow()->ID, ImGui::GetCurrentWindow());
-        }
-        ImGui::EndChild();
-        ImGui::PopStyleColor();
-        if (ImGui::Button("Assemble")) {
-            // FIXME
-        }
-        ImGui::SameLine();
-        if (editor->CanUndo()) {
-            if (ImGui::Button("Undo")) {
-                editor->Undo();
+        if (ImGui::BeginTabBar("##asm_tabs", ImGuiTabBarFlags_None)) {
+            if (ImGui::BeginTabItem("Editor")) {
+                ImGui::Text("%6d/%-6d %6d lines  | %s | %s", cpos.mLine + 1, cpos.mColumn + 1, editor->GetTotalLines(),
+                    editor->IsOverwrite() ? "Ovr" : "Ins",
+                    editor->CanUndo() ? "*" : " ");
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(editor->GetPalette()[(int)TextEditor::PaletteIndex::Background]));
+                ImGui::BeginChild("##asm", {0,-footer_h}, false, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
+                editor->Render("Assembler");
+                // set focus to text input field whenever the parent window is active
+                if (is_active) {
+                    ImGui::SetFocusID(ImGui::GetCurrentWindow()->ID, ImGui::GetCurrentWindow());
+                }
+                ImGui::EndChild();
+                ImGui::PopStyleColor();
+                if (editor->GetTotalLines() > 0) {
+                    if (ImGui::Button("Assemble")) {
+                        asm_init();
+                        asm_source_open();
+                        auto lines = editor->GetTextLines();
+                        for (const auto& line: lines) {
+                            asm_source_write(line.c_str(), 8);
+                            asm_source_write("\n", 8);
+                        }
+                        asm_source_close();
+                        asm_assemble();
+                    }
+                    ImGui::SameLine();
+                }
+                if (editor->CanUndo()) {
+                    if (ImGui::Button("Undo")) {
+                        editor->Undo();
+                    }
+                }
+                if (editor->CanRedo()) {
+                    if (ImGui::Button("Redo")) {
+                        editor->Redo();
+                    }
+                }
+                ImGui::EndTabItem();
             }
-            ImGui::SameLine();
-        }
-        if (editor->CanRedo()) {
-            if (ImGui::Button("Redo")) {
-                editor->Redo();
+            if (ImGui::BeginTabItem("Output")) {
+                ImGui::BeginChild("##stderr", {0,0});
+                ImGui::Text("%s", asm_get_stderr());
+                ImGui::EndChild();
+                ImGui::EndTabItem();
             }
-            ImGui::SameLine();
+            if (ImGui::BeginTabItem("Listing")) {
+                ImGui::BeginChild("##listing", {0,0});
+                ImGui::Text("%s", asm_get_listing());
+                ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
         }
     }
     ImGui::End();

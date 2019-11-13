@@ -34,6 +34,7 @@ void ui_init() {
     style.WindowRounding = 0.0f;
     style.WindowBorderSize = 1.0f;
     style.Alpha = 1.0f;
+    style.TabRounding = 0.0f;
 
     // setup ImGui font with custom icons
     auto& io = ImGui::GetIO();
@@ -175,9 +176,6 @@ void ui_menu(void) {
             ImGui::MenuItem("Assembler", "Alt+A", &app.ui.asm_open);
             ImGui::MenuItem("Memory Editor", "Alt+M", &app.ui.memedit.open);
             ImGui::MenuItem("Disassembler", "Alt+D", &app.ui.dasm.open);
-            if (ImGui::MenuItem("Test Assembler")) {
-                asm_test();
-            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Theme")) {

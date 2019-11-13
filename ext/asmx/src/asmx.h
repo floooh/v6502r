@@ -30,7 +30,6 @@ extern long int asmx_ftell(asmx_FILE* stream);
 extern int asmx_fseek(asmx_FILE* stream, long int offset, int origin);
 extern int asmx_fputc(int character, asmx_FILE* stream);
 extern int asmx_fprintf(asmx_FILE* stream, const char* format, ...);
-extern int asmx_printf(const char* format, ...);
 extern void* asmx_malloc(asmx_size_t size);
 extern void asmx_free(void* ptr);
 extern asmx_size_t asmx_strlen(const char* str);

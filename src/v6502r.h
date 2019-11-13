@@ -191,10 +191,11 @@ const char* util_opcode_to_str(uint8_t op);
 
 void asm_init(void);
 void asm_source_open(void);
-void asm_source_write(const char* src);
+void asm_source_write(const char* src, int tab_width);
 void asm_source_close(void);
 void asm_assemble(void);
-void asm_test(void);
+const char* asm_get_stderr(void);
+const char* asm_get_listing(void);
 
 #ifdef __cplusplus
 } // extern "C"
