@@ -59,7 +59,7 @@ static void app_input(const sapp_event* ev) {
     if (ui_input(ev)) {
         return;
     }
-    float w = (float)ev->framebuffer_width * app.chipvis.scale;
+    float w = (float) ev->framebuffer_width * app.chipvis.scale;
     float h = (float) ev->framebuffer_height * app.chipvis.scale * app.chipvis.aspect;
     switch (ev->type) {
         case SAPP_EVENTTYPE_MOUSE_SCROLL:
