@@ -107,6 +107,13 @@ void ui_shutdown() {
 }
 
 bool ui_input(const sapp_event* ev) {
+    // opening the HTML5 filepicker must happen from inside an JS input handler
+    if (app.ui.load_button_hovered &&
+        (ev->type == SAPP_EVENTTYPE_MOUSE_DOWN) &&
+        (ev->mouse_button == SAPP_MOUSEBUTTON_LEFT))
+    {
+        util_html5_load();
+    }
     // layer visibility hotkeys?
     if ((ev->type == SAPP_EVENTTYPE_KEY_DOWN) && (0 != (ev->modifiers & SAPP_MODIFIER_ALT))) {
         int l = -1;

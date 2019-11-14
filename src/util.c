@@ -2,6 +2,41 @@
 //  util.c
 //------------------------------------------------------------------------------
 #include "v6502r.h"
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
+
+#if defined(__EMSCRIPTEN__)
+EM_JS(void, emsc_js_download, (const char* c_filename, const char* c_content), {
+    var filename = UTF8ToString(c_filename);
+    var content = UTF8ToString(c_content);
+    var elm = document.createElement('a');
+    elm.setAttribute('href', 'data:text/plain;charset=utf-8,'+encodeURIComponent(content));
+    elm.setAttribute('download', filename);
+    elm.style.display='none';
+    document.body.appendChild(elm);
+    elm.click();
+    document.body.removeChild(elm);
+});
+
+EM_JS(void, emsc_js_load, (void), {
+    var elm = document.createElement('input');
+    elm.setAttribute('type', 'file');
+    elm.setAttribute('id', 'filepicker');
+    elm.style.display='none';
+    document.body.appendChild(elm);
+    elm.click();
+    document.body.removeChild(elm);
+});
+
+void util_html5_download(const char* filename, const char* content) {
+    emsc_js_download(filename, content);
+}
+
+void util_html5_load(void) {
+    emsc_js_load();
+}
+#endif
 
 const char* util_opcode_to_str(uint8_t opcode) {
     switch (opcode) {

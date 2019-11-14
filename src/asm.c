@@ -143,7 +143,7 @@ int asmx_fseek(asmx_FILE* stream, long int offset, int origin) {
     iostream_t* io = &state.io[io_stream];
     switch (origin) {
         case ASMX_SEEK_SET:
-            if (offset < io->size) {
+            if ((uint32_t)offset < io->size) {
                 io->pos = offset;
                 return 0;
             }
@@ -266,11 +266,11 @@ void asm_source_write(const char* str, uint32_t tab_width) {
     while ((c = *str++)) {
         if (c == '\t') {
             while ((++state.src_line_pos % tab_width) != 0) {
-                asmx_fputc(' ', IOSTREAM_SRC);
+                asmx_fputc(' ', (asmx_FILE*)IOSTREAM_SRC);
             }
         }
         else {
-            asmx_fputc(c, IOSTREAM_SRC);
+            asmx_fputc(c, (asmx_FILE*)IOSTREAM_SRC);
             state.src_line_pos++;
         }
         if (c == '\n') {
@@ -304,6 +304,10 @@ static const char* asm_get_string(uintptr_t io_stream) {
         io->buf[MAX_IOBUF_SIZE-1] = 0;
     }
     return (const char*) io->buf;
+}
+
+const char* asm_get_source(void) {
+    return asm_get_string(IOSTREAM_SRC);
 }
 
 const char* asm_get_stderr(void) {
