@@ -179,6 +179,8 @@ typedef struct {
     asmx_Str255     listLine;           // Current listing line
     int             hexSpaces;          // flags for spaces in hex output for instructions
     int             curListWid;         // listing width: LIST_16, LIST_24
+    uint32_t        binBase;            // base address for OBJ_BIN
+    uint32_t        binEnd;             // end address for OBJ_BIN
 } asmx_Shared_t;
 extern asmx_Shared_t asmx_Shared;
 

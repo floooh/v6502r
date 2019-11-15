@@ -94,6 +94,12 @@ void sim_write(uint16_t addr, uint16_t num_bytes, const uint8_t* ptr) {
     }
 }
 
+void sim_clear(uint16_t addr, uint16_t num_bytes) {
+    for (uint16_t i = 0; i < num_bytes; i++) {
+        memory[(addr+i)&0xFFFF] = 0;
+    }
+}
+
 uint8_t sim_get_a(void) {
     return readA(p6502_state);
 }

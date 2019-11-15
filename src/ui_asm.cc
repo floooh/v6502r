@@ -7,14 +7,20 @@
 #include "TextEditor.h"
 #include "imgui_internal.h"
 
-static TextEditor* editor;
+static struct {
+    TextEditor* editor;
+    uint16_t prev_addr;
+    uint16_t prev_len;
+} state;
 
 void ui_asm_init(void) {
-    editor = new TextEditor();
-    editor->SetPalette(TextEditor::GetRetroBluePalette());
-    editor->SetShowWhitespaces(false);
-    editor->SetTabSize(8);
-    editor->SetImGuiChildIgnored(true);
+    state.prev_addr = 0x0000;
+    state.prev_len = 0x0200;
+    state.editor = new TextEditor();
+    state.editor->SetPalette(TextEditor::GetRetroBluePalette());
+    state.editor->SetShowWhitespaces(false);
+    state.editor->SetTabSize(8);
+    state.editor->SetImGuiChildIgnored(true);
 
     // language definition for 6502 asm
     static TextEditor::LanguageDefinition def;
@@ -41,19 +47,19 @@ void ui_asm_init(void) {
     def.mCaseSensitive = false;
     def.mAutoIndentation = true;
     def.mName = "6502 ASM";
-    editor->SetLanguageDefinition(def);
+    state.editor->SetLanguageDefinition(def);
 }
 
 void ui_asm_discard(void) {
-    assert(editor);
-    delete editor;
+    assert(state.editor);
+    delete state.editor;
 }
 
 void ui_asm_draw(void) {
     if (!app.ui.asm_open) {
         return;
     }
-    auto cpos = editor->GetCursorPosition();
+    auto cpos = state.editor->GetCursorPosition();
     const float footer_h = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
     ImGui::SetNextWindowSize({480, 260}, ImGuiCond_Once);
     const char* cur_error_msg = 0;
@@ -68,32 +74,32 @@ void ui_asm_draw(void) {
         if (ImGui::BeginTabBar("##asm_tabs", ImGuiTabBarFlags_None)) {
             if (ImGui::BeginTabItem("Editor")) {
                 ImGui::Text("%s | %s",
-                    editor->IsOverwrite() ? "Ovr" : "Ins",
-                    editor->CanUndo() ? "*" : " ");
+                    state.editor->IsOverwrite() ? "Ovr" : "Ins",
+                    state.editor->CanUndo() ? "*" : " ");
                 if (cur_error_msg) {
                     ImGui::SameLine();
                     ImGui::PushStyleColor(ImGuiCol_Text, 0xFF4444FF);
                     ImGui::Text("%s", cur_error_msg);
                     ImGui::PopStyleColor();
                 }
-                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(editor->GetPalette()[(int)TextEditor::PaletteIndex::Background]));
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(state.editor->GetPalette()[(int)TextEditor::PaletteIndex::Background]));
                 ImGui::BeginChild("##asm", {0,-footer_h}, false, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
-                editor->Render("Assembler");
+                state.editor->Render("Assembler");
                 // set focus to text input field whenever the parent window is active
                 if (is_active) {
                     ImGui::SetFocusID(ImGui::GetCurrentWindow()->ID, ImGui::GetCurrentWindow());
                 }
                 ImGui::EndChild();
                 ImGui::PopStyleColor();
-                if (editor->CanUndo()) {
+                if (state.editor->CanUndo()) {
                     if (ImGui::Button("Undo")) {
-                        editor->Undo();
+                        state.editor->Undo();
                     }
                     ImGui::SameLine();
                 }
-                if (editor->CanRedo()) {
+                if (state.editor->CanRedo()) {
                     if (ImGui::Button("Redo")) {
-                        editor->Redo();
+                        state.editor->Redo();
                     }
                     ImGui::SameLine();
                 }
@@ -135,22 +141,28 @@ void ui_asm_draw(void) {
         }
     }
     ImGui::End();
-    if (editor->IsTextChanged()) {
+    if (state.editor->IsTextChanged()) {
         asm_init();
         asm_source_open();
-        auto lines = editor->GetTextLines();
+        auto lines = state.editor->GetTextLines();
         for (const auto& line: lines) {
             asm_source_write(line.c_str(), 8);
             asm_source_write("\n", 8);
         }
         asm_source_close();
-        asm_assemble();
+        asm_result_t asm_res = asm_assemble();
+        if (!asm_res.errors && (asm_res.len > 0)) {
+            sim_clear(state.prev_addr, state.prev_len);
+            sim_write(asm_res.addr, asm_res.len, asm_res.bytes);
+            state.prev_addr = asm_res.addr;
+            state.prev_len = asm_res.len;
+        }
         TextEditor::ErrorMarkers err_markers;
         for (int err_index = 0; err_index < asm_num_errors(); err_index++) {
             const asm_error_t* err = asm_error(err_index);
             err_markers[err->line_nr] = err->msg;
         }
-        editor->SetErrorMarkers(err_markers);
+        state.editor->SetErrorMarkers(err_markers);
     }
 }
 

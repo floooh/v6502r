@@ -372,7 +372,7 @@ const asm_error_t* asm_error(int index) {
     return &state.errors[index];
 }
 
-bool asm_assemble(void) {
+asm_result_t asm_assemble(void) {
     assert(0 == state.alloc_pos);
     asmx_Assemble(&(asmx_Options){
         .srcName = "src.asm",
@@ -383,6 +383,11 @@ bool asm_assemble(void) {
         .showWarnings = true
     });
     asm_parse_errors();
-    return 0 == asm_num_errors();
+    return (asm_result_t) {
+        .errors = 0 != asm_num_errors(),
+        .addr = (uint16_t) asmx_Shared.binBase,
+        .len = (uint16_t) asmx_Shared.binEnd,
+        .bytes = state.io[IOSTREAM_OBJ].buf,
+    };
 }
 

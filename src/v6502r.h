@@ -138,6 +138,7 @@ void sim_w8(uint16_t addr, uint8_t val);
 uint8_t sim_r8(uint16_t addr);
 void sim_w16(uint16_t addr, uint16_t val);
 uint16_t sim_r16(uint16_t addr);
+void sim_clear(uint16_t addr, uint16_t num_bytes);
 void sim_write(uint16_t addr, uint16_t num_bytes, const uint8_t* ptr);
 uint32_t sim_get_cycle(void);
 void sim_set_cycle(uint32_t c);
@@ -195,11 +196,18 @@ typedef struct {
     const char* msg;
 } asm_error_t;
 
+typedef struct {
+    bool errors;
+    uint16_t addr;
+    uint16_t len;
+    const uint8_t* bytes;
+} asm_result_t;
+
 void asm_init(void);
 void asm_source_open(void);
 void asm_source_write(const char* src, uint32_t tab_width);
 void asm_source_close(void);
-bool asm_assemble(void);
+asm_result_t asm_assemble(void);
 int asm_num_errors(void);
 const asm_error_t* asm_error(int index);
 const char* asm_stderr(void);

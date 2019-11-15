@@ -38,6 +38,8 @@ asmx_Shared_t asmx_Shared;
 #define listLine asmx_Shared.listLine
 #define hexSpaces asmx_Shared.hexSpaces
 #define curListWid asmx_Shared.curListWid
+#define cl_Binbase asmx_Shared.binBase
+#define cl_Binend asmx_Shared.binEnd
 
 struct SymRec
 {
@@ -169,8 +171,7 @@ static bool            cl_List;            // TRUE to generate listing file
 static bool            cl_Obj;             // TRUE to generate object file
 static int             cl_ObjType;         // type of object file to generate:
 enum { OBJ_HEX, OBJ_BIN };  // values for cl_Obj
-static uint32_t        cl_Binbase;         // base address for OBJ_BIN
-static uint32_t        cl_Binend;          // end address for OBJ_BIN
+static bool            cl_AutoBinBaseEnd;  // if true, automatically adjust Binbase and Binend
 
 static asmx_FILE       *source;            // source input file
 static asmx_FILE       *object;            // object output file
@@ -2130,7 +2131,7 @@ static void DumpSymTab(void)
             else
             {
                 if (cl_List)
-                    asmx_fprintf(listing, "%s", s);
+                    asmx_fprintf(listing, "%s\n", s);
                 i = i + w;
             }
         }
@@ -2700,6 +2701,12 @@ static void write_bin(uint32_t addr, uint8_t *buf, uint32_t len, int rectype)
 
     if (rectype == REC_DATA)
     {
+        // automatically adjust base end end?
+        if (cl_AutoBinBaseEnd) {
+            cl_Binbase = addr;
+            cl_Binend = addr + len;
+        }
+
         // return if end of data less than base address
         if (addr + len <= cl_Binbase) return;
 
@@ -5107,7 +5114,8 @@ static bool ParseOptions(const asmx_Options* opts)
     cl_Obj = TRUE;
     cl_List = TRUE;
     cl_Binbase = 0;
-    cl_Binend = 0xFFFFFFFF;
+    cl_Binend = 0;
+    cl_AutoBinBaseEnd = true;
     for (int i = 0; i < ASMX_OPTIONS_MAX_DEFINES; i++) {
         if (opts->defines[i]) {
             asmx_strncpy(curLine, opts->defines[i], 255);
