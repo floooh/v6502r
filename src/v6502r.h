@@ -188,14 +188,23 @@ void pick_init(void);
 void pick_frame(void);
 pick_result_t pick(float2_t mouse_pos, float2_t disp_size, float2_t offset, float2_t scale);
 
+typedef struct {
+    const char* filename;
+    int line_nr;                // 1-based!
+    bool warning;               // true: warning, false: error
+    const char* msg;
+} asm_error_t;
+
 void asm_init(void);
 void asm_source_open(void);
-void asm_source_write(const char* src, int tab_width);
+void asm_source_write(const char* src, uint32_t tab_width);
 void asm_source_close(void);
-void asm_assemble(void);
-const char* asm_get_stderr(void);
-const char* asm_get_listing(void);
-const char* asm_get_source(void);
+bool asm_assemble(void);
+int asm_num_errors(void);
+const asm_error_t* asm_error(int index);
+const char* asm_stderr(void);
+const char* asm_listing(void);
+const char* asm_source(void);
 
 const char* util_opcode_to_str(uint8_t op);
 #if defined(__EMSCRIPTEN__)

@@ -3,6 +3,7 @@
 //  Wrapper and glue code for asmx.
 //------------------------------------------------------------------------------
 #include "asmx.h"
+#include "v6502r.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +13,7 @@
 
 #define MAX_MALLOC_SIZE (512 * 1024)
 #define MAX_IOBUF_SIZE  (512 * 1024)
+#define MAX_ERRORS (32)
 
 #define IOSTREAM_STDERR     (0)
 #define IOSTREAM_SRC        (1)
@@ -33,6 +35,9 @@ static struct {
     iostream_t io[NUM_IOSTREAMS];
     uint32_t alloc_pos;
     uint8_t alloc_buf[MAX_MALLOC_SIZE];
+    uint8_t parse_buf[MAX_IOBUF_SIZE];
+    int num_errors;
+    asm_error_t errors[MAX_ERRORS];
 } state;
 
 // C runtime wrapper functions
@@ -250,7 +255,14 @@ int asmx_abs(int n) {
 }
 
 void asm_init(void) {
-    memset(&state, 0, sizeof(state));
+    state.src_line_pos = 0;
+    for (int i = 0; i < NUM_IOSTREAMS; i++) {
+        state.io[i].pos = 0;
+        state.io[i].size = 0;
+        state.io[i].buf[0] = 0;
+    }
+    state.alloc_pos = 0;
+    state.num_errors = 0;
 }
 
 void asm_source_open(void) {
@@ -283,18 +295,6 @@ void asm_source_close(void) {
     asmx_fclose((asmx_FILE*)IOSTREAM_SRC);
 }
 
-void asm_assemble(void) {
-    assert(0 == state.alloc_pos);
-    asmx_Assemble(&(asmx_Options){
-        .srcName = "src.asm",
-        .objName = "out.obj",
-        .lstName = "list.lst",
-        .cpuType = "6502",
-        .showErrors = true,
-        .showWarnings = true
-    });
-}
-
 static const char* asm_get_string(uintptr_t io_stream) {
     iostream_t* io = &state.io[io_stream];
     if (io->pos < MAX_IOBUF_SIZE) {
@@ -306,14 +306,83 @@ static const char* asm_get_string(uintptr_t io_stream) {
     return (const char*) io->buf;
 }
 
-const char* asm_get_source(void) {
+const char* asm_source(void) {
     return asm_get_string(IOSTREAM_SRC);
 }
 
-const char* asm_get_stderr(void) {
+const char* asm_stderr(void) {
     return asm_get_string(IOSTREAM_STDERR);
 }
 
-const char* asm_get_listing(void) {
+const char* asm_listing(void) {
     return asm_get_string(IOSTREAM_LST);
 }
+
+#define MAX_ERR_LINES (64)
+static void asm_parse_errors(void) {
+    assert(state.num_errors == 0);
+
+    // split into lines and extract error lines
+    strcpy((char*)state.parse_buf, asm_stderr());
+    char* line_context;
+    for (char* line = strtok_r((char*)state.parse_buf, "\n", &line_context);
+         line;
+         line = strtok_r(0, "\n", &line_context))
+    {
+        if (strstr(line, "*** Error:") || strstr(line, "*** Warning:")) {
+            char* tok_context, *tok;
+            int i;
+            if (state.num_errors >= MAX_ERRORS) {
+                break;
+            }
+            asm_error_t* err = &state.errors[state.num_errors++];
+            for (i = 0, tok = strtok_r(line, ":", &tok_context);
+                 tok;
+                 tok = strtok_r(0, ":", &tok_context), i++)
+            {
+                switch (i) {
+                    case 0:
+                        err->filename = tok;
+                        break;
+                    case 1:
+                        err->line_nr = atoi(tok);
+                        break;
+                    case 2:
+                        err->warning = (0 == strcmp(" *** Warning", tok));
+                        break;
+                    case 3:
+                        // remove trailing " ***"
+                        tok[strlen(tok)-4] = 0;
+                        // skip leading "  "
+                        err->msg = &tok[2];
+                        break;
+                }
+            }
+            assert(err->filename && err->msg);
+        }
+    }
+}
+
+int asm_num_errors(void) {
+    return state.num_errors;
+}
+
+const asm_error_t* asm_error(int index) {
+    assert((index >= 0) && (index < state.num_errors));
+    return &state.errors[index];
+}
+
+bool asm_assemble(void) {
+    assert(0 == state.alloc_pos);
+    asmx_Assemble(&(asmx_Options){
+        .srcName = "src.asm",
+        .objName = "out.obj",
+        .lstName = "list.lst",
+        .cpuType = "6502",
+        .showErrors = true,
+        .showWarnings = true
+    });
+    asm_parse_errors();
+    return 0 == asm_num_errors();
+}
+

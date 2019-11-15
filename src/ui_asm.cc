@@ -56,13 +56,26 @@ void ui_asm_draw(void) {
     auto cpos = editor->GetCursorPosition();
     const float footer_h = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
     ImGui::SetNextWindowSize({480, 260}, ImGuiCond_Once);
+    const char* cur_error_msg = 0;
+    for (int i = 0; i < asm_num_errors(); i++) {
+        const asm_error_t* err = asm_error(i);
+        if (err->line_nr == (cpos.mLine+1)) {
+            cur_error_msg = err->msg;
+        }
+    }
     if (ImGui::Begin("Assembler", &app.ui.asm_open, ImGuiWindowFlags_None)) {
         bool is_active = ImGui::IsWindowFocused();
         if (ImGui::BeginTabBar("##asm_tabs", ImGuiTabBarFlags_None)) {
             if (ImGui::BeginTabItem("Editor")) {
-                ImGui::Text("%6d/%-6d %6d lines  | %s | %s", cpos.mLine + 1, cpos.mColumn + 1, editor->GetTotalLines(),
+                ImGui::Text("%s | %s",
                     editor->IsOverwrite() ? "Ovr" : "Ins",
                     editor->CanUndo() ? "*" : " ");
+                if (cur_error_msg) {
+                    ImGui::SameLine();
+                    ImGui::PushStyleColor(ImGuiCol_Text, 0xFF4444FF);
+                    ImGui::Text("%s", cur_error_msg);
+                    ImGui::PopStyleColor();
+                }
                 ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(editor->GetPalette()[(int)TextEditor::PaletteIndex::Background]));
                 ImGui::BeginChild("##asm", {0,-footer_h}, false, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
                 editor->Render("Assembler");
@@ -72,20 +85,6 @@ void ui_asm_draw(void) {
                 }
                 ImGui::EndChild();
                 ImGui::PopStyleColor();
-                if (editor->GetTotalLines() > 0) {
-                    if (ImGui::Button("Assemble")) {
-                        asm_init();
-                        asm_source_open();
-                        auto lines = editor->GetTextLines();
-                        for (const auto& line: lines) {
-                            asm_source_write(line.c_str(), 8);
-                            asm_source_write("\n", 8);
-                        }
-                        asm_source_close();
-                        asm_assemble();
-                    }
-                    ImGui::SameLine();
-                }
                 if (editor->CanUndo()) {
                     if (ImGui::Button("Undo")) {
                         editor->Undo();
@@ -122,13 +121,13 @@ void ui_asm_draw(void) {
             }
             if (ImGui::BeginTabItem("Output")) {
                 ImGui::BeginChild("##stderr", {0,0});
-                ImGui::Text("%s", asm_get_stderr());
+                ImGui::Text("%s", asm_stderr());
                 ImGui::EndChild();
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Listing")) {
                 ImGui::BeginChild("##listing", {0,0});
-                ImGui::Text("%s", asm_get_listing());
+                ImGui::Text("%s", asm_listing());
                 ImGui::EndChild();
                 ImGui::EndTabItem();
             }
@@ -136,6 +135,23 @@ void ui_asm_draw(void) {
         }
     }
     ImGui::End();
+    if (editor->IsTextChanged()) {
+        asm_init();
+        asm_source_open();
+        auto lines = editor->GetTextLines();
+        for (const auto& line: lines) {
+            asm_source_write(line.c_str(), 8);
+            asm_source_write("\n", 8);
+        }
+        asm_source_close();
+        asm_assemble();
+        TextEditor::ErrorMarkers err_markers;
+        for (int err_index = 0; err_index < asm_num_errors(); err_index++) {
+            const asm_error_t* err = asm_error(err_index);
+            err_markers[err->line_nr] = err->msg;
+        }
+        editor->SetErrorMarkers(err_markers);
+    }
 }
 
 
