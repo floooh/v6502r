@@ -266,8 +266,7 @@ void asm_init(void) {
 }
 
 void asm_source_open(void) {
-    asmx_FILE* fp = asmx_fopen("src.asm", "w");
-    assert(IOSTREAM_SRC == (uintptr_t)fp);
+    asmx_fopen("src.asm", "w");
     state.src_line_pos = 0;
 }
 
@@ -277,7 +276,7 @@ void asm_source_write(const char* str, uint32_t tab_width) {
     int c;
     while ((c = *str++)) {
         if (c == '\t') {
-            while ((++state.src_line_pos % tab_width) != 0) {
+            while ((++state.src_line_pos % (tab_width+1))!= 0) {
                 asmx_fputc(' ', (asmx_FILE*)IOSTREAM_SRC);
             }
         }

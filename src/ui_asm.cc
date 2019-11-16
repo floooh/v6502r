@@ -104,20 +104,20 @@ void ui_asm_draw(void) {
                     ImGui::SameLine();
                 }
                 #if defined(__EMSCRIPTEN__)
-                ImGui::Button("Load...");
+                ImGui::Button("Load... [TODO]");
                 app.ui.load_button_hovered = ImGui::IsItemHovered();
                 ImGui::SameLine();
-                if (editor->GetTotalLines() > 0) {
+                if (state.editor->GetTotalLines() > 0) {
                     if (ImGui::Button("Save...")) {
                         asm_init();
                         asm_source_open();
-                        auto lines = editor->GetTextLines();
+                        auto lines = state.editor->GetTextLines();
                         for (const auto& line: lines) {
                             asm_source_write(line.c_str(), 8);
                             asm_source_write("\n", 8);
                         }
                         asm_source_close();
-                        const char* content = asm_get_source();
+                        const char* content = asm_source();
                         util_html5_download("v6502r.asm", content);
                     }
                     ImGui::SameLine();
