@@ -58,7 +58,7 @@ body {
       <span class="game-menu-item"><a class="game-menu-link" href="https://github.com/floooh/v6502r" target="_blank">about</a></span>
   </div>
   <canvas class="game" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
-  <input type="file" id="picker" style="display:none" onchange="Module.onLoad(this.files)"></input>
+  <input type="file" id="picker" style="display:none" onchange="Module.onLoad(this.files);this.value=null;"></input>
   <script type="text/javascript">
     var Module = {
         preRun: [],
