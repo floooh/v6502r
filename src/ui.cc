@@ -106,43 +106,87 @@ void ui_shutdown() {
     simgui_shutdown();
 }
 
-bool ui_input(const sapp_event* ev) {
-    // opening the HTML5 filepicker must happen from inside an JS input handler
-    // layer visibility hotkeys?
-    if ((ev->type == SAPP_EVENTTYPE_KEY_DOWN) && (0 != (ev->modifiers & SAPP_MODIFIER_ALT))) {
-        int l = -1;
-        switch (ev->key_code) {
-            case SAPP_KEYCODE_1: l = 0; break;
-            case SAPP_KEYCODE_2: l = 1; break;
-            case SAPP_KEYCODE_3: l = 2; break;
-            case SAPP_KEYCODE_4: l = 3; break;
-            case SAPP_KEYCODE_5: l = 4; break;
-            case SAPP_KEYCODE_6: l = 5; break;
-            case SAPP_KEYCODE_C: app.ui.cpu_controls_open = !app.ui.cpu_controls_open; break;
-            case SAPP_KEYCODE_L: app.ui.tracelog_open = !app.ui.tracelog_open; break;
-            case SAPP_KEYCODE_A: app.ui.asm_open = !app.ui.asm_open; break;
-            case SAPP_KEYCODE_M: app.ui.memedit.open = !app.ui.memedit.open; break;
-            case SAPP_KEYCODE_D: app.ui.dasm.open = !app.ui.dasm.open; break;
-            default: break;
-        }
-        if (l != -1) {
-            app.chipvis.layer_visible[l] = !app.chipvis.layer_visible[l];
+static bool test_alt(const sapp_event* ev, sapp_keycode key_code) {
+    if (ev->type == SAPP_EVENTTYPE_KEY_DOWN) {
+        if ((ev->modifiers & SAPP_MODIFIER_ALT) && (ev->key_code == key_code)) {
+            return true;
         }
     }
-    #if defined(__EMSCRIPTEN__)
-    if (app.ui.open_source_hovered &&
-        (ev->type == SAPP_EVENTTYPE_MOUSE_UP) &&
-        (ev->mouse_button == SAPP_MOUSEBUTTON_LEFT))
-    {
+    return false;
+}
+
+static bool test_ctrl(const sapp_event* ev, sapp_keycode key_code) {
+    if (ev->type == SAPP_EVENTTYPE_KEY_DOWN) {
+        if ((ev->modifiers & SAPP_MODIFIER_CTRL) && (ev->key_code == key_code)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool test_click(const sapp_event* ev, bool hovered) {
+    if (hovered && (ev->type == SAPP_EVENTTYPE_MOUSE_UP) && (ev->mouse_button == SAPP_MOUSEBUTTON_LEFT)) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+bool ui_input(const sapp_event* ev) {
+    int l = -1;
+    if (test_alt(ev, SAPP_KEYCODE_1)) {
+        l = 0;
+    }
+    else if (test_alt(ev, SAPP_KEYCODE_2)) {
+        l = 1;
+    }
+    else if (test_alt(ev, SAPP_KEYCODE_3)) {
+        l = 2;
+    }
+    else if (test_alt(ev, SAPP_KEYCODE_4)) {
+        l = 3;
+    }
+    else if (test_alt(ev, SAPP_KEYCODE_5)) {
+        l = 4;
+    }
+    else if (test_alt(ev, SAPP_KEYCODE_6)) {
+        l = 5;
+    }
+    if (l != -1) {
+        app.chipvis.layer_visible[l] = !app.chipvis.layer_visible[l];
+        return true;
+    }
+    if (test_alt(ev, SAPP_KEYCODE_C)) {
+        app.ui.cpu_controls_open = !app.ui.cpu_controls_open;
+    }
+    if (test_alt(ev, SAPP_KEYCODE_L)) {
+        app.ui.tracelog_open = !app.ui.tracelog_open;
+    }
+    if (test_alt(ev, SAPP_KEYCODE_A)) {
+        app.ui.asm_open = !app.ui.asm_open;
+    }
+    if (test_alt(ev, SAPP_KEYCODE_M)) {
+        app.ui.memedit.open = !app.ui.memedit.open;
+    }
+    if (test_alt(ev, SAPP_KEYCODE_D)) {
+        app.ui.dasm.open = !app.ui.dasm.open;
+    }
+    if (test_click(ev, app.ui.open_source_hovered) || test_ctrl(ev, SAPP_KEYCODE_O)) {
         util_html5_load();
     }
-    if (app.ui.save_source_hovered &&
-        (ev->type == SAPP_EVENTTYPE_MOUSE_UP) &&
-        (ev->mouse_button == SAPP_MOUSEBUTTON_LEFT))
-    {
+    if (test_click(ev, app.ui.save_source_hovered) || test_ctrl(ev, SAPP_KEYCODE_S)) {
         util_html5_download("v6502r.asm", ui_asm_source());
     }
-    #endif
+    if (test_click(ev, app.ui.save_listing_hovered)) {
+        util_html5_download("v6502r.lst", asm_listing());
+    }
+    if (test_ctrl(ev, SAPP_KEYCODE_Z)) {
+        ui_asm_undo();
+    }
+    if (test_ctrl(ev, SAPP_KEYCODE_R)) {
+        ui_asm_redo();
+    }
     return simgui_handle_event(ev);
 }
 
@@ -179,7 +223,7 @@ void ui_menu(void) {
             if (ImGui::IsItemHovered()) {
                 app.ui.save_source_hovered = true;
             }
-            ImGui::MenuItem("Save Binary...", 0);
+            ImGui::MenuItem("Save Binary... [TODO]", 0);
             if (ImGui::IsItemHovered()) {
                 app.ui.save_binary_hovered = true;
             }
@@ -190,20 +234,20 @@ void ui_menu(void) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
-            if (ImGui::MenuItem("Undo", "Ctrl+Z")) {
+            if (ImGui::MenuItem("Undo", "Ctrl+Z|Y")) {
                 ui_asm_undo();
             }
             if (ImGui::MenuItem("Redo", "Ctrl+R")) {
                 ui_asm_redo();
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Cut", "Ctrl+X")) {
+            if (ImGui::MenuItem("Cut [TODO]", "Ctrl+X")) {
                 ui_asm_cut();
             }
-            if (ImGui::MenuItem("Copy", "Ctrl+C")) {
+            if (ImGui::MenuItem("Copy [TODO]", "Ctrl+C")) {
                 ui_asm_copy();
             }
-            if (ImGui::MenuItem("Paste", "Ctrl+P")) {
+            if (ImGui::MenuItem("Paste [TODO]", "Ctrl+P")) {
                 ui_asm_paste();
             }
             ImGui::EndMenu();

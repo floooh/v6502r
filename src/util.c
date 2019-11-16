@@ -31,13 +31,14 @@ EM_JS(void, emsc_js_load, (void), {
     document.getElementById('picker').click();
 });
 
-void util_html5_download(const char* filename, const char* content) {
-    emsc_js_download(filename, content);
-}
-
-void util_html5_load(void) {
-    emsc_js_load();
-}
+EM_JS(int, emsc_js_is_mac, (void), {
+    if (navigator.userAgent.includes('Macintosh')) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+});
 
 EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, const uint8_t* data, int size) {
     ui_asm_put_source(name, data, size);
@@ -50,6 +51,28 @@ EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, const uint8_t* dat
 void util_init(void) {
     #if defined(__EMSCRIPTEN__)
     emsc_js_init();
+    #endif
+}
+
+void util_html5_download(const char* filename, const char* content) {
+    #if defined(__EMSCRIPTEN__)
+    emsc_js_download(filename, content);
+    #endif
+}
+
+void util_html5_load(void) {
+    #if defined(__EMSCRIPTEN__)
+    emsc_js_load();
+    #endif
+}
+
+bool util_is_mac(void) {
+    #if defined(__EMSCRIPTEN__)
+    return 0 != emsc_js_is_mac();
+    #elif defined(__APPLE__)
+    return true;
+    #else
+    return false;
     #endif
 }
 
