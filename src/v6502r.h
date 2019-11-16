@@ -25,6 +25,7 @@ extern "C" {
 #define MAX_TRACE_ITEMS (256)
 #define TRACE_FLIPBIT_CLK0 (1<<0)
 #define TRACE_FLIPBIT_OP (1<<1)
+#define MAX_BINARY_SIZE ((1<<16)+2)
 
 typedef struct {
     float x, y, z, w;
@@ -106,6 +107,10 @@ typedef struct {
         uint32_t tail;
         trace_item_t items[MAX_TRACE_ITEMS];
     } trace;
+    struct {
+        uint32_t num_bytes;
+        uint8_t buf[MAX_BINARY_SIZE];
+    } binary;
 } app_state_t;
 
 extern app_state_t app;
@@ -229,7 +234,8 @@ const char* asm_source(void);
 void util_init(void);
 const char* util_opcode_to_str(uint8_t op);
 bool util_is_mac(void);
-void util_html5_download(const char* filename, const char* content);
+void util_html5_download_string(const char* filename, const char* content);
+void util_html5_download_binary(const char* filename, const uint8_t* bytes, uint32_t num_bytes);
 void util_html5_load(void);
 
 #ifdef __cplusplus

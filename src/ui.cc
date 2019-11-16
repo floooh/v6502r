@@ -176,10 +176,15 @@ bool ui_input(const sapp_event* ev) {
         util_html5_load();
     }
     if (test_click(ev, app.ui.save_source_hovered) || test_ctrl(ev, SAPP_KEYCODE_S)) {
-        util_html5_download("v6502r.asm", ui_asm_source());
+        util_html5_download_string("v6502r.asm", ui_asm_source());
     }
     if (test_click(ev, app.ui.save_listing_hovered)) {
-        util_html5_download("v6502r.lst", asm_listing());
+        util_html5_download_string("v6502r.lst", asm_listing());
+    }
+    if (test_click(ev, app.ui.save_binary_hovered)) {
+        if (app.binary.num_bytes > 0) {
+            util_html5_download_binary("v6502r.bin", app.binary.buf, app.binary.num_bytes);
+        }
     }
     if (test_ctrl(ev, SAPP_KEYCODE_Z)) {
         ui_asm_undo();
@@ -223,7 +228,7 @@ void ui_menu(void) {
             if (ImGui::IsItemHovered()) {
                 app.ui.save_source_hovered = true;
             }
-            ImGui::MenuItem("Save Binary... [TODO]", 0);
+            ImGui::MenuItem("Save .BIN/.PRG...", 0);
             if (ImGui::IsItemHovered()) {
                 app.ui.save_binary_hovered = true;
             }

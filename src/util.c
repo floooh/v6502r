@@ -15,11 +15,27 @@ EM_JS(void, emsc_js_init, (void), {
 });
 
 
-EM_JS(void, emsc_js_download, (const char* c_filename, const char* c_content), {
+EM_JS(void, emsc_js_download_string, (const char* c_filename, const char* c_content), {
     var filename = UTF8ToString(c_filename);
     var content = UTF8ToString(c_content);
     var elm = document.createElement('a');
     elm.setAttribute('href', 'data:text/plain;charset=utf-8,'+encodeURIComponent(content));
+    elm.setAttribute('download', filename);
+    elm.style.display='none';
+    document.body.appendChild(elm);
+    elm.click();
+    document.body.removeChild(elm);
+});
+
+EM_JS(void, emsc_js_download_binary, (const char* c_filename, const uint8_t* ptr, int num_bytes), {
+    var filename = UTF8ToString(c_filename);
+    var binary = "";
+    for (var i = 0; i < num_bytes; i++) {
+        binary += String.fromCharCode(HEAPU8[ptr+i]);
+    }
+    console.log(btoa(binary));
+    var elm = document.createElement('a');
+    elm.setAttribute('href', 'data:application/octet-stream;base64,'+btoa(binary));
     elm.setAttribute('download', filename);
     elm.style.display='none';
     document.body.appendChild(elm);
@@ -54,9 +70,15 @@ void util_init(void) {
     #endif
 }
 
-void util_html5_download(const char* filename, const char* content) {
+void util_html5_download_string(const char* filename, const char* content) {
     #if defined(__EMSCRIPTEN__)
-    emsc_js_download(filename, content);
+    emsc_js_download_string(filename, content);
+    #endif
+}
+
+void util_html5_download_binary(const char* filename, const uint8_t* content, uint32_t num_bytes) {
+    #if defined(__EMSCRIPTEN__)
+    emsc_js_download_binary(filename, content, num_bytes);
     #endif
 }
 

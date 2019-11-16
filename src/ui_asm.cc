@@ -93,6 +93,7 @@ void ui_asm_draw(void) {
 }
 
 void ui_asm_assemble(void) {
+    app.binary.num_bytes = 0;
     asm_init();
     asm_source_open();
     auto lines = state.editor->GetTextLines();
@@ -107,6 +108,11 @@ void ui_asm_assemble(void) {
         sim_write(asm_res.addr, asm_res.len, asm_res.bytes);
         state.prev_addr = asm_res.addr;
         state.prev_len = asm_res.len;
+        // store in app.binary as PRG/BIN format (start address in first two bytes)
+        app.binary.num_bytes = asm_res.len + 2;
+        app.binary.buf[0] = (uint8_t) asm_res.addr;
+        app.binary.buf[1] = (uint8_t) (asm_res.addr>>8);
+        memcpy(&app.binary.buf[2], asm_res.bytes, asm_res.len);
     }
     TextEditor::ErrorMarkers err_markers;
     for (int err_index = 0; err_index < asm_num_errors(); err_index++) {
