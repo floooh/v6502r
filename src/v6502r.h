@@ -91,7 +91,10 @@ typedef struct {
         bool tracelog_open;
         bool asm_open;
         bool tracelog_scroll_to_end;
-        bool load_button_hovered;
+        bool open_source_hovered;
+        bool save_source_hovered;
+        bool save_binary_hovered;
+        bool save_listing_hovered;
     } ui;
     struct {
         bool hovered;               // true if mouse is currently hovering a UI trace item
@@ -117,9 +120,18 @@ void ui_shutdown(void);
 void ui_frame(void);
 void ui_draw(void);
 bool ui_input(const sapp_event* event);
+
 void ui_asm_init(void);
 void ui_asm_discard(void);
 void ui_asm_draw(void);
+void ui_asm_undo(void);
+void ui_asm_redo(void);
+void ui_asm_cut(void);
+void ui_asm_copy(void);
+void ui_asm_paste(void);
+void ui_asm_assemble(void);
+const char* ui_asm_source(void);
+void ui_asm_put_source(const char* name, const uint8_t* bytes, int num_bytes);
 
 void chipvis_init(void);
 void chipvis_draw(void);
@@ -214,6 +226,7 @@ const char* asm_stderr(void);
 const char* asm_listing(void);
 const char* asm_source(void);
 
+void util_init(void);
 const char* util_opcode_to_str(uint8_t op);
 #if defined(__EMSCRIPTEN__)
 void util_html5_download(const char* filename, const char* content);

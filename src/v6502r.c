@@ -34,6 +34,7 @@ static uint8_t test_prog[] = {
 };
 
 static void app_init(void) {
+    util_init();
     gfx_init();
     ui_init();
     chipvis_init();

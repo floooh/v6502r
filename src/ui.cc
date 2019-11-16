@@ -108,14 +108,6 @@ void ui_shutdown() {
 
 bool ui_input(const sapp_event* ev) {
     // opening the HTML5 filepicker must happen from inside an JS input handler
-    #if defined(__EMSCRIPTEN__)
-    if (app.ui.load_button_hovered &&
-        (ev->type == SAPP_EVENTTYPE_MOUSE_DOWN) &&
-        (ev->mouse_button == SAPP_MOUSEBUTTON_LEFT))
-    {
-        util_html5_load();
-    }
-    #endif
     // layer visibility hotkeys?
     if ((ev->type == SAPP_EVENTTYPE_KEY_DOWN) && (0 != (ev->modifiers & SAPP_MODIFIER_ALT))) {
         int l = -1;
@@ -137,7 +129,21 @@ bool ui_input(const sapp_event* ev) {
             app.chipvis.layer_visible[l] = !app.chipvis.layer_visible[l];
         }
     }
-    return simgui_handle_event(ev) || ImGui::GetIO().WantCaptureMouse;
+    #if defined(__EMSCRIPTEN__)
+    if (app.ui.open_source_hovered &&
+        (ev->type == SAPP_EVENTTYPE_MOUSE_UP) &&
+        (ev->mouse_button == SAPP_MOUSEBUTTON_LEFT))
+    {
+        util_html5_load();
+    }
+    if (app.ui.save_source_hovered &&
+        (ev->type == SAPP_EVENTTYPE_MOUSE_UP) &&
+        (ev->mouse_button == SAPP_MOUSEBUTTON_LEFT))
+    {
+        util_html5_download("v6502r.asm", ui_asm_source());
+    }
+    #endif
+    return simgui_handle_event(ev);
 }
 
 void ui_frame() {
@@ -157,7 +163,59 @@ void ui_draw() {
 }
 
 void ui_menu(void) {
+    app.ui.open_source_hovered = false;
+    app.ui.save_source_hovered = false;
+    app.ui.save_binary_hovered = false;
+    app.ui.save_listing_hovered = false;
     if (ImGui::BeginMainMenuBar()) {
+        if (ImGui::BeginMenu("File")) {
+            // this looks all a bit weired because on the web platforms
+            // these actions must be invoked from within an input handler
+            ImGui::MenuItem("Open Source...", "Ctrl+O");
+            if (ImGui::IsItemHovered()) {
+                app.ui.open_source_hovered = true;
+            }
+            ImGui::MenuItem("Save Source...", "Ctrl+S");
+            if (ImGui::IsItemHovered()) {
+                app.ui.save_source_hovered = true;
+            }
+            ImGui::MenuItem("Save Binary...", 0);
+            if (ImGui::IsItemHovered()) {
+                app.ui.save_binary_hovered = true;
+            }
+            ImGui::MenuItem("Save Listing...", 0);
+            if (ImGui::IsItemHovered()) {
+                app.ui.save_listing_hovered = true;
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Edit")) {
+            if (ImGui::MenuItem("Undo", "Ctrl+Z")) {
+                ui_asm_undo();
+            }
+            if (ImGui::MenuItem("Redo", "Ctrl+R")) {
+                ui_asm_redo();
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Cut", "Ctrl+X")) {
+                ui_asm_cut();
+            }
+            if (ImGui::MenuItem("Copy", "Ctrl+C")) {
+                ui_asm_copy();
+            }
+            if (ImGui::MenuItem("Paste", "Ctrl+P")) {
+                ui_asm_paste();
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("View")) {
+            ImGui::MenuItem("Controls", "Alt+C", &app.ui.cpu_controls_open);
+            ImGui::MenuItem("Trace Log", "Alt+L", &app.ui.tracelog_open);
+            ImGui::MenuItem("Assembler", "Alt+A", &app.ui.asm_open);
+            ImGui::MenuItem("Memory Editor", "Alt+M", &app.ui.memedit.open);
+            ImGui::MenuItem("Disassembler", "Alt+D", &app.ui.dasm.open);
+            ImGui::EndMenu();
+        }
         if (ImGui::BeginMenu("Layers")) {
             if (ImGui::BeginMenu("Visible")) {
                 ImGui::MenuItem("Layer #1##V", "Alt+1", &app.chipvis.layer_visible[0]);
@@ -177,14 +235,6 @@ void ui_menu(void) {
                 ImGui::MenuItem("Layer #6##P", 0, &app.picking.layer_enabled[5]);
                 ImGui::EndMenu();
             }
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Windows")) {
-            ImGui::MenuItem("Controls", "Alt+C", &app.ui.cpu_controls_open);
-            ImGui::MenuItem("Trace Log", "Alt+L", &app.ui.tracelog_open);
-            ImGui::MenuItem("Assembler", "Alt+A", &app.ui.asm_open);
-            ImGui::MenuItem("Memory Editor", "Alt+M", &app.ui.memedit.open);
-            ImGui::MenuItem("Disassembler", "Alt+D", &app.ui.dasm.open);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Theme")) {
@@ -240,6 +290,13 @@ void ui_menu(void) {
             ImGui::MenuItem("Shaders", 0, &app.ui.sg_imgui.shaders.open);
             ImGui::MenuItem("Pipelines", 0, &app.ui.sg_imgui.pipelines.open);
             ImGui::MenuItem("Calls", 0, &app.ui.sg_imgui.capture.open);
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Help")) {
+            ImGui::MenuItem("Assembler Syntax [TODO]");
+            ImGui::MenuItem("Opcode Table [TODO]");
+            ImGui::MenuItem("Node Browser [TODO]");
+            ImGui::MenuItem("About [TODO]");
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();

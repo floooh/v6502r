@@ -6,7 +6,15 @@
 #include <emscripten.h>
 #endif
 
+// FIXME
+#include <stdio.h>
+
 #if defined(__EMSCRIPTEN__)
+EM_JS(void, emsc_js_init, (void), {
+    Module['ccall'] = ccall;
+});
+
+
 EM_JS(void, emsc_js_download, (const char* c_filename, const char* c_content), {
     var filename = UTF8ToString(c_filename);
     var content = UTF8ToString(c_content);
@@ -20,13 +28,7 @@ EM_JS(void, emsc_js_download, (const char* c_filename, const char* c_content), {
 });
 
 EM_JS(void, emsc_js_load, (void), {
-    var elm = document.createElement('input');
-    elm.setAttribute('type', 'file');
-    elm.setAttribute('id', 'filepicker');
-    elm.style.display='none';
-    document.body.appendChild(elm);
-    elm.click();
-    document.body.removeChild(elm);
+    document.getElementById('picker').click();
 });
 
 void util_html5_download(const char* filename, const char* content) {
@@ -36,7 +38,20 @@ void util_html5_download(const char* filename, const char* content) {
 void util_html5_load(void) {
     emsc_js_load();
 }
+
+EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, const uint8_t* data, int size) {
+    ui_asm_put_source(name, data, size);
+    app.ui.asm_open = true;
+    ui_asm_assemble();
+    return 1;
+}
 #endif
+
+void util_init(void) {
+    #if defined(__EMSCRIPTEN__)
+    emsc_js_init();
+    #endif
+}
 
 const char* util_opcode_to_str(uint8_t opcode) {
     switch (opcode) {

@@ -103,26 +103,6 @@ void ui_asm_draw(void) {
                     }
                     ImGui::SameLine();
                 }
-                #if defined(__EMSCRIPTEN__)
-                ImGui::Button("Load... [TODO]");
-                app.ui.load_button_hovered = ImGui::IsItemHovered();
-                ImGui::SameLine();
-                if (state.editor->GetTotalLines() > 0) {
-                    if (ImGui::Button("Save...")) {
-                        asm_init();
-                        asm_source_open();
-                        auto lines = state.editor->GetTextLines();
-                        for (const auto& line: lines) {
-                            asm_source_write(line.c_str(), 8);
-                            asm_source_write("\n", 8);
-                        }
-                        asm_source_close();
-                        const char* content = asm_source();
-                        util_html5_download("v6502r.asm", content);
-                    }
-                    ImGui::SameLine();
-                }
-                #endif
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Output")) {
@@ -142,28 +122,69 @@ void ui_asm_draw(void) {
     }
     ImGui::End();
     if (state.editor->IsTextChanged()) {
-        asm_init();
-        asm_source_open();
-        auto lines = state.editor->GetTextLines();
-        for (const auto& line: lines) {
-            asm_source_write(line.c_str(), 8);
-            asm_source_write("\n", 8);
-        }
-        asm_source_close();
-        asm_result_t asm_res = asm_assemble();
-        if (!asm_res.errors && (asm_res.len > 0)) {
-            sim_clear(state.prev_addr, state.prev_len);
-            sim_write(asm_res.addr, asm_res.len, asm_res.bytes);
-            state.prev_addr = asm_res.addr;
-            state.prev_len = asm_res.len;
-        }
-        TextEditor::ErrorMarkers err_markers;
-        for (int err_index = 0; err_index < asm_num_errors(); err_index++) {
-            const asm_error_t* err = asm_error(err_index);
-            err_markers[err->line_nr] = err->msg;
-        }
-        state.editor->SetErrorMarkers(err_markers);
+        ui_asm_assemble();
     }
 }
 
+void ui_asm_assemble(void) {
+    asm_init();
+    asm_source_open();
+    auto lines = state.editor->GetTextLines();
+    for (const auto& line: lines) {
+        asm_source_write(line.c_str(), 8);
+        asm_source_write("\n", 8);
+    }
+    asm_source_close();
+    asm_result_t asm_res = asm_assemble();
+    if (!asm_res.errors && (asm_res.len > 0)) {
+        sim_clear(state.prev_addr, state.prev_len);
+        sim_write(asm_res.addr, asm_res.len, asm_res.bytes);
+        state.prev_addr = asm_res.addr;
+        state.prev_len = asm_res.len;
+    }
+    TextEditor::ErrorMarkers err_markers;
+    for (int err_index = 0; err_index < asm_num_errors(); err_index++) {
+        const asm_error_t* err = asm_error(err_index);
+        err_markers[err->line_nr] = err->msg;
+    }
+    state.editor->SetErrorMarkers(err_markers);
+}
 
+const char* ui_asm_source(void) {
+    asm_init();
+    asm_source_open();
+    auto lines = state.editor->GetTextLines();
+    for (const auto& line: lines) {
+        asm_source_write(line.c_str(), 8);
+        asm_source_write("\n", 8);
+    }
+    asm_source_close();
+    return asm_source();
+}
+
+void ui_asm_put_source(const char* name, const uint8_t* bytes, int num_bytes) {
+    if (bytes && (num_bytes > 0)) {
+        std::string str((char*)bytes, num_bytes);
+        state.editor->SetText(str);
+    }
+}
+
+void ui_asm_undo(void) {
+    state.editor->Undo();
+}
+
+void ui_asm_redo(void) {
+    state.editor->Redo();
+}
+
+void ui_asm_cut(void) {
+    state.editor->Cut();
+}
+
+void ui_asm_copy(void) {
+    state.editor->Copy();
+}
+
+void ui_asm_paste(void) {
+    state.editor->Paste();
+}

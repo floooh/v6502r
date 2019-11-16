@@ -58,6 +58,7 @@ body {
       <span class="game-menu-item"><a class="game-menu-link" href="https://github.com/floooh/v6502r" target="_blank">about</a></span>
   </div>
   <canvas class="game" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+  <input type="file" id="picker" style="display:none" onchange="Module.onLoad(this.files)"></input>
   <script type="text/javascript">
     var Module = {
         preRun: [],
@@ -79,6 +80,41 @@ body {
         })(),
         setStatus: function(text) { },
         monitorRunDependencies: function(left) { },
+        
+        onLoad: function(files) {
+            if (files.length > 0) {
+                var file = files[0];
+                console.log('--- load file:');
+                console.log('  name: ' + file.name);
+                console.log('  type: ' + file.type);
+                console.log('  size: ' + file.size);
+                if (file.size < 256000) {
+                    var reader = new FileReader();
+                    reader.onload = function(loadEvent) {
+                        console.log('file loaded!')
+                        var content = loadEvent.target.result;
+                        if (content) {
+                            console.log('content length: ' + content.byteLength);
+                            var uint8Array = new Uint8Array(content);
+                            var res = Module['ccall']('util_emsc_loadfile',  // C function name
+                                'int',
+                                ['string', 'array', 'number'],  // name, data, size
+                                [file.name, uint8Array, uint8Array.length]);
+                            if (res == 0) {
+                                console.warn('util_emsc_loadfile() failed!');
+                            } 
+                        }
+                        else {
+                            console.warn('load result empty!');
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                }
+                else {
+                    console.warn('ignoring file because it is too big')
+                }
+            }
+        },
     };
     window.onerror = function(event) {
         console.log("onerror: " + event.message);
