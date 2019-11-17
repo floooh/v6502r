@@ -11,7 +11,7 @@
 
 #if defined(__EMSCRIPTEN__)
 EM_JS(void, emsc_js_init, (void), {
-    Module['ccall'] = ccall;
+    Module['emsc_js_onload'] = emsc_js_onload;
 });
 
 
@@ -47,12 +47,39 @@ EM_JS(void, emsc_js_load, (void), {
     document.getElementById('picker').click();
 });
 
-EM_JS(int, emsc_js_is_mac, (void), {
-    if (navigator.userAgent.includes('Macintosh')) {
-        return 1;
+EM_JS(void, emsc_js_onload, (void), {
+    var picker = document.getElementById('picker');
+    // reset the file picker
+    var file = picker.files[0];
+    picker.value = null;
+    console.log('--- load file:');
+    console.log('  name: ' + file.name);
+    console.log('  type: ' + file.type);
+    console.log('  size: ' + file.size);
+    if (file.size < 256000) {
+        var reader = new FileReader();
+        reader.onload = function(loadEvent) {
+            console.log('file loaded!');
+            var content = loadEvent.target.result;
+            if (content) {
+                console.log('content length: ' + content.byteLength);
+                var uint8Array = new Uint8Array(content);
+                var res = ccall('util_emsc_loadfile',  // C function name
+                    'int',
+                    ['string', 'array', 'number'],  // name, data, size
+                    [file.name, uint8Array, uint8Array.length]);
+                if (res == 0) {
+                    console.warn('util_emsc_loadfile() failed!');
+                } 
+            }
+            else {
+                console.warn('load result empty!');
+            }
+        };
+        reader.readAsArrayBuffer(file);
     }
     else {
-        return 0;
+        console.warn('ignoring file because it is too big')
     }
 });
 
@@ -62,6 +89,7 @@ EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, const uint8_t* dat
     ui_asm_assemble();
     return 1;
 }
+
 #endif
 
 void util_init(void) {
@@ -85,16 +113,6 @@ void util_html5_download_binary(const char* filename, const uint8_t* content, ui
 void util_html5_load(void) {
     #if defined(__EMSCRIPTEN__)
     emsc_js_load();
-    #endif
-}
-
-bool util_is_mac(void) {
-    #if defined(__EMSCRIPTEN__)
-    return 0 != emsc_js_is_mac();
-    #elif defined(__APPLE__)
-    return true;
-    #else
-    return false;
     #endif
 }
 
