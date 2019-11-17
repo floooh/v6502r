@@ -153,12 +153,15 @@ void ui_asm_redo(void) {
 
 void ui_asm_cut(void) {
     state.editor->Cut();
+    ui_asm_assemble();
 }
 
 void ui_asm_copy(void) {
     state.editor->Copy();
+    ui_asm_assemble();
 }
 
 void ui_asm_paste(void) {
     state.editor->Paste();
+    ui_asm_assemble();
 }

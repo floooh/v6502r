@@ -96,6 +96,8 @@ typedef struct {
         bool save_source_hovered;
         bool save_binary_hovered;
         bool save_listing_hovered;
+        bool cut_hovered;
+        bool copy_hovered;
     } ui;
     struct {
         bool hovered;               // true if mouse is currently hovering a UI trace item

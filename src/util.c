@@ -14,7 +14,6 @@ EM_JS(void, emsc_js_init, (void), {
     Module['emsc_js_onload'] = emsc_js_onload;
 });
 
-
 EM_JS(void, emsc_js_download_string, (const char* c_filename, const char* c_content), {
     var filename = UTF8ToString(c_filename);
     var content = UTF8ToString(c_content);

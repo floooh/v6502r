@@ -120,5 +120,7 @@ sapp_desc sokol_main(int argc, char* argv[]) {
         .width = 900,
         .height = 700,
         .window_title = "Visual6502 Remix",
+        .enable_clipboard = true,
+        .clipboard_size = 16*1024
     };
 }

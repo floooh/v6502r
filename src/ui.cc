@@ -124,6 +124,15 @@ static bool test_ctrl(const sapp_event* ev, sapp_keycode key_code) {
     return false;
 }
 
+static bool test_super(const sapp_event* ev, sapp_keycode key_code) {
+    if (ev->type == SAPP_EVENTTYPE_KEY_DOWN) {
+        if ((ev->modifiers & SAPP_MODIFIER_SUPER) && (ev->key_code == key_code)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static bool test_click(const sapp_event* ev, bool hovered) {
     if (hovered && (ev->type == SAPP_EVENTTYPE_MOUSE_UP) && (ev->mouse_button == SAPP_MOUSEBUTTON_LEFT)) {
         return true;
@@ -174,25 +183,45 @@ bool ui_input(const sapp_event* ev) {
     }
     if (test_click(ev, app.ui.open_source_hovered) || test_ctrl(ev, SAPP_KEYCODE_O)) {
         util_html5_load();
+        app.ui.open_source_hovered = false;
     }
     if (test_click(ev, app.ui.save_source_hovered) || test_ctrl(ev, SAPP_KEYCODE_S)) {
         util_html5_download_string("v6502r.asm", ui_asm_source());
+        app.ui.save_source_hovered = false;
     }
     if (test_click(ev, app.ui.save_listing_hovered)) {
         util_html5_download_string("v6502r.lst", asm_listing());
+        app.ui.save_listing_hovered = false;
     }
     if (test_click(ev, app.ui.save_binary_hovered)) {
         if (app.binary.num_bytes > 0) {
             util_html5_download_binary("v6502r.bin", app.binary.buf, app.binary.num_bytes);
         }
+        app.ui.save_binary_hovered = false;
     }
-    if (test_ctrl(ev, SAPP_KEYCODE_Z)) {
+    if (test_ctrl(ev, SAPP_KEYCODE_Z) || test_ctrl(ev, SAPP_KEYCODE_Y)) {
         ui_asm_undo();
     }
     if (test_ctrl(ev, SAPP_KEYCODE_R)) {
         ui_asm_redo();
     }
-    return simgui_handle_event(ev);
+    if (test_click(ev, app.ui.cut_hovered) || test_ctrl(ev, SAPP_KEYCODE_X) || test_super(ev, SAPP_KEYCODE_X)) {
+        ui_asm_cut();
+        app.ui.cut_hovered = false;
+    }
+    if (test_click(ev, app.ui.copy_hovered) || test_ctrl(ev, SAPP_KEYCODE_C) || test_super(ev, SAPP_KEYCODE_C)) {
+        ui_asm_copy();
+        app.ui.copy_hovered = false;
+    }
+    if (ev->type == SAPP_EVENTTYPE_CLIPBOARD_CHANGED) {
+        ui_asm_paste();
+    }
+    if (0 != (ev->modifiers & (SAPP_MODIFIER_CTRL|SAPP_MODIFIER_ALT|SAPP_MODIFIER_SUPER))) {
+        return true;
+    }
+    else {
+        return simgui_handle_event(ev);
+    }
 }
 
 void ui_frame() {
@@ -221,21 +250,13 @@ void ui_menu(void) {
             // this looks all a bit weired because on the web platforms
             // these actions must be invoked from within an input handler
             ImGui::MenuItem("Open Source...", "Ctrl+O");
-            if (ImGui::IsItemHovered()) {
-                app.ui.open_source_hovered = true;
-            }
+            app.ui.open_source_hovered = ImGui::IsItemHovered();
             ImGui::MenuItem("Save Source...", "Ctrl+S");
-            if (ImGui::IsItemHovered()) {
-                app.ui.save_source_hovered = true;
-            }
+            app.ui.save_source_hovered = ImGui::IsItemHovered();
             ImGui::MenuItem("Save .BIN/.PRG...", 0);
-            if (ImGui::IsItemHovered()) {
-                app.ui.save_binary_hovered = true;
-            }
+            app.ui.save_binary_hovered = ImGui::IsItemHovered();
             ImGui::MenuItem("Save Listing...", 0);
-            if (ImGui::IsItemHovered()) {
-                app.ui.save_listing_hovered = true;
-            }
+            app.ui.save_listing_hovered = ImGui::IsItemHovered();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
@@ -246,15 +267,16 @@ void ui_menu(void) {
                 ui_asm_redo();
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Cut [TODO]", "Ctrl+X")) {
-                ui_asm_cut();
+            ImGui::MenuItem("Cut", "Ctrl|Cmd+X");
+            app.ui.cut_hovered = ImGui::IsItemHovered();
+            ImGui::MenuItem("Copy", "Ctrl|Cmd+C");
+            app.ui.copy_hovered = ImGui::IsItemHovered();
+            ImGui::MenuItem("Paste", "Ctrl|Cmd+P");
+            #if defined(__EMSCRIPTEN__)
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Please use keyboard shortcut or\nbrowser menu for pasting!");
             }
-            if (ImGui::MenuItem("Copy [TODO]", "Ctrl+C")) {
-                ui_asm_copy();
-            }
-            if (ImGui::MenuItem("Paste [TODO]", "Ctrl+P")) {
-                ui_asm_paste();
-            }
+            #endif
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
@@ -602,4 +624,3 @@ uint8_t ui_mem_read(int /*layer*/, uint16_t addr, void* /*user_data*/) {
 void ui_mem_write(int /*layer*/, uint16_t addr, uint8_t data, void* /*user_data*/) {
     sim_w8(addr, data);
 }
-
