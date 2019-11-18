@@ -91,6 +91,7 @@ typedef struct {
         bool cpu_controls_open;
         bool tracelog_open;
         bool asm_open;
+        bool listing_open;
         bool tracelog_scroll_to_end;
         bool open_source_hovered;
         bool save_source_hovered;

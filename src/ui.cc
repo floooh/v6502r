@@ -15,6 +15,7 @@ static void ui_menu(void);
 static void ui_picking(void);
 static void ui_tracelog(void);
 static void ui_controls(void);
+static void ui_listing(void);
 static uint8_t ui_mem_read(int layer, uint16_t addr, void* user_data);
 static void ui_mem_write(int layer, uint16_t addr, uint8_t data, void* user_data);
 
@@ -172,11 +173,14 @@ bool ui_input(const sapp_event* ev) {
     if (test_alt(ev, SAPP_KEYCODE_C)) {
         app.ui.cpu_controls_open = !app.ui.cpu_controls_open;
     }
-    if (test_alt(ev, SAPP_KEYCODE_L)) {
+    if (test_alt(ev, SAPP_KEYCODE_T)) {
         app.ui.tracelog_open = !app.ui.tracelog_open;
     }
     if (test_alt(ev, SAPP_KEYCODE_A)) {
         app.ui.asm_open = !app.ui.asm_open;
+    }
+    if (test_alt(ev, SAPP_KEYCODE_L)) {
+        app.ui.listing_open = !app.ui.listing_open;
     }
     if (test_alt(ev, SAPP_KEYCODE_M)) {
         app.ui.memedit.open = !app.ui.memedit.open;
@@ -244,6 +248,7 @@ void ui_frame() {
     ui_tracelog();
     ui_controls();
     ui_asm_draw();
+    ui_listing();
     sg_imgui_draw(&app.ui.sg_imgui);
 }
 
@@ -293,8 +298,9 @@ void ui_menu(void) {
         }
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("Controls", "Alt+C", &app.ui.cpu_controls_open);
-            ImGui::MenuItem("Trace Log", "Alt+L", &app.ui.tracelog_open);
+            ImGui::MenuItem("Trace Log", "Alt+T", &app.ui.tracelog_open);
             ImGui::MenuItem("Assembler", "Alt+A", &app.ui.asm_open);
+            ImGui::MenuItem("Listing", "Alt+L", &app.ui.listing_open);
             ImGui::MenuItem("Memory Editor", "Alt+M", &app.ui.memedit.open);
             ImGui::MenuItem("Disassembler", "Alt+D", &app.ui.dasm.open);
             ImGui::EndMenu();
@@ -500,6 +506,18 @@ void ui_controls(void) {
     ImGui::End();
 }
 
+void ui_listing(void) {
+    if (!app.ui.listing_open) {
+        return;
+    }
+    ImGui::SetNextWindowPos({60, 320}, ImGuiCond_Once);
+    ImGui::SetNextWindowSize({480, 200}, ImGuiCond_Once);
+    if (ImGui::Begin("Listing", &app.ui.listing_open, ImGuiWindowFlags_None)) {
+        ImGui::Text("%s", asm_listing());
+    }
+    ImGui::End();
+}
+
 void ui_tracelog(void) {
     if (!app.ui.tracelog_open) {
         return;
@@ -636,3 +654,4 @@ uint8_t ui_mem_read(int /*layer*/, uint16_t addr, void* /*user_data*/) {
 void ui_mem_write(int /*layer*/, uint16_t addr, uint8_t data, void* /*user_data*/) {
     sim_w8(addr, data);
 }
+
