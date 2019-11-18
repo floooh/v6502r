@@ -20,9 +20,9 @@
 #define IOSTREAM_OBJ        (2)
 #define IOSTREAM_LST        (3)
 #define NUM_IOSTREAMS       (4)
-#define IOSTREAM_INVALID    (0xFFFFFFFF)
+#define IOSTREAM_INVALID    (0)
 
-asmx_FILE* asmx_stderr = (asmx_FILE*) IOSTREAM_STDERR;
+asmx_FILE* asmx_stderr = (asmx_FILE*) (IOSTREAM_STDERR+1);
 
 typedef struct {
     uint32_t pos;
@@ -40,36 +40,52 @@ static struct {
     asm_error_t errors[MAX_ERRORS];
 } state;
 
+// return asmx_FILE* for IOSTREAM constant
+asmx_FILE* asmx_file_ptr(uintptr_t io_stream) {
+    if (io_stream < NUM_IOSTREAMS) {
+        return (asmx_FILE*)(io_stream+1);
+    }
+    else {
+        return (asmx_FILE*)IOSTREAM_INVALID;
+    }
+}
+
+// return IOSTREAM constant from asmx_FILE*
+iostream_t* asmx_io_stream(asmx_FILE* fp) {
+    uintptr_t io_index = ((uintptr_t)fp)-1;
+    assert(io_index < NUM_IOSTREAMS);
+    return &state.io[io_index];
+}
+
 // C runtime wrapper functions
 asmx_FILE* asmx_fopen(const char* filename, const char* mode) {
     assert(filename && mode);
-    uintptr_t io_stream = IOSTREAM_INVALID;
+    asmx_FILE* fp = 0;
     if (0 == strcmp(filename, "src.asm")) {
-        io_stream = IOSTREAM_SRC;
+        fp = asmx_file_ptr(IOSTREAM_SRC);
     }
     else if (0 == strcmp(filename, "out.obj")) {
-        io_stream = IOSTREAM_OBJ;
+        fp = asmx_file_ptr(IOSTREAM_OBJ);
     }
     else if (0 == strcmp(filename, "list.lst")) {
-        io_stream = IOSTREAM_LST;
+        fp = asmx_file_ptr(IOSTREAM_LST);
     }
-    if (IOSTREAM_INVALID != io_stream) {
+    if (fp != 0) {
+        iostream_t* io = asmx_io_stream(fp);
         if (0 == strchr(mode, 'r')) {
-            state.io[io_stream].size = 0;
+            io->size = 0;
         }
-        state.io[io_stream].pos = 0;
+        io->pos = 0;
     }
-    return (asmx_FILE*)io_stream;
+    return fp;
 }
 
 int asmx_fclose(asmx_FILE* stream) {
     return 0;
 }
 
-asmx_size_t asmx_fwrite(const void* ptr, asmx_size_t size, asmx_size_t count, asmx_FILE* stream) {
-    uintptr_t io_stream = (uintptr_t)stream;
-    assert(io_stream < NUM_IOSTREAMS);
-    iostream_t* io = &state.io[io_stream];
+asmx_size_t asmx_fwrite(const void* ptr, asmx_size_t size, asmx_size_t count, asmx_FILE* fp) {
+    iostream_t* io = asmx_io_stream(fp);
     assert(io->pos == io->size);
     uint32_t num_bytes = size * count;
     if ((io->pos + num_bytes) > MAX_IOBUF_SIZE) {
@@ -80,10 +96,8 @@ asmx_size_t asmx_fwrite(const void* ptr, asmx_size_t size, asmx_size_t count, as
     return num_bytes;
 }
 
-asmx_size_t asmx_fread(void* ptr, asmx_size_t size, asmx_size_t count, asmx_FILE* stream) {
-    uintptr_t io_stream = (uintptr_t)stream;
-    assert(io_stream < NUM_IOSTREAMS);
-    iostream_t* io = &state.io[io_stream];
+asmx_size_t asmx_fread(void* ptr, asmx_size_t size, asmx_size_t count, asmx_FILE* fp) {
+    iostream_t* io = asmx_io_stream(fp);
     assert(io->pos <= io->size);
     uint32_t num_bytes = size * count;
     if ((io->pos + num_bytes) >= io->size) {
@@ -96,10 +110,8 @@ asmx_size_t asmx_fread(void* ptr, asmx_size_t size, asmx_size_t count, asmx_FILE
     return num_bytes;
 }
 
-int asmx_fgetc(asmx_FILE* stream) {
-    uintptr_t io_stream = (uintptr_t)stream;
-    assert(io_stream < NUM_IOSTREAMS);
-    iostream_t* io = &state.io[io_stream];
+int asmx_fgetc(asmx_FILE* fp) {
+    iostream_t* io = asmx_io_stream(fp);
     if (io->pos < io->size) {
         return io->buf[io->pos++];
     }
@@ -108,10 +120,8 @@ int asmx_fgetc(asmx_FILE* stream) {
     }
 }
 
-int asmx_fputc(int character, asmx_FILE* stream) {
-    uintptr_t io_stream = (uintptr_t)stream;
-    assert(io_stream < NUM_IOSTREAMS);
-    iostream_t* io = &state.io[io_stream];
+int asmx_fputc(int character, asmx_FILE* fp) {
+    iostream_t* io = asmx_io_stream(fp);
     if (io->pos < MAX_IOBUF_SIZE) {
         io->buf[io->pos++] = character;
         io->size = io->pos;
@@ -122,10 +132,8 @@ int asmx_fputc(int character, asmx_FILE* stream) {
     }
 }
 
-int asmx_ungetc(int character, asmx_FILE* stream) {
-    uintptr_t io_stream = (uintptr_t)stream;
-    assert(io_stream < NUM_IOSTREAMS);
-    iostream_t* io = &state.io[io_stream];
+int asmx_ungetc(int character, asmx_FILE* fp) {
+    iostream_t* io = asmx_io_stream(fp);
     if (io->pos > 0) {
         io->buf[--io->pos] = (uint8_t) character;
         return character;
@@ -135,20 +143,16 @@ int asmx_ungetc(int character, asmx_FILE* stream) {
     }
 }
 
-long int asmx_ftell(asmx_FILE* stream) {
-    uintptr_t io_stream = (uintptr_t)stream;
-    assert(io_stream < NUM_IOSTREAMS);
-    iostream_t* io = &state.io[io_stream];
+long int asmx_ftell(asmx_FILE* fp) {
+    iostream_t* io = asmx_io_stream(fp);
     return io->pos;
 }
 
-int asmx_fseek(asmx_FILE* stream, long int offset, int origin) {
-    uintptr_t io_stream = (uintptr_t)stream;
-    assert(io_stream < NUM_IOSTREAMS);
-    iostream_t* io = &state.io[io_stream];
+int asmx_fseek(asmx_FILE* fp, long int offset, int origin) {
+    iostream_t* io = asmx_io_stream(fp);
     switch (origin) {
         case ASMX_SEEK_SET:
-            if ((uint32_t)offset < io->size) {
+            if ((uint32_t)offset <= io->size) {
                 io->pos = offset;
                 return 0;
             }
@@ -170,10 +174,8 @@ int asmx_fseek(asmx_FILE* stream, long int offset, int origin) {
     return -1;
 }
 
-int asmx_vfprintf(asmx_FILE* stream, const char* format, va_list vl) {
-    uintptr_t io_stream = (uintptr_t)stream;
-    assert(io_stream < NUM_IOSTREAMS);
-    iostream_t* io = &state.io[io_stream];
+int asmx_vfprintf(asmx_FILE* fp, const char* format, va_list vl) {
+    iostream_t* io = asmx_io_stream(fp);
     int max_bytes = MAX_IOBUF_SIZE - io->pos;
     assert(max_bytes >= 0);
     int num_bytes = vsnprintf((char*)&io->buf[io->pos], max_bytes, format, vl);
@@ -182,10 +184,10 @@ int asmx_vfprintf(asmx_FILE* stream, const char* format, va_list vl) {
     return num_bytes;
 }
 
-int asmx_fprintf(asmx_FILE* stream, const char* format, ...) {
+int asmx_fprintf(asmx_FILE* fp, const char* format, ...) {
     va_list vl;
     va_start(vl,format);
-    int res = asmx_vfprintf(stream, format, vl);
+    int res = asmx_vfprintf(fp, format, vl);
     va_end(vl);
     return res;
 }
@@ -277,11 +279,11 @@ void asm_source_write(const char* str, uint32_t tab_width) {
     while ((c = *str++)) {
         if (c == '\t') {
             while ((++state.src_line_pos % (tab_width+1))!= 0) {
-                asmx_fputc(' ', (asmx_FILE*)IOSTREAM_SRC);
+                asmx_fputc(' ', asmx_file_ptr(IOSTREAM_SRC));
             }
         }
         else {
-            asmx_fputc(c, (asmx_FILE*)IOSTREAM_SRC);
+            asmx_fputc(c, asmx_file_ptr(IOSTREAM_SRC));
             state.src_line_pos++;
         }
         if (c == '\n') {
@@ -291,7 +293,7 @@ void asm_source_write(const char* str, uint32_t tab_width) {
 }
 
 void asm_source_close(void) {
-    asmx_fclose((asmx_FILE*)IOSTREAM_SRC);
+    asmx_fclose(asmx_file_ptr(IOSTREAM_SRC));
 }
 
 static const char* asm_get_string(uintptr_t io_stream) {
