@@ -29,6 +29,7 @@ void ui_init() {
     // setup sokol-imgui
     simgui_desc_t simgui_desc = { };
     simgui_desc.no_default_font = true;
+    simgui_desc.disable_hotkeys = true;
     simgui_setup(&simgui_desc);
     auto& style = ImGui::GetStyle();
     style.WindowRounding = 0.0f;
@@ -108,7 +109,7 @@ void ui_shutdown() {
 
 static bool test_alt(const sapp_event* ev, sapp_keycode key_code) {
     if (ev->type == SAPP_EVENTTYPE_KEY_DOWN) {
-        if ((ev->modifiers & SAPP_MODIFIER_ALT) && (ev->key_code == key_code)) {
+        if ((ev->modifiers == SAPP_MODIFIER_ALT) && (ev->key_code == key_code)) {
             return true;
         }
     }
@@ -117,16 +118,18 @@ static bool test_alt(const sapp_event* ev, sapp_keycode key_code) {
 
 static bool test_ctrl(const sapp_event* ev, sapp_keycode key_code) {
     if (ev->type == SAPP_EVENTTYPE_KEY_DOWN) {
-        if ((ev->modifiers & SAPP_MODIFIER_CTRL) && (ev->key_code == key_code)) {
+        uint32_t mod = util_is_osx() ? SAPP_MODIFIER_SUPER : SAPP_MODIFIER_CTRL;
+        if ((ev->modifiers == mod) && (ev->key_code == key_code)) {
             return true;
         }
     }
     return false;
 }
 
-static bool test_super(const sapp_event* ev, sapp_keycode key_code) {
+static bool test_ctrl_shift(const sapp_event* ev, sapp_keycode key_code) {
     if (ev->type == SAPP_EVENTTYPE_KEY_DOWN) {
-        if ((ev->modifiers & SAPP_MODIFIER_SUPER) && (ev->key_code == key_code)) {
+        uint32_t mod = SAPP_MODIFIER_SHIFT | (util_is_osx() ? SAPP_MODIFIER_SUPER : SAPP_MODIFIER_CTRL);
+        if ((ev->modifiers == mod) && (ev->key_code == key_code)) {
             return true;
         }
     }
@@ -181,13 +184,15 @@ bool ui_input(const sapp_event* ev) {
     if (test_alt(ev, SAPP_KEYCODE_D)) {
         app.ui.dasm.open = !app.ui.dasm.open;
     }
-    if (test_click(ev, app.ui.open_source_hovered) || test_ctrl(ev, SAPP_KEYCODE_O)) {
+    if (test_click(ev, app.ui.open_source_hovered) || test_ctrl_shift(ev, SAPP_KEYCODE_O)) {
         util_html5_load();
         app.ui.open_source_hovered = false;
+        sapp_consume_event();
     }
-    if (test_click(ev, app.ui.save_source_hovered) || test_ctrl(ev, SAPP_KEYCODE_S)) {
+    if (test_click(ev, app.ui.save_source_hovered) || test_ctrl_shift(ev, SAPP_KEYCODE_S)) {
         util_html5_download_string("v6502r.asm", ui_asm_source());
         app.ui.save_source_hovered = false;
+        sapp_consume_event();
     }
     if (test_click(ev, app.ui.save_listing_hovered)) {
         util_html5_download_string("v6502r.lst", asm_listing());
@@ -201,19 +206,25 @@ bool ui_input(const sapp_event* ev) {
     }
     if (test_ctrl(ev, SAPP_KEYCODE_Z) || test_ctrl(ev, SAPP_KEYCODE_Y)) {
         ui_asm_undo();
+        sapp_consume_event();
+printf("UNDO!\n");
     }
-    if (test_ctrl(ev, SAPP_KEYCODE_R)) {
+    if (test_ctrl_shift(ev, SAPP_KEYCODE_Z) || test_ctrl_shift(ev, SAPP_KEYCODE_Y)) {
         ui_asm_redo();
+        sapp_consume_event();
+printf("REDO!\n");        
     }
-    if (test_click(ev, app.ui.cut_hovered) || test_ctrl(ev, SAPP_KEYCODE_X) || test_super(ev, SAPP_KEYCODE_X)) {
+    if (test_click(ev, app.ui.cut_hovered) || test_ctrl(ev, SAPP_KEYCODE_X)) {
         ui_asm_cut();
         app.ui.cut_hovered = false;
+        sapp_consume_event();
     }
-    if (test_click(ev, app.ui.copy_hovered) || test_ctrl(ev, SAPP_KEYCODE_C) || test_super(ev, SAPP_KEYCODE_C)) {
+    if (test_click(ev, app.ui.copy_hovered) || test_ctrl(ev, SAPP_KEYCODE_C)) {
         ui_asm_copy();
         app.ui.copy_hovered = false;
+        sapp_consume_event();
     }
-    if (ev->type == SAPP_EVENTTYPE_CLIPBOARD_CHANGED) {
+    if (ev->type == SAPP_EVENTTYPE_CLIPBOARD_PASTED) {
         ui_asm_paste();
     }
     if (0 != (ev->modifiers & (SAPP_MODIFIER_CTRL|SAPP_MODIFIER_ALT|SAPP_MODIFIER_SUPER))) {
@@ -246,12 +257,13 @@ void ui_menu(void) {
     app.ui.save_binary_hovered = false;
     app.ui.save_listing_hovered = false;
     if (ImGui::BeginMainMenuBar()) {
+        bool is_osx = util_is_osx();
         if (ImGui::BeginMenu("File")) {
             // this looks all a bit weired because on the web platforms
             // these actions must be invoked from within an input handler
-            ImGui::MenuItem("Open Source...", "Ctrl+O");
+            ImGui::MenuItem("Open Source...", is_osx?"Cmd+Shift+O":"Ctrl+Shift+O");
             app.ui.open_source_hovered = ImGui::IsItemHovered();
-            ImGui::MenuItem("Save Source...", "Ctrl+S");
+            ImGui::MenuItem("Save Source...", is_osx?"Cmd+Shift+S":"Ctrl+Shift+S");
             app.ui.save_source_hovered = ImGui::IsItemHovered();
             ImGui::MenuItem("Save .BIN/.PRG...", 0);
             app.ui.save_binary_hovered = ImGui::IsItemHovered();
@@ -260,18 +272,18 @@ void ui_menu(void) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
-            if (ImGui::MenuItem("Undo", "Ctrl+Z|Y")) {
+            if (ImGui::MenuItem("Undo", is_osx?"Cmd+Z|Y":"Ctrl+Z|Y")) {
                 ui_asm_undo();
             }
-            if (ImGui::MenuItem("Redo", "Ctrl+R")) {
+            if (ImGui::MenuItem("Redo", is_osx?"Cmd+Shift+Z|Y":"Ctrl+Shift+Z|Y")) {
                 ui_asm_redo();
             }
             ImGui::Separator();
-            ImGui::MenuItem("Cut", "Ctrl|Cmd+X");
+            ImGui::MenuItem("Cut", is_osx?"Cmd+X":"Ctrl+X");
             app.ui.cut_hovered = ImGui::IsItemHovered();
-            ImGui::MenuItem("Copy", "Ctrl|Cmd+C");
+            ImGui::MenuItem("Copy", is_osx?"Cmd+C":"Ctrl+C");
             app.ui.copy_hovered = ImGui::IsItemHovered();
-            ImGui::MenuItem("Paste", "Ctrl|Cmd+P");
+            ImGui::MenuItem("Paste", is_osx?"Cmd+V":"Ctrl+V");
             #if defined(__EMSCRIPTEN__)
             if (ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Please use keyboard shortcut or\nbrowser menu for pasting!");

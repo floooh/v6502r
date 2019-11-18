@@ -6,12 +6,22 @@
 #include <emscripten.h>
 #endif
 
-// FIXME
-#include <stdio.h>
+static struct {
+    bool is_osx;
+} state;
 
 #if defined(__EMSCRIPTEN__)
 EM_JS(void, emsc_js_init, (void), {
     Module['emsc_js_onload'] = emsc_js_onload;
+});
+
+EM_JS(int, emsc_js_is_osx, (void), {
+    if (navigator.userAgent.includes('Macintosh')) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
 });
 
 EM_JS(void, emsc_js_download_string, (const char* c_filename, const char* c_content), {
@@ -94,6 +104,11 @@ EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, const uint8_t* dat
 void util_init(void) {
     #if defined(__EMSCRIPTEN__)
     emsc_js_init();
+    state.is_osx = emsc_js_is_osx();
+    #elif defined(__APPLE__)
+    state.is_osx = true;
+    #else
+    state.is_osx = false;
     #endif
 }
 
@@ -113,6 +128,10 @@ void util_html5_load(void) {
     #if defined(__EMSCRIPTEN__)
     emsc_js_load();
     #endif
+}
+
+bool util_is_osx(void) {
+    return state.is_osx;
 }
 
 const char* util_opcode_to_str(uint8_t opcode) {

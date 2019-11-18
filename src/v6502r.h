@@ -238,6 +238,7 @@ const char* util_opcode_to_str(uint8_t op);
 void util_html5_download_string(const char* filename, const char* content);
 void util_html5_download_binary(const char* filename, const uint8_t* bytes, uint32_t num_bytes);
 void util_html5_load(void);
+bool util_is_osx(void);
 
 #ifdef __cplusplus
 } // extern "C"
