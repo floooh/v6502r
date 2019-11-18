@@ -149,6 +149,22 @@ readPC(void *state)
 	return (readPCH(state) << 8) | readPCL(state);
 }
 
+void setRDY(state_t* state, int high) {
+    setNode(state, rdy, high);
+}
+
+void setIRQ(state_t* state, int high) {
+    setNode(state, irq, high);
+}
+
+void setNMI(state_t* state, int high) {
+    setNode(state, nmi, high);
+}
+
+void setRES(state_t* state, int high) {
+    setNode(state, res, high);
+}
+
 /************************************************************
  *
  * Address Bus and Data Bus Interface

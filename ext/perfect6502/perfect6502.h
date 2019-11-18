@@ -5,6 +5,10 @@
 extern state_t *initAndResetChip();
 extern void destroyChip(state_t *state);
 extern void step(state_t *state);
+extern void setRDY(state_t* state, int high);
+extern void setIRQ(state_t* state, int high);
+extern void setNMI(state_t* state, int high);
+extern void setRES(state_t* state, int high);
 extern void chipStatus(state_t *state);
 extern unsigned short readPC(state_t *state);
 extern unsigned char readA(state_t *state);

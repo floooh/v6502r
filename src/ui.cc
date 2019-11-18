@@ -211,12 +211,10 @@ bool ui_input(const sapp_event* ev) {
     if (test_ctrl(ev, SAPP_KEYCODE_Z) || test_ctrl(ev, SAPP_KEYCODE_Y)) {
         ui_asm_undo();
         sapp_consume_event();
-printf("UNDO!\n");
     }
     if (test_ctrl_shift(ev, SAPP_KEYCODE_Z) || test_ctrl_shift(ev, SAPP_KEYCODE_Y)) {
         ui_asm_redo();
         sapp_consume_event();
-printf("REDO!\n");        
     }
     if (test_click(ev, app.ui.cut_hovered) || test_ctrl(ev, SAPP_KEYCODE_X)) {
         ui_asm_cut();
@@ -392,41 +390,20 @@ void ui_menu(void) {
     }
 }
 
+static void ui_input_uint16(const char* label, const char* id, uint16_t addr) {
+    ImGui::AlignTextToFramePadding();
+    ImGui::Text("%s", label); ImGui::SameLine();
+    sim_w16(addr, ui_util_input_u16(id, sim_r16(addr)));
+}
+
 void ui_controls(void) {
     if (!app.ui.cpu_controls_open) {
         return;
     }
     const float disp_w = (float) sapp_width();
     ImGui::SetNextWindowPos({ disp_w - 300, 50 }, ImGuiCond_Once);
-    ImGui::SetNextWindowSize({ 270, 400 }, ImGuiCond_Once);
+    ImGui::SetNextWindowSize({ 270, 480 }, ImGuiCond_Once);
     if (ImGui::Begin("MOS 6502", &app.ui.cpu_controls_open, ImGuiWindowFlags_None)) {
-
-        /* CPU state */
-        const uint8_t ir = sim_get_ir();
-        const uint8_t p = sim_get_p();
-        char p_str[9] = {
-            (p & (1<<7)) ? 'N':'n',
-            (p & (1<<6)) ? 'V':'v',
-            (p & (1<<5)) ? 'X':'x',
-            (p & (1<<4)) ? 'B':'b',
-            (p & (1<<3)) ? 'D':'d',
-            (p & (1<<2)) ? 'I':'i',
-            (p & (1<<1)) ? 'Z':'z',
-            (p & (1<<0)) ? 'C':'c',
-            0,
-        };
-        ImGui::Text("A:%02X X:%02X Y:%02X SP:%02X PC:%04X",
-            sim_get_a(), sim_get_x(), sim_get_y(), sim_get_sp(), sim_get_pc());
-        ImGui::Text("P:%02X (%s) Cycle: %d", p, p_str, sim_get_cycle()>>1);
-        ImGui::Text("IR:%02X %s\n", ir, util_opcode_to_str(ir));
-        ImGui::Text("Data:%02X Addr:%04X %s %s %s",
-            sim_get_data(), sim_get_addr(),
-            sim_get_rw()?"R":"W",
-            sim_get_clk0()?"CLK0":"    ",
-            sim_get_sync()?"SYNC":"    ");
-        ImGui::Separator();
-        ImGui::Spacing();
-
         /* cassette deck controls */
         const char* tooltip = 0;
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
@@ -486,7 +463,7 @@ void ui_controls(void) {
         if (ImGui::Button(ICON_FA_EJECT, { 28, 25 })) {
             trace_clear();
             sim_init_or_reset();
-            sim_start(0x0000);
+            sim_start();
         }
         if (ImGui::IsItemHovered()) {
             tooltip = "Reset";
@@ -498,6 +475,45 @@ void ui_controls(void) {
         }
         ImGui::Text("%s", tooltip);
         ImGui::Separator();
+
+        /* CPU state */
+        const uint8_t ir = sim_get_ir();
+        const uint8_t p = sim_get_p();
+        char p_str[9] = {
+            (p & (1<<7)) ? 'N':'n',
+            (p & (1<<6)) ? 'V':'v',
+            (p & (1<<5)) ? 'X':'x',
+            (p & (1<<4)) ? 'B':'b',
+            (p & (1<<3)) ? 'D':'d',
+            (p & (1<<2)) ? 'I':'i',
+            (p & (1<<1)) ? 'Z':'z',
+            (p & (1<<0)) ? 'C':'c',
+            0,
+        };
+        ImGui::Text("A:%02X X:%02X Y:%02X SP:%02X PC:%04X",
+            sim_get_a(), sim_get_x(), sim_get_y(), sim_get_sp(), sim_get_pc());
+        ImGui::Text("P:%02X (%s) Cycle: %d", p, p_str, sim_get_cycle()>>1);
+        ImGui::Text("IR:%02X %s\n", ir, util_opcode_to_str(ir));
+        ImGui::Text("Data:%02X Addr:%04X %s %s %s",
+            sim_get_data(), sim_get_addr(),
+            sim_get_rw()?"R":"W",
+            sim_get_clk0()?"CLK0":"    ",
+            sim_get_sync()?"SYNC":"    ");
+        ImGui::Separator();
+        ui_input_uint16("NMI vector (FFFA): ", "##nmi_vec", 0xFFFA);
+        ui_input_uint16("RES vector (FFFC): ", "##res_vec", 0xFFFC);
+        ui_input_uint16("IRQ vector (FFFE): ", "##irq_vec", 0xFFFE);
+        ImGui::Separator();
+        ImGui::Checkbox("RDY", &app.sim.rdy_active);
+        ImGui::SameLine();
+        ImGui::Checkbox("IRQ", &app.sim.irq_active);
+        ImGui::SameLine();
+        ImGui::Checkbox("NMI", &app.sim.nmi_active);
+        ImGui::SameLine();
+        ImGui::Checkbox("RES", &app.sim.res_active);
+        ImGui::Separator();
+
+        /* memory dump */
         ImGui::Text("Memory:");
         ImGui::BeginChild("##memedit");
         ui_memedit_draw_content(&app.ui.memedit_integrated);

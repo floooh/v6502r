@@ -24,10 +24,7 @@ void sim_shutdown(void) {
     }
 }
 
-void sim_start(uint16_t start_addr) {
-    // patch reset vector and run through the 9-cycle reset sequence,
-    // but stop before the first post-reset instruction byte is set
-    sim_w16(0xFFFC, start_addr);
+void sim_start(void) {
     sim_step(17);
 }
 
@@ -48,6 +45,10 @@ bool sim_paused(void) {
 
 void sim_step(int num_half_cycles) {
     assert(p6502_state);
+    setIRQ(p6502_state, app.sim.irq_active ? 0 : 1);
+    setNMI(p6502_state, app.sim.nmi_active ? 0 : 1);
+    setRDY(p6502_state, app.sim.rdy_active ? 0 : 1);
+    setRES(p6502_state, app.sim.res_active ? 0 : 1);
     for (int i = 0; i < num_half_cycles; i++) {
         step(p6502_state);
         trace_store();

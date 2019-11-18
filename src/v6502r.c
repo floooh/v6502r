@@ -42,7 +42,7 @@ static void app_init(void) {
     trace_init();
     sim_init_or_reset();
     sim_write(0x0000, sizeof(test_prog), test_prog);
-    sim_start(0x0000);
+    sim_start();
 }
 
 static void app_frame(void) {

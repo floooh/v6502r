@@ -55,6 +55,10 @@ typedef struct {
 typedef struct {
     struct {
         bool paused;
+        bool rdy_active;
+        bool irq_active;
+        bool nmi_active;
+        bool res_active;
     } sim;
     struct {
         bool dragging;
@@ -147,7 +151,7 @@ void chipvis_shutdown(void);
 
 void sim_init_or_reset(void);
 void sim_shutdown(void);
-void sim_start(uint16_t start_addr);
+void sim_start(void);
 void sim_frame(void);
 void sim_pause(bool paused);
 bool sim_paused(void);
