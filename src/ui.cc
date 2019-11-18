@@ -16,8 +16,18 @@ static void ui_picking(void);
 static void ui_tracelog(void);
 static void ui_controls(void);
 static void ui_listing(void);
-static uint8_t ui_mem_read(int layer, uint16_t addr, void* user_data);
-static void ui_mem_write(int layer, uint16_t addr, uint8_t data, void* user_data);
+static void ui_help_assembler(void);
+static void ui_help_opcodes(void);
+static void ui_help_about(void);
+
+// read and write callback for memory editor windows
+static uint8_t ui_mem_read(int /*layer*/, uint16_t addr, void* /*user_data*/) {
+    return sim_r8(addr);
+}
+
+static void ui_mem_write(int /*layer*/, uint16_t addr, uint8_t data, void* /*user_data*/) {
+    sim_w8(addr, data);
+}
 
 void ui_init() {
     // default window open state
@@ -247,6 +257,9 @@ void ui_frame() {
     ui_controls();
     ui_asm_draw();
     ui_listing();
+    ui_help_assembler();
+    ui_help_opcodes();
+    ui_help_about();
     sg_imgui_draw(&app.ui.sg_imgui);
 }
 
@@ -380,10 +393,9 @@ void ui_menu(void) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help")) {
-            ImGui::MenuItem("Assembler Syntax [TODO]");
-            ImGui::MenuItem("Opcode Table [TODO]");
-            ImGui::MenuItem("Node Browser [TODO]");
-            ImGui::MenuItem("About [TODO]");
+            ImGui::MenuItem("Assembler Syntax", 0, &app.ui.help_asm_open);
+            ImGui::MenuItem("Opcode Table", 0, &app.ui.help_opcodes_open);
+            ImGui::MenuItem("About", 0, &app.ui.help_about_open);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -504,13 +516,25 @@ void ui_controls(void) {
         ui_input_uint16("RES vector (FFFC): ", "##res_vec", 0xFFFC);
         ui_input_uint16("IRQ vector (FFFE): ", "##irq_vec", 0xFFFE);
         ImGui::Separator();
-        ImGui::Checkbox("RDY", &app.sim.rdy_active);
+        bool rdy_active = !sim_get_rdy();
+        if (ImGui::Checkbox("RDY", &rdy_active)) {
+            sim_set_rdy(!rdy_active);
+        }
         ImGui::SameLine();
-        ImGui::Checkbox("IRQ", &app.sim.irq_active);
+        bool irq_active = !sim_get_irq();
+        if (ImGui::Checkbox("IRQ", &irq_active)) {
+            sim_set_irq(!irq_active);
+        }
         ImGui::SameLine();
-        ImGui::Checkbox("NMI", &app.sim.nmi_active);
+        bool nmi_active = !sim_get_nmi();
+        if (ImGui::Checkbox("NMI", &nmi_active)) {
+            sim_set_nmi(!nmi_active);
+        }
         ImGui::SameLine();
-        ImGui::Checkbox("RES", &app.sim.res_active);
+        bool res_active = !sim_get_res();
+        if (ImGui::Checkbox("RES", &res_active)) {
+            sim_set_res(!res_active);
+        }
         ImGui::Separator();
 
         /* memory dump */
@@ -553,7 +577,7 @@ void ui_tracelog(void) {
     ImGui::SetNextWindowPos({ disp_w / 2, disp_h - 150 }, ImGuiCond_Once, { 0.5f, 0.0f });
     ImGui::SetNextWindowSize({ 600, 128 }, ImGuiCond_Once);
     if (ImGui::Begin("Trace Log", &app.ui.tracelog_open, ImGuiWindowFlags_None)) {
-        ImGui::Text("cycle/h rw ab   db pc   a  x  y  s  p        sync ir mnemonic    irq nmi res"); ImGui::NextColumn();
+        ImGui::Text("cycle/h rw ab   db pc   a  x  y  s  p        sync ir mnemonic    irq nmi res rdy"); ImGui::NextColumn();
         ImGui::Separator();
         ImGui::BeginChild("##trace_data", ImVec2(0, -footer_h));
         ImDrawList* dl = ImGui::GetWindowDrawList();
@@ -595,7 +619,7 @@ void ui_tracelog(void) {
                     (p & (1<<0)) ? 'C':'c',
                     0,
                 };
-                ImGui::Text("%5d/%c %s  %04X %02X %04X %02X %02X %02X %02X %s %s %02X %s %s %s %s",
+                ImGui::Text("%5d/%c %s  %04X %02X %04X %02X %02X %02X %02X %s %s %02X %s %s %s %s %s",
                     cur_cycle>>1,
                     trace_get_clk0(i)?'1':'0',
                     trace_get_rw(i)?"R":"W",
@@ -612,7 +636,8 @@ void ui_tracelog(void) {
                     util_opcode_to_str(ir),
                     trace_get_irq(i)?"   ":"IRQ",
                     trace_get_nmi(i)?"   ":"NMI",
-                    trace_get_res(i)?"   ":"RES");
+                    trace_get_res(i)?"   ":"RES",
+                    trace_get_rdy(i)?"   ":"RDY");
                 if (ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(p0, p1)) {
                     any_item_hovered = true;
                     app.trace.hovered_cycle = trace_get_cycle(i);
@@ -662,12 +687,35 @@ void ui_picking(void) {
     }
 }
 
-// read and write callback for memory editor windows
-uint8_t ui_mem_read(int /*layer*/, uint16_t addr, void* /*user_data*/) {
-    return sim_r8(addr);
+static void ui_help_assembler(void) {
+    if (!app.ui.help_asm_open) {
+        return;
+    }
+    ImGui::SetNextWindowSize({640, 400}, ImGuiCond_Once);
+    if (ImGui::Begin("Assembler Help", &app.ui.help_asm_open, ImGuiWindowFlags_None)) {
+        ImGui::Text("TODO!");
+    }
+    ImGui::End();
 }
 
-void ui_mem_write(int /*layer*/, uint16_t addr, uint8_t data, void* /*user_data*/) {
-    sim_w8(addr, data);
+static void ui_help_opcodes(void) {
+    if (!app.ui.help_opcodes_open) {
+        return;
+    }
+    ImGui::SetNextWindowSize({640, 400}, ImGuiCond_Once);
+    if (ImGui::Begin("Opcode Help", &app.ui.help_opcodes_open, ImGuiWindowFlags_None)) {
+        ImGui::Text("TODO!");
+    }
+    ImGui::End();
 }
 
+static void ui_help_about(void) {
+    if (!app.ui.help_about_open) {
+        return;
+    }
+    ImGui::SetNextWindowSize({320, 200}, ImGuiCond_Once);
+    if (ImGui::Begin("About", &app.ui.help_about_open, ImGuiWindowFlags_None)) {
+        ImGui::Text("TODO!");
+    }
+    ImGui::End();
+}

@@ -349,6 +349,10 @@ bool trace_get_res(uint32_t index) {
     return trace_is_node_high(index, res);
 }
 
+bool trace_get_rdy(uint32_t index) {
+    return trace_is_node_high(index, rdy);
+}
+
 uint16_t trace_get_addr(uint32_t index) {
     return trace_read_nodes(index, 16, (uint32_t[]){ ab0, ab1, ab2, ab3, ab4, ab5, ab6, ab7, ab8, ab9, ab10, ab11, ab12, ab13, ab14, ab15 });
 }

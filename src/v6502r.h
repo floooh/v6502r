@@ -55,10 +55,6 @@ typedef struct {
 typedef struct {
     struct {
         bool paused;
-        bool rdy_active;
-        bool irq_active;
-        bool nmi_active;
-        bool res_active;
     } sim;
     struct {
         bool dragging;
@@ -96,6 +92,9 @@ typedef struct {
         bool tracelog_open;
         bool asm_open;
         bool listing_open;
+        bool help_asm_open;
+        bool help_opcodes_open;
+        bool help_about_open;
         bool tracelog_scroll_to_end;
         bool open_source_hovered;
         bool save_source_hovered;
@@ -178,6 +177,14 @@ bool sim_get_rw(void);
 bool sim_get_sync(void);
 uint16_t sim_get_addr(void);
 uint8_t sim_get_data(void);
+void sim_set_rdy(bool high);
+void sim_set_irq(bool high);
+void sim_set_nmi(bool high);
+void sim_set_res(bool high);
+bool sim_get_irq(void);
+bool sim_get_nmi(void);
+bool sim_get_res(void);
+bool sim_get_rdy(void);
 bool sim_read_node_values(uint8_t* ptr, int max_bytes);
 bool sim_read_transistor_on(uint8_t* ptr, int max_bytes);
 void sim_write_node_values(const uint8_t* ptr, int max_bytes);
@@ -206,6 +213,7 @@ bool trace_get_sync(uint32_t index);
 bool trace_get_irq(uint32_t index);
 bool trace_get_nmi(uint32_t index);
 bool trace_get_res(uint32_t index);
+bool trace_get_rdy(uint32_t index);
 uint16_t trace_get_addr(uint32_t index);
 uint8_t trace_get_data(uint32_t index);
 

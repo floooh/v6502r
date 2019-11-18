@@ -149,20 +149,36 @@ readPC(void *state)
 	return (readPCH(state) << 8) | readPCL(state);
 }
 
-void setRDY(state_t* state, int high) {
+void writeRDY(state_t* state, int high) {
     setNode(state, rdy, high);
 }
 
-void setIRQ(state_t* state, int high) {
+int readRDY(state_t* state) {
+    return isNodeHigh(state, rdy);
+}
+
+void writeIRQ(state_t* state, int high) {
     setNode(state, irq, high);
 }
 
-void setNMI(state_t* state, int high) {
+int readIRQ(state_t* state) {
+    return isNodeHigh(state, irq);
+}
+
+void writeNMI(state_t* state, int high) {
     setNode(state, nmi, high);
 }
 
-void setRES(state_t* state, int high) {
+int readNMI(state_t* state) {
+    return isNodeHigh(state, nmi);
+}
+
+void writeRES(state_t* state, int high) {
     setNode(state, res, high);
+}
+
+int readRES(state_t* state) {
+    return isNodeHigh(state, res);
 }
 
 /************************************************************

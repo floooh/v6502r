@@ -45,10 +45,6 @@ bool sim_paused(void) {
 
 void sim_step(int num_half_cycles) {
     assert(p6502_state);
-    setIRQ(p6502_state, app.sim.irq_active ? 0 : 1);
-    setNMI(p6502_state, app.sim.nmi_active ? 0 : 1);
-    setRDY(p6502_state, app.sim.rdy_active ? 0 : 1);
-    setRES(p6502_state, app.sim.res_active ? 0 : 1);
     for (int i = 0; i < num_half_cycles; i++) {
         step(p6502_state);
         trace_store();
@@ -157,6 +153,38 @@ void sim_set_cycle(uint32_t c) {
     cycle = c - 1;
 }
 
+void sim_set_rdy(bool high) {
+    writeRDY(p6502_state, high ? 1 : 0);
+}
+
+bool sim_get_rdy(void) {
+    return 0 != readRDY(p6502_state);
+}
+
+void sim_set_irq(bool high) {
+    writeIRQ(p6502_state, high ? 1 : 0);
+}
+
+bool sim_get_irq(void) {
+    return 0 != readIRQ(p6502_state);
+}
+
+void sim_set_nmi(bool high) {
+    writeNMI(p6502_state, high ? 1 : 0);
+}
+
+bool sim_get_nmi(void) {
+    return 0 != readNMI(p6502_state);
+}
+
+void sim_set_res(bool high) {
+    writeRES(p6502_state, high ? 1 : 0);
+}
+
+bool sim_get_res(void) {
+    return 0 != readRES(p6502_state);
+}
+
 bool sim_read_node_values(uint8_t* ptr, int max_bytes) {
     return 0 != p6502_read_node_values(p6502_state, ptr, max_bytes);
 }
@@ -172,3 +200,4 @@ void sim_write_node_values(const uint8_t* ptr, int max_bytes) {
 void sim_write_transistor_on(const uint8_t* ptr, int max_bytes) {
     p6502_write_transistor_on(p6502_state, ptr, max_bytes);
 }
+
