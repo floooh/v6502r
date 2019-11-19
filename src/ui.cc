@@ -121,6 +121,7 @@ void ui_init() {
     md_conf.headingFormats[0].separator = true;
     md_conf.headingFormats[0].newline_above = false;
     md_conf.headingFormats[0].newline_below = false;
+    md_conf.headingFormats[1].newline_below = false;
     md_conf.linkIcon = ICON_FA_LINK;
 }
 
