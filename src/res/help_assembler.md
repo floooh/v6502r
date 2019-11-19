@@ -19,9 +19,9 @@ The output listing can be saved to the host throught the menu item 'File => Save
 
 The generated binary code can be saved to the host through the 'File => Save BIN/PRG' menu item. The file format is very simple: 2 bytes start address in little endian format, followed by the actual program bytes.
 
-# 6502 Addressing Modes
+# Addressing Modes
 
-Addressing modes have the following syntax (using the LDA instruction as example)
+The 6502 addressing modes have the following syntax (using the LDA instruction as example)
 
 - Immediate:            LDA #10
 - Zero Page:            LDA $20
@@ -124,51 +124,51 @@ Lines after the END pseudo-op are ignored as though they were comments, except f
 
 These are all the opcodes that have nothing to do with the instruction set of the CPU. All pseudo-ops can be preceeded with a "." (example: ".BYTE" works the same as "BYTE") 
 
-## ASSERT expr
+# ASSERT expr
 Generates an error if expr is false (equals zero). 
 
-## ALIGN 
+# ALIGN 
 This ensures that the next instruction or data will be located on a power-of-two boundary. The parameter must be a power of two (2, 4, 8, 16, etc.)
 
-## DB / BYTE / DC.B / FCB
+# DB / BYTE / DC.B / FCB
 Defines one or more constant bytes in the code. You can use as many comma-separated values as you like. Strings use either single or double quotes. Doubled quotes inside a string assemble to a quote character. The backslash ("\") can escape a quote, or it can represent a tab ("\t"), linefeed ("\n"), or carriage return ("\r") character. Hex escapes ("\xFF") are also supported.
 
-## DW / WORD / DC.W / FDB
+# DW / WORD / DC.W / FDB
 Defines one or more constant 16-bit words in the code, using the native endian-ness of the CPU. The low word comes first. Quoted text strings are padded to a multiple of two bytes. The data is not aligned to a 2-byte address. 
 
-## DL / LONG / DC.L
+# DL / LONG / DC.L
 Defines one or more constant 32-bit words in the code, using the native endian-ness of the CPU. The low word comes first. Quoted text strings are padded to a multiple of four bytes. The data is not aligned to a 4-byte address. 
 
-## DRW
+# DRW
 Define Reverse Word - just like DW, except the bytes are reversed from the current endian setting.
 
-## DS / RMB / BLKB
+# DS / RMB / BLKB
 Skips a number of bytes, optionally initialized.
 Examples:
     DS 5     ; skip 5 bytes (generates no object code)
     DS 6,'*' ; assemble 6 asterisks
 Note that no forward-reference values are allowed for the length because this would cause phase errors. 
 
-## ERROR message
+# ERROR message
 This prints a custom error message.
 
-## EVEN
+# EVEN
 This is an alias for ALIGN 2.
 
-## END
+# END
 This marks the end of code. After the END statement, all input is ignored except for LIST and OPT lines.
 
-## EQU / = / SET / :=
+# EQU / = / SET / :=
 Sets a label to a value. The difference between EQU and SET is that a SET label is allowed to be redefined later in the source code. EQU and '=' are equivalent, and SET and ':=' are equivalent. 
 
-## HEX
+# HEX
 Defines raw hexadecimal data. Individual hex bytes may be separated by spaces. 
 Examples:
     HEX 123456     ; assembles to hex bytes 12, 34, and 56
     HEX 78 9ABC DE ; assembles to hex bytes 78, 9A, BC and DE
     HEX 1 2 3 4    ; Error: hexadecimal digits must be in pairs
 
-## IF expr / ELSE / ELSIF expr / ENDIF
+# IF expr / ELSE / ELSIF expr / ENDIF
 Conditional assembly. Depending on the value in the IF statement, code between it and the next ELSE / ELSIF / ENDIF, and code between an ELSE and an ENDIF, may or may not be assembled.
 Example:
     IF .undef mode
@@ -182,7 +182,7 @@ Example:
     ENDI
 IF statements inside a macro only work inside that macro. When a macro is defined, IF statements are checked for matching ENDIF statements. 
 
-## LIST / OPT
+# LIST / OPT
 These set assembler options. Currently, the options are:
     LIST ON / OPT LIST              Turn on listing
     LIST OFF / OPT NOLIST           Turn off listing
@@ -196,7 +196,7 @@ These set assembler options. Currently, the options are:
     LIST NOTEMP / OPT NOTEMP        Turn off temp symbols in symbol table listing
 The default is listing on, macro expansion off, data expansion on, symbol table on. 
 
-## MACRO / ENDM
+# MACRO / ENDM
 Defines a macro. This macro is used whenver the macro name is used as an opcode. Parameters are defined on the MACRO line, and replace values used inside the macro.
 
 Macro calls can be nested to a maximum of 10 levels. (This can be changed in asmx.c if you really need it bigger.) 
@@ -231,16 +231,16 @@ Macro parameters can also be inserted by using the backslash ("\") character. Th
     \? = unique ID per macro invocation (padded with leading zeros to five digits)
 
 NOTE: The line with the ENDM may have a label, and that will be included in the macro definition. However if you include a backslash escape before the ENDM, the ENDM will not be recognized, and the macro definition will not end. Be careful!                 
-## ORG
+# ORG
 Sets the origin address of the following code. This defaults to zero at the start of each assembler pass. 
 
-## REND
+# REND
 Ends an RORG block. A label in front of REND receives the relocated address + 1 of the last relocated byte in the RORG / REND block.
 
-## RORG
+# RORG
 Sets the relocated origin address of the following code. Code in the object file still goes to the same addresses that follow the previous ORG, but labels and branches are handled as though the code were being assembled starting at the RORG address.
 
-## SEG / RSEG / SEG.U segment
+# SEG / RSEG / SEG.U segment
 Switches to a new code segment. Code segments are simply different sections of code which get assembled to different addresses. They remember their last location when you switch back to them. If no segment name is specified, the null segment is used. 
 
 At the start of each assembler pass, all segment pointers are reset to zero, and the null segment becomes the current segment.
@@ -249,7 +249,7 @@ SEG.U is for DASM compatibility. DASM uses SEG.U to indicate an "unitialized" se
 
 RSEG is for compatibility with vintage Atari 7800 source code. 
 
-## SUBROUTINE / SUBR name
+# SUBROUTINE / SUBR name
 This sets the scope for temporary labels beginning with a dot. At the start of each pass, and when this pseudo-op is used with no name specified, temporary labels beginning with a dot use the previous non-temporary label, just as the temporary labels beginning with an '@'.
 
 Example:

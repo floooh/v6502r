@@ -750,7 +750,7 @@ static void ui_help_assembler(void) {
     }
     ImGui::SetNextWindowSize({640, 400}, ImGuiCond_Once);
     ImGui::SetNextWindowPos(display_center(), ImGuiCond_Once, { 0.5f, 0.5f });
-    if (ImGui::Begin("##Assembler Help", &app.ui.help_asm_open, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin("Assembler Help", &app.ui.help_asm_open, ImGuiWindowFlags_None)) {
         ImGui::Markdown(dump_help_assembler_md, sizeof(dump_help_assembler_md)-1, md_conf);
     }
     ImGui::End();
