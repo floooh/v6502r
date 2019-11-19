@@ -6,6 +6,7 @@
 #include "v6502r.h"
 #include "fonts/fonts.h"
 #include "fonts/iconsfontawesome4_c.h"
+#include "imgui_markdown/imgui_markdown.h"
 #define SOKOL_IMGUI_IMPL
 #include "sokol_imgui.h"
 #define SOKOL_GFX_IMGUI_IMPL

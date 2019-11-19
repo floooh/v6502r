@@ -9,6 +9,7 @@ include("${FIPS_ROOT_DIR}/cmake/fips.cmake")
 
 # shutup MSVC
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+include_directories(ext)
 fips_setup()
 fips_add_subdirectory(src)
 fips_ide_group(Imports)
