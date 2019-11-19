@@ -425,7 +425,7 @@ namespace ImGui
                         line.headingCount++;
                         bool bContinueChecking = true;
                         uint32_t j = i;
-                        while( ++j < (int)markdownLength_ && bContinueChecking )
+                        while( ++j < markdownLength_ && bContinueChecking )
                         {
                             c = markdown_[j];
                             switch( c )
@@ -494,7 +494,7 @@ namespace ImGui
                         bool useLinkCallback = false;
                         if( mdConfig_.imageCallback )
                         {
-                            MarkdownImageData imageData = mdConfig_.imageCallback({ markdown_ + link.text.start, link.text.size(), markdown_ + link.url.start, link.url.size(), mdConfig_.userData });
+                            MarkdownImageData imageData = mdConfig_.imageCallback({ markdown_ + link.text.start, link.text.size(), markdown_ + link.url.start, link.url.size(), mdConfig_.userData, link.isImage });
                             useLinkCallback = imageData.useLinkCallback;
                             if( imageData.isValid )
                             {

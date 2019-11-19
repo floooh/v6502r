@@ -1,0 +1,3 @@
+- imgui_markdown.h:497:196: warning: missing field 'isImage' initializer [-Wmissing-field-initializers]
+- imgui_markdown.h:428:36: warning: comparison of integers of different signs: 'uint32_t' (aka 'unsigned int') and 'int' [-Wsign-compare]
+
