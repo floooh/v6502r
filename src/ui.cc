@@ -4,8 +4,9 @@
 #include "imgui.h"
 #define CHIPS_IMPL
 #include "v6502r.h"
-#include "fonts/fonts.h"
-#include "fonts/iconsfontawesome4_c.h"
+#include "res/fonts.h"
+#include "res/iconsfontawesome4_c.h"
+#include "res/markdown.h"
 #include "imgui_markdown/imgui_markdown.h"
 #define SOKOL_IMGUI_IMPL
 #include "sokol_imgui.h"
@@ -20,6 +21,9 @@ static void ui_listing(void);
 static void ui_help_assembler(void);
 static void ui_help_opcodes(void);
 static void ui_help_about(void);
+static void markdown_link_callback(ImGui::MarkdownLinkCallbackData data);
+
+static ImGui::MarkdownConfig md_conf;
 
 // read and write callback for memory editor windows
 static uint8_t ui_mem_read(int /*layer*/, uint16_t addr, void* /*user_data*/) {
@@ -60,6 +64,9 @@ void ui_init() {
     io.Fonts->AddFontFromMemoryTTF(dump_fontawesome_ttf,
         sizeof(dump_fontawesome_ttf),
         16.0f, &icons_config, icons_ranges);
+    ImFontConfig h1Conf;
+    h1Conf.SizePixels = 26.0f;
+    md_conf.headingFormats[0].font = io.Fonts->AddFontDefault(&h1Conf);
 
     unsigned char* font_pixels;
     int font_width, font_height;
@@ -108,6 +115,12 @@ void ui_init() {
         ui_dasm_init(&app.ui.dasm, &desc);
     }
     ui_asm_init();
+
+    // setup ImGui::Markdown configuration
+    md_conf.linkCallback = markdown_link_callback;
+    md_conf.headingFormats[0].separator = true;
+    md_conf.headingFormats[0].newline = false;
+    md_conf.linkIcon = ICON_FA_LINK;
 }
 
 void ui_shutdown() {
@@ -159,6 +172,10 @@ static bool test_click(const sapp_event* ev, bool hovered) {
 
 bool ui_input(const sapp_event* ev) {
     int l = -1;
+    if (test_click(ev, app.ui.link_hovered)) {
+        app.ui.link_hovered = false;
+        util_html5_open_link(app.ui.link_url);
+    }
     if (test_alt(ev, SAPP_KEYCODE_1)) {
         l = 0;
     }
@@ -249,6 +266,7 @@ bool ui_input(const sapp_event* ev) {
 }
 
 void ui_frame() {
+    app.ui.link_hovered = false;
     simgui_new_frame(sapp_width(), sapp_height(), 1.0/60.0);
     ui_menu();
     ui_picking();
@@ -688,13 +706,29 @@ void ui_picking(void) {
     }
 }
 
+static void markdown_link_callback(ImGui::MarkdownLinkCallbackData data) {
+    assert(data.link && (data.linkLength > 0));
+    int i = 0;
+    for (i = 0; (i < data.linkLength) && (i < MAX_LINKURL_SIZE); i++) {
+        app.ui.link_url[i] = data.link[i];
+    }
+    if (i < MAX_LINKURL_SIZE) {
+        app.ui.link_url[i] = 0;
+        app.ui.link_hovered = true;
+    }
+    else {
+        app.ui.link_url[0] = 0;
+        app.ui.link_hovered = false;
+    }
+}
+
 static void ui_help_assembler(void) {
     if (!app.ui.help_asm_open) {
         return;
     }
     ImGui::SetNextWindowSize({640, 400}, ImGuiCond_Once);
     if (ImGui::Begin("Assembler Help", &app.ui.help_asm_open, ImGuiWindowFlags_None)) {
-        ImGui::Text("TODO!");
+        ImGui::Markdown(dump_help_assembler_md, sizeof(dump_help_assembler_md)-1, md_conf);
     }
     ImGui::End();
 }

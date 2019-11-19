@@ -182,6 +182,7 @@ namespace ImGui
     {   
         ImFont*                 font;                               // ImGui font
         bool                    separator;                          // if true, an underlined separator is drawn after the header
+        bool                    newline;                            // if true, add a newline after the header
     };
 
     // Configuration struct for Markdown
@@ -195,7 +196,7 @@ namespace ImGui
         MarkdownLinkCallback*   linkCallback = NULL;
         MarkdownImageCallback*  imageCallback = NULL;
         const char*             linkIcon = "";                      // icon displayd in link tooltip
-        MarkdownHeadingFormat   headingFormats[ NUMHEADINGS ] = { { NULL, true }, { NULL, true }, { NULL, true } };
+        MarkdownHeadingFormat   headingFormats[ NUMHEADINGS ] = { { NULL, true, true }, { NULL, true, true }, { NULL, true, true } };
         void*                   userData = NULL;
     };
 
@@ -365,7 +366,10 @@ namespace ImGui
             {
                 ImGui::Separator();
             }
-            ImGui::NewLine();
+            if ( fmt.newline )
+            {
+                ImGui::NewLine();
+            }
             if( popFontRequired )
             {
                 ImGui::PopFont();
@@ -508,7 +512,7 @@ namespace ImGui
                         }
                         if( ImGui::IsItemHovered() )
                         {
-                            if( ImGui::IsMouseClicked( 0 ) && mdConfig_.linkCallback && useLinkCallback )
+                            if( ImGui::IsMouseDown( 0 ) && mdConfig_.linkCallback && useLinkCallback )
                             {
                                 mdConfig_.linkCallback( { markdown_ + link.text.start, link.text.size(), markdown_ + link.url.start, link.url.size(), mdConfig_.userData, true } );
                             }
@@ -527,7 +531,7 @@ namespace ImGui
                         ImGui::PopStyleColor();
                         if( ImGui::IsItemHovered() )
                         {
-                            if( ImGui::IsMouseClicked( 0 ) && mdConfig_.linkCallback )
+                            if( ImGui::IsMouseDown( 0 ) && mdConfig_.linkCallback )
                             {
                                 mdConfig_.linkCallback({ markdown_ + link.text.start, link.text.size(), markdown_ + link.url.start, link.url.size(), mdConfig_.userData, false });
                             }

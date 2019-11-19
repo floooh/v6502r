@@ -26,6 +26,7 @@ extern "C" {
 #define TRACE_FLIPBIT_CLK0 (1<<0)
 #define TRACE_FLIPBIT_OP (1<<1)
 #define MAX_BINARY_SIZE ((1<<16)+2)
+#define MAX_LINKURL_SIZE (128)
 
 typedef struct {
     float x, y, z, w;
@@ -102,6 +103,8 @@ typedef struct {
         bool save_listing_hovered;
         bool cut_hovered;
         bool copy_hovered;
+        bool link_hovered;
+        char link_url[MAX_LINKURL_SIZE];
     } ui;
     struct {
         bool hovered;               // true if mouse is currently hovering a UI trace item
@@ -251,6 +254,7 @@ const char* util_opcode_to_str(uint8_t op);
 void util_html5_download_string(const char* filename, const char* content);
 void util_html5_download_binary(const char* filename, const uint8_t* bytes, uint32_t num_bytes);
 void util_html5_load(void);
+void util_html5_open_link(const char* url);
 bool util_is_osx(void);
 
 #ifdef __cplusplus

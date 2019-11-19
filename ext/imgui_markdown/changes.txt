@@ -1,3 +1,5 @@
 - imgui_markdown.h:497:196: warning: missing field 'isImage' initializer [-Wmissing-field-initializers]
 - imgui_markdown.h:428:36: warning: comparison of integers of different signs: 'uint32_t' (aka 'unsigned int') and 'int' [-Wsign-compare]
-
+- for links and images, replace IsMouseClicked() with IsMouseDown(), this lets us invoke
+  the actual click action from a "short-lived JS event handler"
+- add a 'newline' flag for heading config to optionally remove the newline after a heading

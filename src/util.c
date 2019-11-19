@@ -92,6 +92,11 @@ EM_JS(void, emsc_js_onload, (void), {
     }
 });
 
+EM_JS(void, emsc_js_open_link, (const char* c_url), {
+    var url = UTF8ToString(c_url);
+    window.open(url);
+});
+
 EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, const uint8_t* data, int size) {
     ui_asm_put_source(name, data, size);
     app.ui.asm_open = true;
@@ -127,6 +132,12 @@ void util_html5_download_binary(const char* filename, const uint8_t* content, ui
 void util_html5_load(void) {
     #if defined(__EMSCRIPTEN__)
     emsc_js_load();
+    #endif
+}
+
+void util_html5_open_link(const char* url) {
+    #if defined(__EMSCRIPTEN__)
+    emsc_js_open_link(url);
     #endif
 }
 
