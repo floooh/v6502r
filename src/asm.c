@@ -86,13 +86,16 @@ int asmx_fclose(asmx_FILE* stream) {
 
 asmx_size_t asmx_fwrite(const void* ptr, asmx_size_t size, asmx_size_t count, asmx_FILE* fp) {
     iostream_t* io = asmx_io_stream(fp);
-    assert(io->pos == io->size);
+    assert(io->pos <= io->size);
     uint32_t num_bytes = size * count;
     if ((io->pos + num_bytes) > MAX_IOBUF_SIZE) {
         return 0;
     }
     memcpy(&io->buf[io->pos], ptr, num_bytes);
-    io->pos = io->size = io->pos + num_bytes;
+    io->pos = io->pos + num_bytes;
+    if (io->pos > io->size) {
+        io->size = io->pos;
+    }
     return num_bytes;
 }
 
@@ -122,9 +125,12 @@ int asmx_fgetc(asmx_FILE* fp) {
 
 int asmx_fputc(int character, asmx_FILE* fp) {
     iostream_t* io = asmx_io_stream(fp);
+    assert(io->pos <= io->size);
     if (io->pos < MAX_IOBUF_SIZE) {
         io->buf[io->pos++] = character;
-        io->size = io->pos;
+        if (io->pos > io->size) {
+            io->size = io->pos;
+        }
         return character;
     }
     else {
@@ -387,7 +393,7 @@ asm_result_t asm_assemble(void) {
     return (asm_result_t) {
         .errors = 0 != asm_num_errors(),
         .addr = (uint16_t) asmx_Shared.binBase,
-        .len = (uint16_t) asmx_Shared.binEnd,
+        .len = (uint16_t) (asmx_Shared.binEnd - asmx_Shared.binBase),
         .bytes = state.io[IOSTREAM_OBJ].buf,
     };
 }

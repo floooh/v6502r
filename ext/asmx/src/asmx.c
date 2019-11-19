@@ -2703,8 +2703,12 @@ static void write_bin(uint32_t addr, uint8_t *buf, uint32_t len, int rectype)
     {
         // automatically adjust base end end?
         if (cl_AutoBinBaseEnd) {
-            cl_Binbase = addr;
-            cl_Binend = addr + len;
+            if (cl_Binbase > addr) {
+                cl_Binbase = addr;
+            }
+            if (cl_Binend < (addr + len)) {
+                cl_Binend = addr + len;
+            }
         }
 
         // return if end of data less than base address
@@ -5113,7 +5117,7 @@ static bool ParseOptions(const asmx_Options* opts)
     cl_ObjType = OBJ_BIN;
     cl_Obj = TRUE;
     cl_List = TRUE;
-    cl_Binbase = 0;
+    cl_Binbase = 0x10000;
     cl_Binend = 0;
     cl_AutoBinBaseEnd = true;
     for (int i = 0; i < ASMX_OPTIONS_MAX_DEFINES; i++) {
