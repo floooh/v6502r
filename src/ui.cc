@@ -12,6 +12,7 @@
 #include "sokol_imgui.h"
 #define SOKOL_GFX_IMGUI_IMPL
 #include "sokol_gfx_imgui.h"
+#include <math.h>
 
 static void ui_menu(void);
 static void ui_picking(void);
@@ -767,13 +768,276 @@ static void ui_help_opcodes(void) {
     ImGui::End();
 }
 
+static const char* c_V =
+    "XX--XX--"
+    "XX--XX--"
+    "XX--XX--"
+    "-XXXX---"
+    "-XXXX---"
+    "--XX----"
+    "--XX----"
+    "--------";
+
+static const char* c_I =
+    "-XXXX---"
+    "--XX----"
+    "--XX----"
+    "--XX----"
+    "--XX----"
+    "--XX----"
+    "-XXXX---"
+    "--------";
+
+static const char* c_S =
+    "-XXXXX--"
+    "XX---XX-"
+    "XXXX----"
+    "--XXXX--"
+    "----XXX-"
+    "XX---XX-"
+    "-XXXXX--"
+    "--------";
+
+static const char* c_U =
+    "XX---XX-"
+    "XX---XX-"
+    "XX---XX-"
+    "XX---XX-"
+    "XX---XX-"
+    "XX---XX-"
+    "-XXXXX--"
+    "--------";
+
+static const char* c_A =
+    "--XX----"
+    "-XXXX---"
+    "XX--XX--"
+    "XX--XX--"
+    "XXXXXX--"
+    "XX--XX--"
+    "XX--XX--"
+    "--------";
+
+static const char* c_L =
+    "XXXX----"
+    "-XX-----"
+    "-XX-----"
+    "-XX-----"
+    "-XX---X-"
+    "-XX--XX-"
+    "XXXXXXX-"
+    "--------";
+
+static const char* c_6 =
+    "--XXX---"
+    "-XX-----"
+    "XX------"
+    "XXXXX---"
+    "XX--XX--"
+    "XX--XX--"
+    "-XXXX---"
+    "--------";
+
+static const char* c_5 =
+    "XXXXXX--"
+    "XX------"
+    "XXXXX---"
+    "----XX--"
+    "----XX--"
+    "XX--XX--"
+    "-XXXX---"
+    "--------";
+
+static const char* c_0 =
+    "-XXXXX--"
+    "XX---XX-"
+    "XX--XXX-"
+    "XX-XXXX-"
+    "XXXX-XX-"
+    "XXX--XX-"
+    "-XXXXX--"
+    "--------";
+
+static const char* c_2 =
+    "-XXXX---"
+    "XX--XX--"
+    "----XX--"
+    "--XXX---"
+    "-XX-----"
+    "XX--XX--"
+    "XXXXXX--"
+    "--------";
+
+static const char* c_r =
+    "--------"
+    "--------"
+    "XX-XXX--"
+    "-XXX-XX-"
+    "-XX--XX-"
+    "-XX-----"
+    "XXXX----"
+    "--------";
+
+static const char* c_e =
+    "--------"
+    "--------"
+    "-XXXX---"
+    "XX--XX--"
+    "XXXXXX--"
+    "XX------"
+    "-XXXX---"
+    "--------";
+
+static const char* c_m =
+    "--------"
+    "--------"
+    "XX--XX--"
+    "XXXXXXX-"
+    "XXXXXXX-"
+    "XX-X-XX-"
+    "XX---XX-"
+    "--------";
+
+static const char* c_i =
+    "--XX----"
+    "--------"
+    "-XXX----"
+    "--XX----"
+    "--XX----"
+    "--XX----"
+    "XXXXXX--"
+    "--------";
+
+static const char* c_x =
+    "--------"
+    "--------"
+    "XX---XX-"
+    "-XX-XX--"
+    "--XXX---"
+    "-XX-XX--"
+    "XX---XX-"
+    "--------";
+
+static const char* c_asterix =
+    "--------"
+    "-XX--XX-"
+    "--XXXX--"
+    "XXXXXXXX"
+    "--XXXX--"
+    "-XX--XX-"
+    "--------"
+    "--------";
+
+static const char* c_space =
+    "--------"
+    "--------"
+    "--------"
+    "--------"
+    "--------"
+    "--------"
+    "--------"
+    "--------";
+
+static const uint32_t colors[8] = {
+    0xFF0000FF,     // red
+    0xFF0088FF,     // orange
+    0xFF00FFFF,     // yellow
+    0xFF00FF00,     // green
+    0xFF00FF00,     // green
+    0xFFFFFF00,     // teal
+    0xFFFF8888,     // blue
+    0xFFFF88FF,     // violet
+};
+
+static float warp_time;
+static ImVec2 draw_char(ImDrawList* dl, const char* bitmap, const ImVec2& pos, float r, float d, int color_offset) {
+    ImVec2 p = pos;
+    for (int y = 0; y < 8; y++, p.y += d) {
+        p.x = pos.x + sinf(warp_time + (y+color_offset*8) * 0.25f) * 5.0f;
+        for (int x = 0; x < 8; x++, p.x += d) {
+            if (bitmap[y*8+x] == 'X') {
+                dl->AddRectFilled({p.x-r,p.y-r},{p.x+r,p.y+r}, colors[y/2+color_offset*4]);
+            }
+        }
+    }
+    return { pos.x + 8 * d, pos.y };
+}
+
+static ImVec2 draw_rainbow_text(ImVec2 c_pos, float win_width) {
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    const float r = 1.0f;
+    const float d = 3.0f;
+    c_pos.x += (win_width - 19.0f * d * 8.0f) * 0.5f;
+    c_pos.y += 10.0f;
+    ImVec2 p = c_pos;
+    for (int i = 0; i < 3; i++) {
+        p = draw_char(dl, c_asterix, p, r, d, 0);
+    }
+    p = draw_char(dl, c_space, p, r, d, 0);
+    p = draw_char(dl, c_V, p, r, d, 0);
+    p = draw_char(dl, c_I, p, r, d, 0);
+    p = draw_char(dl, c_S, p, r, d, 0);
+    p = draw_char(dl, c_U, p, r, d, 0);
+    p = draw_char(dl, c_A, p, r, d, 0);
+    p = draw_char(dl, c_L, p, r, d, 0);
+    p = draw_char(dl, c_space, p, r, d, 0);
+    p = draw_char(dl, c_6, p, r, d, 0);
+    p = draw_char(dl, c_5, p, r, d, 0);
+    p = draw_char(dl, c_0, p, r, d, 0);
+    p = draw_char(dl, c_2, p, r, d, 0);
+    p = draw_char(dl, c_space, p, r, d, 0);
+    for (int i = 0; i < 3; i++) {
+        p = draw_char(dl, c_asterix, p, r, d, 0);
+    }
+    p = c_pos;
+    p.y += 8.0f * d;
+    for (int i = 0; i < 2; i++) {
+        p = draw_char(dl, c_space, p, r, d, 1);
+    }
+    for (int i = 0; i < 3; i++) {
+        p = draw_char(dl, c_asterix, p, r, d, 1);
+    }
+    for (int i = 0; i < 2; i++) {
+        p = draw_char(dl, c_space, p, r, d, 1);
+    }
+    p = draw_char(dl, c_r, p, r, d, 1);
+    p = draw_char(dl, c_e, p, r, d, 1);
+    p = draw_char(dl, c_m, p, r, d, 1);
+    p = draw_char(dl, c_i, p, r, d, 1);
+    p = draw_char(dl, c_x, p, r, d, 1);
+    for (int i = 0; i < 2; i++) {
+        p = draw_char(dl, c_space, p, r, d, 1);
+    }
+    for (int i = 0; i < 3; i++) {
+        p = draw_char(dl, c_asterix, p, r, d, 1);
+    }
+    for (int i = 0; i < 2; i++) {
+        p = draw_char(dl, c_space, p, r, d, 1);
+    }
+    p.y += 8.0f * d;
+    return p;
+}
+
 static void ui_help_about(void) {
     if (!app.ui.help_about_open) {
         return;
     }
-    ImGui::SetNextWindowSize({320, 200}, ImGuiCond_Once);
-    if (ImGui::Begin("About", &app.ui.help_about_open, ImGuiWindowFlags_None)) {
-        ImGui::Text("TODO!");
+    warp_time += 0.05f;
+    ImVec2 disp_center = display_center();
+    const float win_width = 560.0f;
+    const float win_height = 390.0f;
+    const float box_padding = 20.0f;
+    ImGui::SetNextWindowSize({win_width, win_height}, ImGuiCond_Once);
+    ImGui::SetNextWindowPos(disp_center, ImGuiCond_Once, { 0.5f, 0.5f });
+    if (ImGui::Begin("About", &app.ui.help_about_open, ImGuiWindowFlags_NoResize)) {
+        ImVec2 c_pos = ImGui::GetCursorScreenPos();
+        ImVec2 p = draw_rainbow_text(c_pos, win_width);
+        c_pos.y = p.y + 16.0f;
+        c_pos.x += box_padding;
+        ImGui::SetCursorScreenPos(c_pos);
+        ImGui::BeginChild("##about", {win_width-2*box_padding, -1.0f}, false);
+        ImGui::Markdown(dump_about_md, sizeof(dump_about_md)-1, md_conf);
+        ImGui::EndChild();
     }
     ImGui::End();
 }
