@@ -29,10 +29,6 @@ Many thanks to:
 Please be aware of the various licenses in the respective
 github repositories, subdirectories and files.
 
-## TODO / Reminders
-
-- maybe use https://github.com/Edilbert/BSA/blob/master/bsa.c instead of asmx?
-
 
 
 
