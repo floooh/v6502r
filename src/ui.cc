@@ -119,7 +119,8 @@ void ui_init() {
     // setup ImGui::Markdown configuration
     md_conf.linkCallback = markdown_link_callback;
     md_conf.headingFormats[0].separator = true;
-    md_conf.headingFormats[0].newline = false;
+    md_conf.headingFormats[0].newline_above = false;
+    md_conf.headingFormats[0].newline_below = false;
     md_conf.linkIcon = ICON_FA_LINK;
 }
 
@@ -170,11 +171,27 @@ static bool test_click(const sapp_event* ev, bool hovered) {
     }
 }
 
+static bool handle_special_link(void) {
+    if (0 == strcmp(app.ui.link_url, "ui://listing")) {
+        app.ui.listing_open = true;
+        ImGui::SetWindowFocus("Listing");
+        return true;
+    }
+    else if (0 == strcmp(app.ui.link_url, "ui://assembler")) {
+        app.ui.asm_open = true;
+        ImGui::SetWindowFocus("Assembler");
+        return true;
+    }
+    return false;
+}
+
 bool ui_input(const sapp_event* ev) {
     int l = -1;
     if (test_click(ev, app.ui.link_hovered)) {
         app.ui.link_hovered = false;
-        util_html5_open_link(app.ui.link_url);
+        if (!handle_special_link()) {
+            util_html5_open_link(app.ui.link_url);
+        }
     }
     if (test_alt(ev, SAPP_KEYCODE_1)) {
         l = 0;
@@ -412,7 +429,7 @@ void ui_menu(void) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help")) {
-            ImGui::MenuItem("Assembler Syntax", 0, &app.ui.help_asm_open);
+            ImGui::MenuItem("Assembler", 0, &app.ui.help_asm_open);
             ImGui::MenuItem("Opcode Table", 0, &app.ui.help_opcodes_open);
             ImGui::MenuItem("About", 0, &app.ui.help_about_open);
             ImGui::EndMenu();
@@ -722,12 +739,17 @@ static void markdown_link_callback(ImGui::MarkdownLinkCallbackData data) {
     }
 }
 
+static ImVec2 display_center(void) {
+    return ImVec2((float)sapp_width()*0.5f, (float)sapp_height()*0.5f);
+}
+
 static void ui_help_assembler(void) {
     if (!app.ui.help_asm_open) {
         return;
     }
     ImGui::SetNextWindowSize({640, 400}, ImGuiCond_Once);
-    if (ImGui::Begin("Assembler Help", &app.ui.help_asm_open, ImGuiWindowFlags_None)) {
+    ImGui::SetNextWindowPos(display_center(), ImGuiCond_Once, { 0.5f, 0.5f });
+    if (ImGui::Begin("##Assembler Help", &app.ui.help_asm_open, ImGuiWindowFlags_None)) {
         ImGui::Markdown(dump_help_assembler_md, sizeof(dump_help_assembler_md)-1, md_conf);
     }
     ImGui::End();

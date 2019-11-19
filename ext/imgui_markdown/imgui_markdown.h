@@ -182,7 +182,8 @@ namespace ImGui
     {   
         ImFont*                 font;                               // ImGui font
         bool                    separator;                          // if true, an underlined separator is drawn after the header
-        bool                    newline;                            // if true, add a newline after the header
+        bool                    newline_above;                      // if true, add a newline above the header
+        bool                    newline_below;                      // if true, add a newline below the header
     };
 
     // Configuration struct for Markdown
@@ -196,7 +197,7 @@ namespace ImGui
         MarkdownLinkCallback*   linkCallback = NULL;
         MarkdownImageCallback*  imageCallback = NULL;
         const char*             linkIcon = "";                      // icon displayd in link tooltip
-        MarkdownHeadingFormat   headingFormats[ NUMHEADINGS ] = { { NULL, true, true }, { NULL, true, true }, { NULL, true, true } };
+        MarkdownHeadingFormat   headingFormats[ NUMHEADINGS ] = { { NULL, true, true, true }, { NULL, true, true, true }, { NULL, true, true, true } };
         void*                   userData = NULL;
     };
 
@@ -360,13 +361,15 @@ namespace ImGui
                 popFontRequired = true;
             }
             const char* text = markdown_ + textStart + 1;
-            ImGui::NewLine();
+            if (fmt.newline_above) {
+                ImGui::NewLine();
+            }
             textRegion_.RenderTextWrapped( text, text + textSize - 1 );
             if( fmt.separator )
             {
                 ImGui::Separator();
             }
-            if ( fmt.newline )
+            if ( fmt.newline_below )
             {
                 ImGui::NewLine();
             }
@@ -512,7 +515,7 @@ namespace ImGui
                         }
                         if( ImGui::IsItemHovered() )
                         {
-                            if( ImGui::IsMouseDown( 0 ) && mdConfig_.linkCallback && useLinkCallback )
+                            if( mdConfig_.linkCallback && useLinkCallback )
                             {
                                 mdConfig_.linkCallback( { markdown_ + link.text.start, link.text.size(), markdown_ + link.url.start, link.url.size(), mdConfig_.userData, true } );
                             }
@@ -531,12 +534,12 @@ namespace ImGui
                         ImGui::PopStyleColor();
                         if( ImGui::IsItemHovered() )
                         {
-                            if( ImGui::IsMouseDown( 0 ) && mdConfig_.linkCallback )
+                            if( mdConfig_.linkCallback )
                             {
                                 mdConfig_.linkCallback({ markdown_ + link.text.start, link.text.size(), markdown_ + link.url.start, link.url.size(), mdConfig_.userData, false });
                             }
                             ImGui::UnderLine( style.Colors[ ImGuiCol_ButtonHovered ] );
-                            ImGui::SetTooltip( "%s Open in browser\n%.*s", mdConfig_.linkIcon, link.url.size(), markdown_ + link.url.start );
+                            ImGui::SetTooltip( "%s Open %.*s", mdConfig_.linkIcon, link.url.size(), markdown_ + link.url.start );
                         }
                         else
                         {
