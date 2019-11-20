@@ -19,6 +19,7 @@ def build_deploy_webpage(fips_dir, proj_dir):
     shutil.copy(src_dir+'/v6502r.html', dst_dir+'/index.html')
     shutil.copy(src_dir+'/v6502r.wasm', dst_dir+'/v6502r.wasm')
     shutil.copy(src_dir+'/v6502r.js', dst_dir+'/v6502r.js')
+    shutil.copy(proj_dir+'/src/res/favicon.png', dst_dir+'/favicon.png')
 
     log.colored(log.GREEN, 'Generated Samples web page under {}.'.format(webpage_dir))
 
