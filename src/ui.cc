@@ -768,175 +768,23 @@ static void ui_help_opcodes(void) {
     ImGui::End();
 }
 
-static const char* c_V =
-    "XX--XX--"
-    "XX--XX--"
-    "XX--XX--"
-    "-XXXX---"
-    "-XXXX---"
-    "--XX----"
-    "--XX----"
-    "--------";
-
-static const char* c_I =
-    "-XXXX---"
-    "--XX----"
-    "--XX----"
-    "--XX----"
-    "--XX----"
-    "--XX----"
-    "-XXXX---"
-    "--------";
-
-static const char* c_S =
-    "-XXXXX--"
-    "XX---XX-"
-    "XXXX----"
-    "--XXXX--"
-    "----XXX-"
-    "XX---XX-"
-    "-XXXXX--"
-    "--------";
-
-static const char* c_U =
-    "XX---XX-"
-    "XX---XX-"
-    "XX---XX-"
-    "XX---XX-"
-    "XX---XX-"
-    "XX---XX-"
-    "-XXXXX--"
-    "--------";
-
-static const char* c_A =
-    "--XX----"
-    "-XXXX---"
-    "XX--XX--"
-    "XX--XX--"
-    "XXXXXX--"
-    "XX--XX--"
-    "XX--XX--"
-    "--------";
-
-static const char* c_L =
-    "XXXX----"
-    "-XX-----"
-    "-XX-----"
-    "-XX-----"
-    "-XX---X-"
-    "-XX--XX-"
-    "XXXXXXX-"
-    "--------";
-
-static const char* c_6 =
-    "--XXX---"
-    "-XX-----"
-    "XX------"
-    "XXXXX---"
-    "XX--XX--"
-    "XX--XX--"
-    "-XXXX---"
-    "--------";
-
-static const char* c_5 =
-    "XXXXXX--"
-    "XX------"
-    "XXXXX---"
-    "----XX--"
-    "----XX--"
-    "XX--XX--"
-    "-XXXX---"
-    "--------";
-
-static const char* c_0 =
-    "-XXXXX--"
-    "XX---XX-"
-    "XX--XXX-"
-    "XX-XXXX-"
-    "XXXX-XX-"
-    "XXX--XX-"
-    "-XXXXX--"
-    "--------";
-
-static const char* c_2 =
-    "-XXXX---"
-    "XX--XX--"
-    "----XX--"
-    "--XXX---"
-    "-XX-----"
-    "XX--XX--"
-    "XXXXXX--"
-    "--------";
-
-static const char* c_r =
-    "--------"
-    "--------"
-    "XX-XXX--"
-    "-XXX-XX-"
-    "-XX--XX-"
-    "-XX-----"
-    "XXXX----"
-    "--------";
-
-static const char* c_e =
-    "--------"
-    "--------"
-    "-XXXX---"
-    "XX--XX--"
-    "XXXXXX--"
-    "XX------"
-    "-XXXX---"
-    "--------";
-
-static const char* c_m =
-    "--------"
-    "--------"
-    "XX--XX--"
-    "XXXXXXX-"
-    "XXXXXXX-"
-    "XX-X-XX-"
-    "XX---XX-"
-    "--------";
-
-static const char* c_i =
-    "--XX----"
-    "--------"
-    "-XXX----"
-    "--XX----"
-    "--XX----"
-    "--XX----"
-    "XXXXXX--"
-    "--------";
-
-static const char* c_x =
-    "--------"
-    "--------"
-    "XX---XX-"
-    "-XX-XX--"
-    "--XXX---"
-    "-XX-XX--"
-    "XX---XX-"
-    "--------";
-
-static const char* c_asterix =
-    "--------"
-    "-XX--XX-"
-    "--XXXX--"
-    "XXXXXXXX"
-    "--XXXX--"
-    "-XX--XX-"
-    "--------"
-    "--------";
-
-static const char* c_space =
-    "--------"
-    "--------"
-    "--------"
-    "--------"
-    "--------"
-    "--------"
-    "--------"
-    "--------";
+static const uint8_t c_V       [8] = { 0x00,0x66,0x66,0x66,0x66,0x3C,0x18,0x00  };
+static const uint8_t c_I       [8] = { 0x00,0x7E,0x18,0x18,0x18,0x18,0x7E,0x00  };
+static const uint8_t c_S       [8] = { 0x00,0x3C,0x60,0x3C,0x06,0x06,0x3C,0x00  };
+static const uint8_t c_U       [8] = { 0x00,0x66,0x66,0x66,0x66,0x66,0x7E,0x00  };
+static const uint8_t c_A       [8] = { 0x00,0x18,0x3C,0x66,0x66,0x7E,0x66,0x00  };
+static const uint8_t c_L       [8] = { 0x00,0x60,0x60,0x60,0x60,0x60,0x7E,0x00  };
+static const uint8_t c_6       [8] = { 0x00,0x3C,0x60,0x7C,0x66,0x66,0x3C,0x00  };
+static const uint8_t c_5       [8] = { 0x00,0x7E,0x60,0x7C,0x06,0x66,0x3C,0x00  };
+static const uint8_t c_0       [8] = { 0x00,0x3C,0x66,0x6E,0x76,0x66,0x3C,0x00  };
+static const uint8_t c_2       [8] = { 0x00,0x3C,0x66,0x0C,0x18,0x30,0x7E,0x00  };
+static const uint8_t c_r       [8] = { 0x00,0x00,0x7C,0x66,0x60,0x60,0x60,0x00  };
+static const uint8_t c_e       [8] = { 0x00,0x00,0x3C,0x66,0x7E,0x60,0x3C,0x00  };
+static const uint8_t c_m       [8] = { 0x00,0x00,0x66,0x7F,0x7F,0x6B,0x63,0x00  };
+static const uint8_t c_i       [8] = { 0x00,0x18,0x00,0x38,0x18,0x18,0x3C,0x00  };
+static const uint8_t c_x       [8] = { 0x00,0x00,0x66,0x3C,0x18,0x3C,0x66,0x00  };
+static const uint8_t c_asterix [8] = { 0x00,0x66,0x3C,0xFF,0x3C,0x66,0x00,0x00  };
+static const uint8_t c_space   [8] = { 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00  };
 
 static const uint32_t colors[8] = {
     0xFF0000FF,     // red
@@ -950,12 +798,13 @@ static const uint32_t colors[8] = {
 };
 
 static float warp_time;
-static ImVec2 draw_char(ImDrawList* dl, const char* bitmap, const ImVec2& pos, float r, float d, int color_offset) {
+static ImVec2 draw_char(ImDrawList* dl, const uint8_t* bitmap, const ImVec2& pos, float r, float d, int color_offset) {
     ImVec2 p = pos;
     for (int y = 0; y < 8; y++, p.y += d) {
         p.x = pos.x + sinf(warp_time + (y+color_offset*8) * 0.25f) * 5.0f;
-        for (int x = 0; x < 8; x++, p.x += d) {
-            if (bitmap[y*8+x] == 'X') {
+        uint8_t pixels = bitmap[y];
+        for (int x = 7; x >= 0; x--, p.x += d) {
+            if (pixels & (1<<x)) {
                 dl->AddRectFilled({p.x-r,p.y-r},{p.x+r,p.y+r}, colors[y/2+color_offset*4]);
             }
         }
