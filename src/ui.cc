@@ -929,13 +929,13 @@ static ImVec2 draw_header(ImVec2 c_pos, float win_width) {
     return p;
 }
 
-#define NUM_FOOTERS (19)
+#define NUM_FOOTERS (26)
 static const char* footers[NUM_FOOTERS] = {
     "SOWACO proudly presents",
-    "a 2019 production:",
+    "a 2019 production",
     "VISUAL 6502 REMIX",
     "Built with:",
-    "visual6502.org",
+    "visual6502",
     "perfect6502",
     "Dear ImGui",
     "ImGuiColorTextEdit",
@@ -946,8 +946,15 @@ static const char* footers[NUM_FOOTERS] = {
     "Tripy",
     "IconFontCppHeaders",
     "Font Awesome 4",
-    "Coded in C99!",
+    "Coded in C99",
     "(and a bit of C++)",
+    "(and some Python)",
+    "(even some JS!)",
+    "compiled to WASM with",
+    "EMSCRIPTEN",
+    "Special Kudos to:",
+    "The visual6502.org Team",
+    "for reversing the 6502!",
     "...and of course...",
     "6502 4EVER!!!",
 };
@@ -1049,6 +1056,7 @@ static void ui_help_about(void) {
         ImGui::Markdown(dump_about_md, sizeof(dump_about_md)-1, md_conf);
         ImGui::EndChild();
         c_pos = ImGui::GetCursorScreenPos();
+        c_pos.x -= 10.0f;
         draw_footer(c_pos, win_width);
     }
     ImGui::End();
