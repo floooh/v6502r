@@ -8,6 +8,7 @@
 
 static struct {
     bool is_osx;
+    bool cursor_is_pointer;
 } state;
 
 #if defined(__EMSCRIPTEN__)
@@ -97,6 +98,14 @@ EM_JS(void, emsc_js_open_link, (const char* c_url), {
     window.open(url);
 });
 
+EM_JS(void, emsc_js_cursor_to_pointer, (void), {
+    document.getElementById('canvas').style.cursor = 'pointer';
+});
+
+EM_JS(void, emsc_js_cursor_to_default, (void), {
+    document.getElementById('canvas').style.cursor = 'default';
+});
+
 EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, const uint8_t* data, int size) {
     ui_asm_put_source(name, data, size);
     app.ui.asm_open = true;
@@ -143,6 +152,24 @@ void util_html5_open_link(const char* url) {
 
 bool util_is_osx(void) {
     return state.is_osx;
+}
+
+void util_html5_cursor_to_pointer(void) {
+    #if defined(__EMSCRIPTEN__)
+    if (!state.cursor_is_pointer) {
+        state.cursor_is_pointer = true;
+        emsc_js_cursor_to_pointer();
+    }
+    #endif
+}
+
+void util_html5_cursor_to_default(void) {
+    #if defined(__EMSCRIPTEN__)
+    if (state.cursor_is_pointer) {
+        state.cursor_is_pointer = false;
+        emsc_js_cursor_to_default();
+    }
+    #endif
 }
 
 const char* util_opcode_to_str(uint8_t opcode) {

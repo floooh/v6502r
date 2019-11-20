@@ -299,6 +299,12 @@ void ui_frame() {
     ui_help_opcodes();
     ui_help_about();
     sg_imgui_draw(&app.ui.sg_imgui);
+    if (app.ui.link_hovered) {
+        util_html5_cursor_to_pointer();
+    }
+    else {
+        util_html5_cursor_to_default();
+    }
 }
 
 void ui_draw() {

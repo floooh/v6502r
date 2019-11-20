@@ -255,6 +255,8 @@ void util_html5_download_string(const char* filename, const char* content);
 void util_html5_download_binary(const char* filename, const uint8_t* bytes, uint32_t num_bytes);
 void util_html5_load(void);
 void util_html5_open_link(const char* url);
+void util_html5_cursor_to_pointer(void);
+void util_html5_cursor_to_default(void);
 bool util_is_osx(void);
 
 #ifdef __cplusplus
