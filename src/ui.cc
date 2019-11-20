@@ -929,8 +929,12 @@ static ImVec2 draw_header(ImVec2 c_pos, float win_width) {
     return p;
 }
 
-#define NUM_FOOTERS (15)
+#define NUM_FOOTERS (19)
 static const char* footers[NUM_FOOTERS] = {
+    "SOWACO proudly presents",
+    "a 2019 production:",
+    "VISUAL 6502 REMIX",
+    "Built with:",
     "visual6502.org",
     "perfect6502",
     "Dear ImGui",
@@ -1030,9 +1034,9 @@ static void ui_help_about(void) {
         return;
     }
     ImVec2 disp_center = display_center();
-    const float win_width = 560.0f;
+    const float win_width = 600.0f;
     const float win_height = 420.0f;
-    const float box_padding = 20.0f;
+    const float box_padding = 40.0f;
     ImGui::SetNextWindowSize({win_width, win_height}, ImGuiCond_Once);
     ImGui::SetNextWindowPos(disp_center, ImGuiCond_Once, { 0.5f, 0.5f });
     if (ImGui::Begin("About", &app.ui.help_about_open, ImGuiWindowFlags_NoResize)) {
