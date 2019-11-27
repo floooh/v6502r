@@ -732,7 +732,7 @@ static uint32_t EvalDec(char *decStr)
 }
 
 
-static int Hex2Dec(c)
+static int Hex2Dec(int c)
 {
     c = asmx_toupper(c);
     if (c > '9')
