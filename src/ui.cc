@@ -1024,7 +1024,7 @@ static void draw_footer(ImVec2 c_pos, float win_width) {
     float x = (c_pos.x + win_width * 0.5f);
     float y = (c_pos.y + 4 * 3.0f);
 
-    float t = fmod(footer_time, time_per_msg);
+    float t = fmodf(footer_time, time_per_msg);
     float t1 = 0.0f;
     if (t < 1.0f) {
         t1 = 1.0f - t*t*t;

@@ -1038,7 +1038,7 @@ static void ConvertZSCII(void)
                 if ((p = asmx_strchr(zSpecial,ch)))
                 {   // numeric and special chars
                     PutZSCIIShift(shift,nshift);
-                    PutZSCII(p - zSpecial + 7);
+                    PutZSCII((char)(p - zSpecial + 7));
                 }
                 else
                 {   // extended char

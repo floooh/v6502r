@@ -223,7 +223,7 @@ void asmx_free(void* ptr) {
 }
 
 asmx_size_t asmx_strlen(const char* str) {
-    return strlen(str);
+    return (asmx_size_t) strlen(str);
 }
 
 char* asmx_strcpy(char* destination, const char* source) {
@@ -325,6 +325,14 @@ const char* asm_listing(void) {
     return asm_get_string(IOSTREAM_LST);
 }
 
+static char* asm_strtok_r(char* str, const char* delims, char** context) {
+    #if defined(_MSC_VER)
+        return strtok_s(str, delims, context);
+    #else
+        return strtok_r(str, delims, context);
+    #endif
+}
+
 #define MAX_ERR_LINES (64)
 static void asm_parse_errors(void) {
     assert(state.num_errors == 0);
@@ -332,9 +340,9 @@ static void asm_parse_errors(void) {
     // split into lines and extract error lines
     strcpy((char*)state.parse_buf, asm_stderr());
     char* line_context;
-    for (char* line = strtok_r((char*)state.parse_buf, "\n", &line_context);
+    for (char* line = asm_strtok_r((char*)state.parse_buf, "\n", &line_context);
          line;
-         line = strtok_r(0, "\n", &line_context))
+         line = asm_strtok_r(0, "\n", &line_context))
     {
         if (strstr(line, "*** Error:") || strstr(line, "*** Warning:")) {
             char* tok_context, *tok;
@@ -343,9 +351,9 @@ static void asm_parse_errors(void) {
                 break;
             }
             asm_error_t* err = &state.errors[state.num_errors++];
-            for (i = 0, tok = strtok_r(line, ":", &tok_context);
+            for (i = 0, tok = asm_strtok_r(line, ":", &tok_context);
                  tok;
-                 tok = strtok_r(0, ":", &tok_context), i++)
+                 tok = asm_strtok_r(0, ":", &tok_context), i++)
             {
                 switch (i) {
                     case 0:
