@@ -58,6 +58,9 @@ static void app_frame(void) {
 
 static void app_input(const sapp_event* ev) {
     if (ui_input(ev)) {
+        app.input.mouse.x = 0;
+        app.input.mouse.y = 0;
+        app.input.dragging = false;
         return;
     }
     float w = (float) ev->framebuffer_width * app.chipvis.scale;

@@ -343,10 +343,14 @@ void ui_menu(void) {
             app.ui.cut_hovered = ImGui::IsItemHovered();
             ImGui::MenuItem("Copy", is_osx?"Cmd+C":"Ctrl+C");
             app.ui.copy_hovered = ImGui::IsItemHovered();
-            ImGui::MenuItem("Paste", is_osx?"Cmd+V":"Ctrl+V");
             #if defined(__EMSCRIPTEN__)
+            ImGui::MenuItem("Paste", is_osx?"Cmd+V":"Ctrl+V");
             if (ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Please use keyboard shortcut or\nbrowser menu for pasting!");
+            }
+            #else
+            if (ImGui::MenuItem("Paste", is_osx?"Cmd+V":"Ctrl+V")) {
+                ui_asm_paste();
             }
             #endif
             ImGui::EndMenu();
