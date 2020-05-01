@@ -5,6 +5,7 @@
 #include "sokol_gfx.h"
 #include "sokol_app.h"
 #include "sokol_args.h"
+#include "sokol_glue.h"
 #include "ui/ui_memedit.h"
 #include "util/m6502dasm.h"
 #include "ui/ui_util.h"
