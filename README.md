@@ -10,6 +10,35 @@ and turn it into a native+wasm app via
 ImGui](https://github.com/ocornut/imgui/) and
 [Sokol](https://github.com/floooh/sokol).
 
+## To Build:
+
+Make sure ```python``` and ```cmake``` is in the path.
+
+To get an idea about additional required tools, first run
+
+```
+> ./fips diag tools
+```
+
+To build and run the native version, run:
+
+```
+> ./fips build
+...
+> ./fips run v6502r
+```
+
+Linux may require additional development packages for X11 and OpenGL development.
+
+To build the WASM version:
+
+```
+> ./fips setup emscripten
+> ./fips set config wasm-ninja-release
+> ./fips build
+> ./fips run v6502r
+```
+
 ## Software used in this project:
 
 Many thanks to:
