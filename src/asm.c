@@ -81,6 +81,7 @@ asmx_FILE* asmx_fopen(const char* filename, const char* mode) {
 }
 
 int asmx_fclose(asmx_FILE* stream) {
+    (void)stream;
     return 0;
 }
 
@@ -219,6 +220,7 @@ void* asmx_malloc(asmx_size_t size) {
 }
 
 void asmx_free(void* ptr) {
+    (void)ptr;
     // nothing to do here
 }
 

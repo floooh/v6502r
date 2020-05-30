@@ -129,12 +129,16 @@ void util_init(void) {
 void util_html5_download_string(const char* filename, const char* content) {
     #if defined(__EMSCRIPTEN__)
     emsc_js_download_string(filename, content);
+    #else
+    (void)filename; (void)content;
     #endif
 }
 
 void util_html5_download_binary(const char* filename, const uint8_t* content, uint32_t num_bytes) {
     #if defined(__EMSCRIPTEN__)
     emsc_js_download_binary(filename, content, num_bytes);
+    #else
+    (void)filename; (void)content; (void)num_bytes;
     #endif
 }
 
@@ -147,6 +151,8 @@ void util_html5_load(void) {
 void util_html5_open_link(const char* url) {
     #if defined(__EMSCRIPTEN__)
     emsc_js_open_link(url);
+    #else
+    (void)url;
     #endif
 }
 

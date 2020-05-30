@@ -135,6 +135,7 @@ const char* ui_asm_source(void) {
 }
 
 void ui_asm_put_source(const char* name, const uint8_t* bytes, int num_bytes) {
+    (void)name;
     if (bytes && (num_bytes > 0)) {
         std::string str((char*)bytes, num_bytes);
         state.editor->SetText(str);
