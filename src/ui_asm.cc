@@ -60,7 +60,7 @@ void ui_asm_draw(void) {
         return;
     }
     auto cpos = state.editor->GetCursorPosition();
-    const float footer_h = ImGui::GetItemsLineHeightWithSpacing();
+    const float footer_h = ImGui::GetFrameHeightWithSpacing();
     ImGui::SetNextWindowSize({480, 260}, ImGuiCond_Once);
     const char* cur_error_msg = 0;
     for (int i = 0; i < asm_num_errors(); i++) {
