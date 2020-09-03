@@ -1,7 +1,6 @@
 #define SOKOL_IMPL
 #define SOKOL_TRACE_HOOKS
 #if defined(_WIN32)
-#include <Windows.h>
 #define SOKOL_LOG(s) OutputDebugStringA(s)
 #endif
 #include "sokol_app.h"
