@@ -37,8 +37,7 @@ void chipvis_init(void) {
             case 5: ptr = seg_vertices_5; size = sizeof(seg_vertices_5); break;
         }
         app.chipvis.layers[i].vb = sg_make_buffer(&(sg_buffer_desc){
-            .content = ptr,
-            .size = size
+            .data = { .ptr = ptr, .size = size }
         });
         app.chipvis.layers[i].num_elms = size / 8;
     }
@@ -51,19 +50,21 @@ void chipvis_init(void) {
                 [ATTR_vs_uv]  = { .format = SG_VERTEXFORMAT_USHORT2N }
             },
         },
-        .shader = sg_make_shader(chipvis_alpha_shader_desc()),
+        .shader = sg_make_shader(chipvis_alpha_shader_desc(sg_query_backend())),
         .primitive_type = SG_PRIMITIVETYPE_TRIANGLES,
         .index_type = SG_INDEXTYPE_NONE,
-        .blend = {
-            .enabled = true,
-            .src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA,
-            .dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA
+        .colors[0] = {
+            .blend = {
+                .enabled = true,
+                .src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA,
+                .dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA
+            }
         }
     };
     sg_pipeline_desc pip_desc_add = pip_desc_alpha;
-    pip_desc_add.shader = sg_make_shader(chipvis_add_shader_desc());
-    pip_desc_add.blend.src_factor_rgb = SG_BLENDFACTOR_ONE;
-    pip_desc_add.blend.dst_factor_rgb = SG_BLENDFACTOR_ONE;
+    pip_desc_add.shader = sg_make_shader(chipvis_add_shader_desc(sg_query_backend()));
+    pip_desc_add.colors[0].blend.src_factor_rgb = SG_BLENDFACTOR_ONE;
+    pip_desc_add.colors[0].blend.dst_factor_rgb = SG_BLENDFACTOR_ONE;
     app.chipvis.pip_alpha = sg_make_pipeline(&pip_desc_alpha);
     app.chipvis.pip_add = sg_make_pipeline(&pip_desc_add);
 
@@ -97,7 +98,7 @@ void chipvis_draw(void) {
         .offset = app.chipvis.offset,
         .scale = (float2_t) { sx, sy },
     };
-    sg_update_image(app.chipvis.img, &(sg_image_content){
+    sg_update_image(app.chipvis.img, &(sg_image_data){
         .subimage[0][0] = {
             .ptr = app.chipvis.node_state,
             .size = sizeof(app.chipvis.node_state)
@@ -116,7 +117,7 @@ void chipvis_draw(void) {
                 .vertex_buffers[0] = app.chipvis.layers[i].vb,
                 .vs_images[SLOT_palette_tex] = app.chipvis.img
             });
-            sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &vs_params, sizeof(vs_params));
+            sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
             sg_draw(0, app.chipvis.layers[i].num_elms, 1);
         }
     }
