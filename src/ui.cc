@@ -697,7 +697,7 @@ void ui_tracelog(void) {
             }
             if (app.ui.tracelog_scroll_to_end) {
                 app.ui.tracelog_scroll_to_end = false;
-                ImGui::SetScrollHere();
+                ImGui::SetScrollHereY();
             }
         }
         app.trace.hovered = any_item_hovered;
