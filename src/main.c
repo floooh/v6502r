@@ -35,9 +35,19 @@ static uint8_t test_prog[] = {
 
 static void app_init(void) {
     util_init();
-    gfx_init();
+    gfx_init(&app.gfx, &(gfx_desc_t){
+        .seg_vertices = {
+            [0] = SG_RANGE(seg_vertices_0),
+            [1] = SG_RANGE(seg_vertices_1),
+            [2] = SG_RANGE(seg_vertices_2),
+            [3] = SG_RANGE(seg_vertices_3),
+            [4] = SG_RANGE(seg_vertices_4),
+            [5] = SG_RANGE(seg_vertices_5),
+        },
+        .seg_max_x = seg_max_x,
+        .seg_max_y = seg_max_y,
+    });
     ui_init();
-    chipvis_init();
     pick_init();
     trace_init();
     sim_init_or_reset();
@@ -46,12 +56,12 @@ static void app_init(void) {
 }
 
 static void app_frame(void) {
-    app.chipvis.aspect = (float)sapp_width()/(float)sapp_height();
+    app.gfx.aspect = (float)sapp_width()/(float)sapp_height();
     ui_frame();
     sim_frame();
     pick_frame();
     gfx_begin();
-    chipvis_draw();
+    gfx_draw(&app.gfx);
     ui_draw();
     gfx_end();
 }
@@ -63,16 +73,16 @@ static void app_input(const sapp_event* ev) {
         app.input.dragging = false;
         return;
     }
-    float w = (float) ev->framebuffer_width * app.chipvis.scale;
-    float h = (float) ev->framebuffer_height * app.chipvis.scale * app.chipvis.aspect;
+    float w = (float) ev->framebuffer_width * app.gfx.scale;
+    float h = (float) ev->framebuffer_height * app.gfx.scale * app.gfx.aspect;
     switch (ev->type) {
         case SAPP_EVENTTYPE_MOUSE_SCROLL:
-            app.chipvis.scale += ev->scroll_y * 0.25f;
-            if (app.chipvis.scale < 1.0f) {
-                app.chipvis.scale = 1.0f;
+            app.gfx.scale += ev->scroll_y * 0.25f;
+            if (app.gfx.scale < 1.0f) {
+                app.gfx.scale = 1.0f;
             }
-            else if (app.chipvis.scale > 100.0f) {
-                app.chipvis.scale = 100.0f;
+            else if (app.gfx.scale > 100.0f) {
+                app.gfx.scale = 100.0f;
             }
             app.input.mouse.x = ev->mouse_x;
             app.input.mouse.y = ev->mouse_y;
@@ -80,7 +90,7 @@ static void app_input(const sapp_event* ev) {
         case SAPP_EVENTTYPE_MOUSE_DOWN:
             app.input.dragging = true;
             app.input.drag_start = (float2_t){ev->mouse_x, ev->mouse_y};
-            app.input.offset_start = app.chipvis.offset;
+            app.input.offset_start = app.gfx.offset;
             app.input.mouse.x = ev->mouse_x;
             app.input.mouse.y = ev->mouse_y;
             break;
@@ -88,8 +98,8 @@ static void app_input(const sapp_event* ev) {
             if (app.input.dragging) {
                 float dx = ((ev->mouse_x - app.input.drag_start.x) * 2.0f) / w;
                 float dy = ((ev->mouse_y - app.input.drag_start.y) * -2.0f) / h;
-                app.chipvis.offset.x = app.input.offset_start.x + dx;
-                app.chipvis.offset.y = app.input.offset_start.y + dy;
+                app.gfx.offset.x = app.input.offset_start.x + dx;
+                app.gfx.offset.y = app.input.offset_start.y + dy;
             }
             app.input.mouse.x = ev->mouse_x;
             app.input.mouse.y = ev->mouse_y;
@@ -108,9 +118,8 @@ static void app_input(const sapp_event* ev) {
 static void app_cleanup(void) {
     sim_shutdown();
     trace_shutdown();
-    chipvis_shutdown();
     ui_shutdown();
-    gfx_shutdown();
+    gfx_shutdown(&app.gfx);
 }
 
 sapp_desc sokol_main(int argc, char* argv[]) {
@@ -124,6 +133,9 @@ sapp_desc sokol_main(int argc, char* argv[]) {
         .height = 700,
         .window_title = "Visual6502 Remix",
         .enable_clipboard = true,
-        .clipboard_size = 16*1024
+        .clipboard_size = 16*1024,
+        .icon = {
+            .sokol_default = true
+        }
     };
 }

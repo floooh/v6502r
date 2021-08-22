@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-//  chipvis.glsl
+//  gfx.glsl
 //  Shader for rendering the chip visualization.
 //------------------------------------------------------------------------------
 @ctype vec4 float4_t
@@ -45,5 +45,5 @@ void main() {
 }
 @end
 
-@program chipvis_alpha vs fs_alpha
-@program chipvis_add vs fs_add
+@program shd_alpha vs fs_alpha
+@program shd_add vs fs_add

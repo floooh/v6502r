@@ -6,12 +6,14 @@
 #include "sokol_app.h"
 #include "sokol_args.h"
 #include "sokol_glue.h"
+#include "sokol_gfx_imgui.h"
 #include "ui/ui_memedit.h"
 #include "util/m6502dasm.h"
 #include "ui/ui_util.h"
 #define UI_DASM_USE_M6502
 #include "ui/ui_dasm.h"
-#include "sokol_gfx_imgui.h"
+#include "common.h"
+#include "gfx/gfx.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,27 +21,6 @@ extern "C" {
 
 #include "nodenames.h"
 #include "segdefs.h"
-
-#define MAX_LAYERS (6)
-#define PICK_MAX_HITS (16)
-#define MAX_NODES (2048)
-#define MAX_TRACE_ITEMS (256)
-#define TRACE_FLIPBIT_CLK0 (1<<0)
-#define TRACE_FLIPBIT_OP (1<<1)
-#define MAX_BINARY_SIZE ((1<<16)+2)
-#define MAX_LINKURL_SIZE (128)
-
-typedef struct {
-    float x, y, z, w;
-} float4_t;
-
-typedef struct {
-    float x, y;
-} float2_t;
-
-typedef struct {
-    float4_t colors[MAX_LAYERS];
-} palette_t;
 
 typedef struct {
     int num_hits;
@@ -68,23 +49,7 @@ typedef struct {
         pick_result_t result;
         bool layer_enabled[MAX_LAYERS];
     } picking;
-    struct {
-        struct {
-            sg_buffer vb;
-            int num_elms;
-        } layers[MAX_LAYERS];
-        sg_pipeline pip_alpha;
-        sg_pipeline pip_add;
-        sg_image img;
-        float aspect;
-        float scale;
-        float2_t scale_pivot;
-        float2_t offset;
-        bool use_additive_blend;
-        palette_t layer_palette;
-        bool layer_visible[MAX_LAYERS];
-        uint8_t node_state[MAX_NODES];
-    } chipvis;
+    gfx_t gfx;
     struct {
         ui_memedit_t memedit;
         ui_memedit_t memedit_integrated;
@@ -125,11 +90,6 @@ typedef struct {
 
 extern app_state_t app;
 
-void gfx_init(void);
-void gfx_shutdown(void);
-void gfx_begin(void);
-void gfx_end(void);
-
 void ui_init(void);
 void ui_shutdown(void);
 void ui_frame(void);
@@ -147,10 +107,6 @@ void ui_asm_paste(void);
 void ui_asm_assemble(void);
 const char* ui_asm_source(void);
 void ui_asm_put_source(const char* name, const uint8_t* bytes, int num_bytes);
-
-void chipvis_init(void);
-void chipvis_draw(void);
-void chipvis_shutdown(void);
 
 void sim_init_or_reset(void);
 void sim_shutdown(void);

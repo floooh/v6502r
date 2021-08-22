@@ -65,7 +65,7 @@ void sim_step_op(void) {
 void sim_update_nodestate(void) {
     // read the transistor simulation's node state into app.nodestate for visualization
     assert(p6502_state);
-    p6502_read_node_state_as_bytes(p6502_state, app.chipvis.node_state, MAX_NODES);
+    p6502_read_node_state_as_bytes(p6502_state, app.gfx.node_state, MAX_NODES);
 }
 
 void sim_w8(uint16_t addr, uint8_t val) {

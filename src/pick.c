@@ -42,7 +42,7 @@ pick_result_t pick(float2_t mouse_pos, float2_t disp_size, float2_t offset, floa
     float sx = ((mouse_pos.x / disp_size.x) -0.5f) * 2.0f;
     float sy = ((mouse_pos.y / disp_size.y) -0.5f) * -2.0f;
 
-    // next convert into vertex coordinate space (see chipvis.glsl)
+    // next convert into vertex coordinate space (see gfx.glsl)
     float half_size_x = (seg_max_x>>1)/65535.0f;
     float half_size_y = (seg_max_y>>1)/65535.0f;
     float vx = ((sx / scale.x) - offset.x + half_size_x) * 65535.0f;
@@ -117,10 +117,10 @@ pick_result_t pick(float2_t mouse_pos, float2_t disp_size, float2_t offset, floa
 
 void pick_frame(void) {
     float2_t disp_size = { (float)sapp_width(), (float)sapp_height() };
-    float2_t scale = { app.chipvis.scale, app.chipvis.scale*app.chipvis.aspect };
-    app.picking.result = pick(app.input.mouse, disp_size, app.chipvis.offset, scale);
+    float2_t scale = { app.gfx.scale, app.gfx.scale*app.gfx.aspect };
+    app.picking.result = pick(app.input.mouse, disp_size, app.gfx.offset, scale);
     for (int i = 0; i < app.picking.result.num_hits; i++) {
-        app.chipvis.node_state[app.picking.result.node_index[i]] = 255;
+        app.gfx.node_state[app.picking.result.node_index[i]] = 255;
     }
 }
 

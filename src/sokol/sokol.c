@@ -1,10 +1,9 @@
+// NOTE: the 3D backend define is passed in from the build system!
 #define SOKOL_IMPL
-#define SOKOL_TRACE_HOOKS
-#if defined(_WIN32)
-#define SOKOL_LOG(s) OutputDebugStringA(s)
-#endif
+#include "sokol_defines.h"
 #include "sokol_app.h"
 #include "sokol_gfx.h"
 #include "sokol_time.h"
 #include "sokol_args.h"
 #include "sokol_glue.h"
+

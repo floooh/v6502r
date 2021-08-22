@@ -8,9 +8,7 @@
 #include "res/iconsfontawesome4_c.h"
 #include "res/markdown.h"
 #include "imgui_markdown/imgui_markdown.h"
-#define SOKOL_IMGUI_IMPL
 #include "sokol_imgui.h"
-#define SOKOL_GFX_IMGUI_IMPL
 #include "sokol_gfx_imgui.h"
 #include <math.h>
 
@@ -214,7 +212,7 @@ bool ui_input(const sapp_event* ev) {
         l = 5;
     }
     if (l != -1) {
-        app.chipvis.layer_visible[l] = !app.chipvis.layer_visible[l];
+        app.gfx.layer_visible[l] = !app.gfx.layer_visible[l];
         return true;
     }
     if (test_alt(ev, SAPP_KEYCODE_C)) {
@@ -366,12 +364,12 @@ void ui_menu(void) {
         }
         if (ImGui::BeginMenu("Layers")) {
             if (ImGui::BeginMenu("Visible")) {
-                ImGui::MenuItem("Layer #1##V", "Alt+1", &app.chipvis.layer_visible[0]);
-                ImGui::MenuItem("Layer #2##V", "Alt+2", &app.chipvis.layer_visible[1]);
-                ImGui::MenuItem("Layer #3##V", "Alt+3", &app.chipvis.layer_visible[2]);
-                ImGui::MenuItem("Layer #4##V", "Alt+4", &app.chipvis.layer_visible[3]);
-                ImGui::MenuItem("Layer #5##V", "Alt+5", &app.chipvis.layer_visible[4]);
-                ImGui::MenuItem("Layer #6##V", "Alt+6", &app.chipvis.layer_visible[5]);
+                ImGui::MenuItem("Layer #1##V", "Alt+1", &app.gfx.layer_visible[0]);
+                ImGui::MenuItem("Layer #2##V", "Alt+2", &app.gfx.layer_visible[1]);
+                ImGui::MenuItem("Layer #3##V", "Alt+3", &app.gfx.layer_visible[2]);
+                ImGui::MenuItem("Layer #4##V", "Alt+4", &app.gfx.layer_visible[3]);
+                ImGui::MenuItem("Layer #5##V", "Alt+5", &app.gfx.layer_visible[4]);
+                ImGui::MenuItem("Layer #6##V", "Alt+6", &app.gfx.layer_visible[5]);
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Pickable")) {
@@ -387,7 +385,7 @@ void ui_menu(void) {
         }
         if (ImGui::BeginMenu("Theme")) {
             if (ImGui::MenuItem("Default")) {
-                app.chipvis.layer_palette = { {
+                app.gfx.layer_palette = { {
                     { 1.0f, 0.0f, 0.0f, 1.0f },
                     { 0.0f, 1.0f, 0.0f, 1.0f },
                     { 0.0f, 0.0f, 1.0f, 1.0f },
@@ -395,10 +393,10 @@ void ui_menu(void) {
                     { 0.0f, 1.0f, 1.0f, 1.0f },
                     { 1.0f, 0.0f, 1.0f, 1.0f },
                 } };
-                app.chipvis.use_additive_blend = false;
+                app.gfx.use_additive_blend = false;
             }
             if (ImGui::MenuItem("Visual6502")) {
-                app.chipvis.layer_palette = { {
+                app.gfx.layer_palette = { {
                     { 1.0f, 0.0f, 0.0f, 1.0f },
                     { 1.0f, 1.0f, 0.0f, 1.0f },
                     { 1.0f, 0.0f, 1.0f, 1.0f },
@@ -406,10 +404,10 @@ void ui_menu(void) {
                     { 1.0f, 0.3f, 0.3f, 1.0f },
                     { 0.5f, 0.1f, 0.75f, 1.0f },
                 } };
-                app.chipvis.use_additive_blend = false;
+                app.gfx.use_additive_blend = false;
             }
             if (ImGui::MenuItem("Matrix")) {
-                app.chipvis.layer_palette = { {
+                app.gfx.layer_palette = { {
                     { 0.0f, 0.5f, 0.0f, 1.0f },
                     { 0.0f, 0.5f, 0.0f, 1.0f },
                     { 0.0f, 0.5f, 0.0f, 1.0f },
@@ -417,10 +415,10 @@ void ui_menu(void) {
                     { 0.0f, 0.5f, 0.0f, 1.0f },
                     { 0.0f, 0.5f, 0.0f, 1.0f },
                 } };
-                app.chipvis.use_additive_blend = true;
+                app.gfx.use_additive_blend = true;
             }
             if (ImGui::MenuItem("X-Ray")) {
-                app.chipvis.layer_palette = { {
+                app.gfx.layer_palette = { {
                     { 0.5f, 0.5f, 0.5f, 1.0f },
                     { 0.5f, 0.5f, 0.5f, 1.0f },
                     { 0.5f, 0.5f, 0.5f, 1.0f },
@@ -428,7 +426,7 @@ void ui_menu(void) {
                     { 0.5f, 0.5f, 0.5f, 1.0f },
                     { 0.5f, 0.5f, 0.5f, 1.0f },
                 } };
-                app.chipvis.use_additive_blend = true;
+                app.gfx.use_additive_blend = true;
             }
             ImGui::EndMenu();
         }
