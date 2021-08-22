@@ -1,12 +1,9 @@
 #pragma once
 // common type definitions and constants
-#include <assert.h>
-#include <stdbool.h>
 #include "sokol_gfx.h"
 #include "sokol_app.h"
 #include "sokol_args.h"
 #include "sokol_glue.h"
-#include "sokol_gfx_imgui.h"
 #include "ui/ui_memedit.h"
 #include "util/m6502dasm.h"
 #include "ui/ui_util.h"
@@ -14,6 +11,7 @@
 #include "ui/ui_dasm.h"
 #include "common.h"
 #include "gfx/gfx.h"
+#include "pick/pick.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,11 +19,6 @@ extern "C" {
 
 #include "nodenames.h"
 #include "segdefs.h"
-
-typedef struct {
-    int num_hits;
-    int node_index[PICK_MAX_HITS];
-} pick_result_t;
 
 typedef struct {
     uint32_t cycle;
@@ -45,16 +38,12 @@ typedef struct {
         float2_t offset_start;
         float2_t mouse;
     } input;
-    struct {
-        pick_result_t result;
-        bool layer_enabled[MAX_LAYERS];
-    } picking;
+    pick_t pick;
     gfx_t gfx;
     struct {
         ui_memedit_t memedit;
         ui_memedit_t memedit_integrated;
         ui_dasm_t dasm;
-        sg_imgui_t sg_imgui;
         bool cpu_controls_open;
         bool tracelog_open;
         bool asm_open;
@@ -176,10 +165,6 @@ bool trace_get_res(uint32_t index);
 bool trace_get_rdy(uint32_t index);
 uint16_t trace_get_addr(uint32_t index);
 uint8_t trace_get_data(uint32_t index);
-
-void pick_init(void);
-void pick_frame(void);
-pick_result_t pick(float2_t mouse_pos, float2_t disp_size, float2_t offset, float2_t scale);
 
 typedef struct {
     const char* filename;

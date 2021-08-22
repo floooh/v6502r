@@ -9,7 +9,6 @@
 #include "res/markdown.h"
 #include "imgui_markdown/imgui_markdown.h"
 #include "sokol_imgui.h"
-#include "sokol_gfx_imgui.h"
 #include <math.h>
 
 static void ui_menu(void);
@@ -37,9 +36,6 @@ void ui_init() {
     // default window open state
     app.ui.cpu_controls_open = true;
     app.ui.tracelog_open = true;
-
-    // initialize the sokol-gfx debugging UI
-    sg_imgui_init(&app.ui.sg_imgui);
 
     // setup sokol-imgui
     simgui_desc_t simgui_desc = { };
@@ -129,7 +125,6 @@ void ui_shutdown() {
     ui_dasm_discard(&app.ui.dasm);
     ui_memedit_discard(&app.ui.memedit);
     ui_memedit_discard(&app.ui.memedit_integrated);
-    sg_imgui_discard(&app.ui.sg_imgui);
     simgui_shutdown();
 }
 
@@ -296,7 +291,6 @@ void ui_frame() {
     ui_help_assembler();
     ui_help_opcodes();
     ui_help_about();
-    sg_imgui_draw(&app.ui.sg_imgui);
     if (app.ui.link_hovered) {
         util_html5_cursor_to_pointer();
     }
@@ -373,12 +367,12 @@ void ui_menu(void) {
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Pickable")) {
-                ImGui::MenuItem("Layer #1##P", 0, &app.picking.layer_enabled[0]);
-                ImGui::MenuItem("Layer #2##P", 0, &app.picking.layer_enabled[1]);
-                ImGui::MenuItem("Layer #3##P", 0, &app.picking.layer_enabled[2]);
-                ImGui::MenuItem("Layer #4##P", 0, &app.picking.layer_enabled[3]);
-                ImGui::MenuItem("Layer #5##P", 0, &app.picking.layer_enabled[4]);
-                ImGui::MenuItem("Layer #6##P", 0, &app.picking.layer_enabled[5]);
+                ImGui::MenuItem("Layer #1##P", 0, &app.pick.layer_enabled[0]);
+                ImGui::MenuItem("Layer #2##P", 0, &app.pick.layer_enabled[1]);
+                ImGui::MenuItem("Layer #3##P", 0, &app.pick.layer_enabled[2]);
+                ImGui::MenuItem("Layer #4##P", 0, &app.pick.layer_enabled[3]);
+                ImGui::MenuItem("Layer #5##P", 0, &app.pick.layer_enabled[4]);
+                ImGui::MenuItem("Layer #6##P", 0, &app.pick.layer_enabled[5]);
                 ImGui::EndMenu();
             }
             ImGui::EndMenu();
@@ -428,14 +422,6 @@ void ui_menu(void) {
                 } };
                 app.gfx.use_additive_blend = true;
             }
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Sokol")) {
-            ImGui::MenuItem("Buffers", 0, &app.ui.sg_imgui.buffers.open);
-            ImGui::MenuItem("Images", 0, &app.ui.sg_imgui.images.open);
-            ImGui::MenuItem("Shaders", 0, &app.ui.sg_imgui.shaders.open);
-            ImGui::MenuItem("Pipelines", 0, &app.ui.sg_imgui.pipelines.open);
-            ImGui::MenuItem("Calls", 0, &app.ui.sg_imgui.capture.open);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help")) {
@@ -715,10 +701,10 @@ void ui_tracelog(void) {
 }
 
 void ui_picking(void) {
-    if (app.picking.result.num_hits > 0) {
+    if (app.pick.result.num_hits > 0) {
         char str[256] = { 0 };
-        for (int i = 0; i < app.picking.result.num_hits; i++) {
-            int node_index = app.picking.result.node_index[i];
+        for (int i = 0; i < app.pick.result.num_hits; i++) {
+            int node_index = app.pick.result.node_index[i];
             assert((node_index >= 0) && (node_index < max_node_names));
             if (node_names[node_index][0] != 0) {
                 if (i != 0) {

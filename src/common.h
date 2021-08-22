@@ -1,4 +1,7 @@
 #pragma once
+#include <assert.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #define MAX_LAYERS (6)
 #define MAX_NODES (2048)

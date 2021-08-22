@@ -5,5 +5,3 @@
 #include "sokol_app.h"
 #define SOKOL_IMGUI_IMPL
 #include "sokol_imgui.h"
-#define SOKOL_GFX_IMGUI_IMPL
-#include "sokol_gfx_imgui.h"

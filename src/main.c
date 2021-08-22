@@ -48,7 +48,45 @@ static void app_init(void) {
         .seg_max_y = seg_max_y,
     });
     ui_init();
-    pick_init();
+    pick_init(&app.pick, &(pick_desc_t){
+        .seg_max_x = seg_max_x,
+        .seg_max_y = seg_max_y,
+        .grid_cells = grid_cells,
+        .layers = {
+            [0] = {
+                .verts = (const pick_vertex_t*) seg_vertices_0,
+                .num_verts = sizeof(seg_vertices_0) / 8,
+            },
+            [1] = {
+                .verts = (const pick_vertex_t*) seg_vertices_1,
+                .num_verts = sizeof(seg_vertices_1) / 8,
+            },
+            [2] = {
+                .verts = (const pick_vertex_t*) seg_vertices_2,
+                .num_verts = sizeof(seg_vertices_2) / 8,
+            },
+            [3] = {
+                .verts = (const pick_vertex_t*) seg_vertices_3,
+                .num_verts = sizeof(seg_vertices_3) / 8,
+            },
+            [4] = {
+                .verts = (const pick_vertex_t*) seg_vertices_4,
+                .num_verts = sizeof(seg_vertices_4) / 8,
+            },
+            [5] = {
+                .verts = (const pick_vertex_t*) seg_vertices_5,
+                .num_verts = sizeof(seg_vertices_5) / 8,
+            },
+        },
+        .mesh = {
+            .tris = (const pick_triangle_t*) pick_tris,
+            .num_tris = sizeof(pick_tris) / 8,
+        },
+        .grid = {
+            .cells = (const pick_cell_t*) pick_grid,
+            .num_cells = sizeof(pick_grid) / 8,
+        }
+    });
     trace_init();
     sim_init_or_reset();
     sim_write(0x0000, sizeof(test_prog), test_prog);
@@ -56,10 +94,18 @@ static void app_init(void) {
 }
 
 static void app_frame(void) {
-    app.gfx.aspect = (float)sapp_width()/(float)sapp_height();
+    gfx_new_frame(&app.gfx, sapp_widthf(), sapp_heightf());
     ui_frame();
     sim_frame();
-    pick_frame();
+    pick_frame(&app.pick,
+        app.input.mouse,
+        (float2_t){ sapp_widthf(), sapp_heightf() },
+        app.gfx.offset,
+        app.gfx.aspect,
+        app.gfx.scale);
+    for (int i = 0; i < app.pick.result.num_hits; i++) {
+        app.gfx.node_state[app.pick.result.node_index[i]] = 255;
+    }
     gfx_begin();
     gfx_draw(&app.gfx);
     ui_draw();

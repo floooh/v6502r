@@ -13,6 +13,7 @@ else()
 endif()
 
 fips_begin_lib(gfx)
+    fips_vs_warning_level(3)
     fips_files(gfx.c gfx.h)
     sokol_shader(gfx.glsl ${slang})
 fips_end_lib(gfx)

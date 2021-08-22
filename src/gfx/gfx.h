@@ -23,6 +23,7 @@ typedef struct {
     sg_pipeline pip_alpha;
     sg_pipeline pip_add;
     sg_image img;
+    float2_t display_size;
     float aspect;
     float scale;
     float2_t scale_pivot;
@@ -35,6 +36,7 @@ typedef struct {
 
 void gfx_init(gfx_t* gfx, const gfx_desc_t* desc);
 void gfx_shutdown(gfx_t* gfx);
+void gfx_new_frame(gfx_t* gfx, float disp_width, float disp_height);
 void gfx_begin();
 void gfx_draw(gfx_t* gfx);
 void gfx_end();

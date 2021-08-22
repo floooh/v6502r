@@ -104,6 +104,12 @@ void gfx_shutdown(gfx_t* gfx) {
     sg_shutdown();
 }
 
+void gfx_new_frame(gfx_t* gfx, float disp_width, float disp_height) {
+    assert(gfx);
+    gfx->display_size = (float2_t) { disp_width, disp_height };
+    gfx->aspect = gfx->display_size.x / gfx->display_size.y;
+}
+
 void gfx_begin() {
     sg_pass_action pass_action = {
         .colors[0] = { .action = SG_ACTION_CLEAR, .value = { 0.0f, 0.0f, 0.0f, 1.0f }}
