@@ -3,6 +3,7 @@
 //  Main source file.
 //------------------------------------------------------------------------------
 #include "v6502r.h"
+#include "sokol_args.h"
 
 app_state_t app;
 
@@ -87,16 +88,16 @@ static void app_init(void) {
             .num_cells = sizeof(pick_grid) / 8,
         }
     });
-    trace_init();
-    sim_init_or_reset();
+    trace_init(&app.trace);
+    sim_init_or_reset(&app.sim);
     sim_write(0x0000, sizeof(test_prog), test_prog);
-    sim_start();
+    sim_start(&app.sim, &app.trace);
 }
 
 static void app_frame(void) {
     gfx_new_frame(&app.gfx, sapp_widthf(), sapp_heightf());
     ui_frame();
-    sim_frame();
+    sim_frame(&app.sim, &app.trace, &app.gfx);
     pick_frame(&app.pick,
         app.input.mouse,
         (float2_t){ sapp_widthf(), sapp_heightf() },
@@ -162,8 +163,8 @@ static void app_input(const sapp_event* ev) {
 }
 
 static void app_cleanup(void) {
-    sim_shutdown();
-    trace_shutdown();
+    sim_shutdown(&app.sim);
+    trace_shutdown(&app.trace);
     ui_shutdown();
     gfx_shutdown(&app.gfx);
 }

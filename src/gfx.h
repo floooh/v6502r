@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "sokol_gfx.h"
-#include "../common.h"
+#include "common.h"
 
 typedef struct {
     float4_t colors[MAX_LAYERS];

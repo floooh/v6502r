@@ -1,6 +1,5 @@
 #pragma once
-#include "../common.h"
-#include "sokol_gfx.h"  // sg_range
+#include "common.h"
 
 // see segdefs.h seg_vertices
 typedef struct {

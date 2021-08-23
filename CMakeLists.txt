@@ -17,6 +17,7 @@ fips_import_fips_imgui_imgui()
 fips_add_subdirectory(ext/perfect6502)
 fips_add_subdirectory(ext/texteditor)
 fips_add_subdirectory(ext/asmx)
+fips_add_subdirectory(ext/sokol)
 fips_finish()
 
 

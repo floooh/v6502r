@@ -1,3 +1,4 @@
+#include <stdint.h>
 #ifndef INCLUDED_FROM_NETLIST_SIM_C
 #define state_t void
 #endif

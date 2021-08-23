@@ -456,16 +456,16 @@ void ui_controls(void) {
         ImGui::PushStyleColor(ImGuiCol_Button, 0xFFFFFFFF);
         ImGui::PushStyleColor(ImGuiCol_Text, 0xFF000000);
         if (ImGui::Button(ICON_FA_STEP_BACKWARD, { 28, 25 })) {
-            sim_pause(true);
-            trace_revert_to_previous();
+            sim_pause(&app.sim, true);
+            trace_revert_to_previous(&app.trace, &app.sim);
         }
         if (ImGui::IsItemHovered()) {
             tooltip = "Step back one half-cycle";
         }
         ImGui::SameLine();
-        if (sim_paused()) {
+        if (sim_paused(&app.sim)) {
             if (ImGui::Button(ICON_FA_PLAY, { 28, 25 })) {
-                sim_pause(false);
+                sim_pause(&app.sim, false);
             }
             if (ImGui::IsItemHovered()) {
                 tooltip = "Run (one half-cycle per frame)";
@@ -473,7 +473,7 @@ void ui_controls(void) {
         }
         else {
             if (ImGui::Button(ICON_FA_PAUSE, { 28, 25 })) {
-                sim_pause(true);
+                sim_pause(&app.sim, true);
             }
             if (ImGui::IsItemHovered()) {
                 tooltip = "Pause";
@@ -481,33 +481,33 @@ void ui_controls(void) {
         }
         ImGui::SameLine();
         if (ImGui::Button(ICON_FA_STEP_FORWARD, { 28, 25 })) {
-            sim_pause(true);
-            sim_step(1);
+            sim_pause(&app.sim, true);
+            sim_step(&app.sim, &app.trace, 1);
         }
         if (ImGui::IsItemHovered()) {
             tooltip = "Step one half-cycle";
         }
         ImGui::SameLine();
         if (ImGui::Button(ICON_FA_FAST_FORWARD, { 28, 25 })) {
-            sim_pause(true);
-            sim_step(2);
+            sim_pause(&app.sim, true);
+            sim_step(&app.sim, &app.trace, 2);
         }
         if (ImGui::IsItemHovered()) {
             tooltip = "Step two half-cycles";
         }
         ImGui::SameLine();
         if (ImGui::Button(ICON_FA_ARROW_RIGHT, { 28, 25 })) {
-            sim_pause(true);
-            sim_step_op();
+            sim_pause(&app.sim, true);
+            sim_step_op(&app.sim, &app.trace);
         }
         if (ImGui::IsItemHovered()) {
             tooltip = "Step to next instruction";
         }
         ImGui::SameLine();
         if (ImGui::Button(ICON_FA_EJECT, { 28, 25 })) {
-            trace_clear();
-            sim_init_or_reset();
-            sim_start();
+            trace_clear(&app.trace);
+            sim_init_or_reset(&app.sim);
+            sim_start(&app.sim, &app.trace);
         }
         if (ImGui::IsItemHovered()) {
             tooltip = "Reset";
@@ -515,14 +515,14 @@ void ui_controls(void) {
         ImGui::PopStyleColor(2);
         ImGui::PopStyleVar(3);
         if (!tooltip) {
-            tooltip = sim_paused() ? "Paused" : "Running";
+            tooltip = sim_paused(&app.sim) ? "Paused" : "Running";
         }
         ImGui::Text("%s", tooltip);
         ImGui::Separator();
 
         /* CPU state */
-        const uint8_t ir = sim_get_ir();
-        const uint8_t p = sim_get_p();
+        const uint8_t ir = sim_get_ir(&app.sim);
+        const uint8_t p = sim_get_p(&app.sim);
         char p_str[9] = {
             (p & (1<<7)) ? 'N':'n',
             (p & (1<<6)) ? 'V':'v',
@@ -535,37 +535,37 @@ void ui_controls(void) {
             0,
         };
         ImGui::Text("A:%02X X:%02X Y:%02X SP:%02X PC:%04X",
-            sim_get_a(), sim_get_x(), sim_get_y(), sim_get_sp(), sim_get_pc());
+            sim_get_a(&app.sim), sim_get_x(&app.sim), sim_get_y(&app.sim), sim_get_sp(&app.sim), sim_get_pc(&app.sim));
         ImGui::Text("P:%02X (%s) Cycle: %d", p, p_str, sim_get_cycle()>>1);
         ImGui::Text("IR:%02X %s\n", ir, util_opcode_to_str(ir));
         ImGui::Text("Data:%02X Addr:%04X %s %s %s",
-            sim_get_data(), sim_get_addr(),
-            sim_get_rw()?"R":"W",
-            sim_get_clk0()?"CLK0":"    ",
-            sim_get_sync()?"SYNC":"    ");
+            sim_get_data(&app.sim), sim_get_addr(&app.sim),
+            sim_get_rw(&app.sim)?"R":"W",
+            sim_get_clk0(&app.sim)?"CLK0":"    ",
+            sim_get_sync(&app.sim)?"SYNC":"    ");
         ImGui::Separator();
         ui_input_uint16("NMI vector (FFFA): ", "##nmi_vec", 0xFFFA);
         ui_input_uint16("RES vector (FFFC): ", "##res_vec", 0xFFFC);
         ui_input_uint16("IRQ vector (FFFE): ", "##irq_vec", 0xFFFE);
         ImGui::Separator();
-        bool rdy_active = !sim_get_rdy();
+        bool rdy_active = !sim_get_rdy(&app.sim);
         if (ImGui::Checkbox("RDY", &rdy_active)) {
-            sim_set_rdy(!rdy_active);
+            sim_set_rdy(&app.sim, !rdy_active);
         }
         ImGui::SameLine();
-        bool irq_active = !sim_get_irq();
+        bool irq_active = !sim_get_irq(&app.sim);
         if (ImGui::Checkbox("IRQ", &irq_active)) {
-            sim_set_irq(!irq_active);
+            sim_set_irq(&app.sim, !irq_active);
         }
         ImGui::SameLine();
-        bool nmi_active = !sim_get_nmi();
+        bool nmi_active = !sim_get_nmi(&app.sim);
         if (ImGui::Checkbox("NMI", &nmi_active)) {
-            sim_set_nmi(!nmi_active);
+            sim_set_nmi(&app.sim, !nmi_active);
         }
         ImGui::SameLine();
-        bool res_active = !sim_get_res();
+        bool res_active = !sim_get_res(&app.sim);
         if (ImGui::Checkbox("RES", &res_active)) {
-            sim_set_res(!res_active);
+            sim_set_res(&app.sim, !res_active);
         }
         ImGui::Separator();
 
@@ -595,11 +595,11 @@ void ui_tracelog(void) {
         return;
     }
     // clear the selected item is outside the trace log
-    if (!trace_empty()) {
-        if ((app.trace.selected_cycle < trace_get_cycle(trace_num_items()-1)) ||
-            (app.trace.selected_cycle > trace_get_cycle(0)))
+    if (!trace_empty(&app.trace)) {
+        if ((app.trace.ui.selected_cycle < trace_get_cycle(&app.trace, trace_num_items(&app.trace)-1)) ||
+            (app.trace.ui.selected_cycle > trace_get_cycle(&app.trace, 0)))
         {
-            app.trace.selected = false;
+            app.trace.ui.selected = false;
         }
     }
 
@@ -616,30 +616,30 @@ void ui_tracelog(void) {
         float text_height = ImGui::GetTextLineHeightWithSpacing();
         float window_width = ImGui::GetWindowWidth();
         bool any_item_hovered = false;
-        if (trace_num_items() > 0) {
+        if (trace_num_items(&app.trace) > 0) {
             // set mouse-hovered-cycle to an impossible value
-            for (int32_t i = trace_num_items()-1; i >= 0; i--) {
-                const uint32_t cur_cycle = trace_get_cycle(i);
+            for (int32_t i = trace_num_items(&app.trace)-1; i >= 0; i--) {
+                const uint32_t cur_cycle = trace_get_cycle(&app.trace, i);
                 uint32_t bg_color = 0;
-                const uint32_t flip_bits = trace_get_flipbits(i);
+                const uint32_t flip_bits = trace_get_flipbits(&app.trace, i);
                 switch (flip_bits) {
                     case 0: bg_color = 0xFF327D2E; break;
                     case 1: bg_color = 0xFF3C8E38; break;
                     case 2: bg_color = 0xFFC06515; break;
                     case 3: bg_color = 0xFFD17619; break;
                 }
-                if (app.trace.hovered && (cur_cycle == app.trace.hovered_cycle)) {
+                if (app.trace.ui.hovered && (cur_cycle == app.trace.ui.hovered_cycle)) {
                     bg_color = 0xFF3643F4;
                 }
-                if (app.trace.selected && (cur_cycle == app.trace.selected_cycle)) {
+                if (app.trace.ui.selected && (cur_cycle == app.trace.ui.selected_cycle)) {
                     bg_color = 0xFF0000D5;
                 }
                 ImVec2 p0 = ImGui::GetCursorScreenPos();
                 ImVec2 p1 = { p0.x + window_width, p0.y + text_height};
                 dl->AddRectFilled(p0, p1, bg_color);
 
-                const uint8_t ir = trace_get_ir(i);
-                const uint8_t p = trace_get_p(i);
+                const uint8_t ir = trace_get_ir(&app.trace, i);
+                const uint8_t p = trace_get_p(&app.trace, i);
                 char p_str[9] = {
                     (p & (1<<7)) ? 'N':'n',
                     (p & (1<<6)) ? 'V':'v',
@@ -653,47 +653,47 @@ void ui_tracelog(void) {
                 };
                 ImGui::Text("%5d/%c %s  %04X %02X %04X %02X %02X %02X %02X %s %s %02X %s %s %s %s %s",
                     cur_cycle>>1,
-                    trace_get_clk0(i)?'1':'0',
-                    trace_get_rw(i)?"R":"W",
-                    trace_get_addr(i),
-                    trace_get_data(i),
-                    trace_get_pc(i),
-                    trace_get_a(i),
-                    trace_get_x(i),
-                    trace_get_y(i),
-                    trace_get_sp(i),
+                    trace_get_clk0(&app.trace, i)?'1':'0',
+                    trace_get_rw(&app.trace, i)?"R":"W",
+                    trace_get_addr(&app.trace, i),
+                    trace_get_data(&app.trace, i),
+                    trace_get_pc(&app.trace, i),
+                    trace_get_a(&app.trace, i),
+                    trace_get_x(&app.trace, i),
+                    trace_get_y(&app.trace, i),
+                    trace_get_sp(&app.trace, i),
                     p_str,
-                    trace_get_sync(i)?"SYNC":"    ",
+                    trace_get_sync(&app.trace, i)?"SYNC":"    ",
                     ir,
                     util_opcode_to_str(ir),
-                    trace_get_irq(i)?"   ":"IRQ",
-                    trace_get_nmi(i)?"   ":"NMI",
-                    trace_get_res(i)?"   ":"RES",
-                    trace_get_rdy(i)?"   ":"RDY");
+                    trace_get_irq(&app.trace, i)?"   ":"IRQ",
+                    trace_get_nmi(&app.trace, i)?"   ":"NMI",
+                    trace_get_res(&app.trace, i)?"   ":"RES",
+                    trace_get_rdy(&app.trace, i)?"   ":"RDY");
                 if (ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(p0, p1)) {
                     any_item_hovered = true;
-                    app.trace.hovered_cycle = trace_get_cycle(i);
+                    app.trace.ui.hovered_cycle = trace_get_cycle(&app.trace, i);
                     if (ImGui::IsMouseClicked(0)) {
-                        app.trace.selected = true;
-                        app.trace.selected_cycle = app.trace.hovered_cycle;
+                        app.trace.ui.selected = true;
+                        app.trace.ui.selected_cycle = app.trace.ui.hovered_cycle;
                     }
                 }
             }
-            if (app.ui.tracelog_scroll_to_end) {
-                app.ui.tracelog_scroll_to_end = false;
+            if (app.trace.ui.log_scroll_to_end) {
+                app.trace.ui.log_scroll_to_end = false;
                 ImGui::SetScrollHereY();
             }
         }
-        app.trace.hovered = any_item_hovered;
+        app.trace.ui.hovered = any_item_hovered;
         ImGui::EndChild();
         ImGui::Separator();
         if (ImGui::Button("Clear Log")) {
-            trace_clear();
+            trace_clear(&app.trace);
         }
         ImGui::SameLine();
-        if (app.trace.selected) {
+        if (app.trace.ui.selected) {
             if (ImGui::Button("Revert to Selected")) {
-                trace_revert_to_selected();
+                trace_revert_to_selected(&app.trace, &app.sim);
             }
         }
     }
