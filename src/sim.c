@@ -6,6 +6,7 @@
 #include "perfect6502.h"
 #include "sim.h"
 #include "trace.h"
+#include "gfx.h"
 
 void sim_init_or_reset(sim_t* sim) {
     assert(sim);
@@ -30,12 +31,12 @@ void sim_start(sim_t* sim, trace_t* trace) {
     sim_step(sim, trace, 17);
 }
 
-void sim_frame(sim_t* sim, trace_t* trace, gfx_t* gfx) {
-    assert(sim && trace && gfx);
+void sim_frame(sim_t* sim, trace_t* trace) {
+    assert(sim && trace);
     if (!sim->paused) {
         sim_step(sim, trace, 1);
     }
-    sim_update_nodestate(sim, gfx->node_state, sizeof(gfx->node_state));
+    sim_update_nodestate(sim, gfx_get_nodestate());
 }
 
 void sim_pause(sim_t* sim, bool paused) {
@@ -66,11 +67,11 @@ void sim_step_op(sim_t* sim, trace_t* trace) {
     while (num_sync != 2);
 }
 
-void sim_update_nodestate(sim_t* sim, uint8_t* buf_ptr, size_t buf_size) {
-    assert(sim && buf_ptr && (buf_size == MAX_NODES));
+void sim_update_nodestate(sim_t* sim, range_t from_buffer) {
+    assert(sim && from_buffer.ptr && (from_buffer.size == MAX_NODES));
     // read the transistor simulation's node state into app.nodestate for visualization
     assert(sim && sim->p6502_state);
-    p6502_read_node_state_as_bytes(sim->p6502_state, buf_ptr, MAX_NODES);
+    p6502_read_node_state_as_bytes(sim->p6502_state, from_buffer.ptr, MAX_NODES);
 }
 
 void sim_w8(uint16_t addr, uint8_t val) {

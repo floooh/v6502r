@@ -36,7 +36,7 @@ static uint8_t test_prog[] = {
 
 static void app_init(void) {
     util_init();
-    gfx_init(&app.gfx, &(gfx_desc_t){
+    gfx_init(&(gfx_desc_t){
         .seg_vertices = {
             [0] = SG_RANGE(seg_vertices_0),
             [1] = SG_RANGE(seg_vertices_1),
@@ -95,20 +95,20 @@ static void app_init(void) {
 }
 
 static void app_frame(void) {
-    gfx_new_frame(&app.gfx, sapp_widthf(), sapp_heightf());
+    gfx_new_frame(sapp_widthf(), sapp_heightf());
     ui_frame();
-    sim_frame(&app.sim, &app.trace, &app.gfx);
+    sim_frame(&app.sim, &app.trace);
     pick_frame(&app.pick,
         app.input.mouse,
         (float2_t){ sapp_widthf(), sapp_heightf() },
-        app.gfx.offset,
-        app.gfx.aspect,
-        app.gfx.scale);
+        gfx_get_offset(),
+        gfx_get_aspect(),
+        gfx_get_scale());
     for (int i = 0; i < app.pick.result.num_hits; i++) {
-        app.gfx.node_state[app.pick.result.node_index[i]] = 255;
+        gfx_highlight_node(app.pick.result.node_index[i]);
     }
     gfx_begin();
-    gfx_draw(&app.gfx);
+    gfx_draw();
     ui_draw();
     gfx_end();
 }
@@ -120,24 +120,18 @@ static void app_input(const sapp_event* ev) {
         app.input.dragging = false;
         return;
     }
-    float w = (float) ev->framebuffer_width * app.gfx.scale;
-    float h = (float) ev->framebuffer_height * app.gfx.scale * app.gfx.aspect;
+    float w = (float) ev->framebuffer_width * gfx_get_scale();
+    float h = (float) ev->framebuffer_height * gfx_get_scale() * gfx_get_aspect();
     switch (ev->type) {
         case SAPP_EVENTTYPE_MOUSE_SCROLL:
-            app.gfx.scale += ev->scroll_y * 0.25f;
-            if (app.gfx.scale < 1.0f) {
-                app.gfx.scale = 1.0f;
-            }
-            else if (app.gfx.scale > 100.0f) {
-                app.gfx.scale = 100.0f;
-            }
+            gfx_add_scale(ev->scroll_y * 0.25f);
             app.input.mouse.x = ev->mouse_x;
             app.input.mouse.y = ev->mouse_y;
             break;
         case SAPP_EVENTTYPE_MOUSE_DOWN:
             app.input.dragging = true;
             app.input.drag_start = (float2_t){ev->mouse_x, ev->mouse_y};
-            app.input.offset_start = app.gfx.offset;
+            app.input.offset_start = gfx_get_offset();
             app.input.mouse.x = ev->mouse_x;
             app.input.mouse.y = ev->mouse_y;
             break;
@@ -145,8 +139,10 @@ static void app_input(const sapp_event* ev) {
             if (app.input.dragging) {
                 float dx = ((ev->mouse_x - app.input.drag_start.x) * 2.0f) / w;
                 float dy = ((ev->mouse_y - app.input.drag_start.y) * -2.0f) / h;
-                app.gfx.offset.x = app.input.offset_start.x + dx;
-                app.gfx.offset.y = app.input.offset_start.y + dy;
+                gfx_set_offset((float2_t){
+                    .x = app.input.offset_start.x + dx,
+                    .y = app.input.offset_start.y + dy,
+                });
             }
             app.input.mouse.x = ev->mouse_x;
             app.input.mouse.y = ev->mouse_y;
@@ -166,7 +162,7 @@ static void app_cleanup(void) {
     sim_shutdown(&app.sim);
     trace_shutdown(&app.trace);
     ui_shutdown();
-    gfx_shutdown(&app.gfx);
+    gfx_shutdown();
 }
 
 sapp_desc sokol_main(int argc, char* argv[]) {

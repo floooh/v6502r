@@ -28,7 +28,6 @@ typedef struct {
         float2_t mouse;
     } input;
     pick_t pick;
-    gfx_t gfx;
     trace_t trace;
     sim_t sim;
     struct {

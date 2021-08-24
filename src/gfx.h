@@ -3,9 +3,13 @@
 #include "sokol_gfx.h"
 #include "common.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 typedef struct {
     float4_t colors[MAX_LAYERS];
-} palette_t;
+} gfx_palette_t;
 
 typedef struct {
     sg_range seg_vertices[MAX_LAYERS];
@@ -13,30 +17,25 @@ typedef struct {
     uint16_t seg_max_y;
 } gfx_desc_t;
 
-typedef struct {
-    struct {
-        sg_buffer vb;
-        int num_elms;
-    } layers[MAX_LAYERS];
-    uint16_t seg_max_x;
-    uint16_t seg_max_y;
-    sg_pipeline pip_alpha;
-    sg_pipeline pip_add;
-    sg_image img;
-    float2_t display_size;
-    float aspect;
-    float scale;
-    float2_t scale_pivot;
-    float2_t offset;
-    bool use_additive_blend;
-    palette_t layer_palette;
-    bool layer_visible[MAX_LAYERS];
-    uint8_t node_state[MAX_NODES];
-} gfx_t;
+void gfx_init(const gfx_desc_t* desc);
+void gfx_shutdown(void);
 
-void gfx_init(gfx_t* gfx, const gfx_desc_t* desc);
-void gfx_shutdown(gfx_t* gfx);
-void gfx_new_frame(gfx_t* gfx, float disp_width, float disp_height);
-void gfx_begin();
-void gfx_draw(gfx_t* gfx);
-void gfx_end();
+void gfx_new_frame(float disp_width, float disp_height);
+void gfx_begin(void);
+void gfx_draw(void);
+void gfx_end(void);
+
+void gfx_set_offset(float2_t offset);
+float2_t gfx_get_offset(void);
+void gfx_add_scale(float scale_add);
+float gfx_get_scale(void);
+float gfx_get_aspect(void);
+void gfx_highlight_node(int node_index);
+void gfx_toggle_layer_visibility(int layer_index);
+bool gfx_get_layer_visibility(int layer_index);
+void gfx_set_layer_palette(bool use_additive_blend, gfx_palette_t palette);
+range_t gfx_get_nodestate(void);
+
+#if defined(__cplusplus)
+} // extern "C"
+#endif

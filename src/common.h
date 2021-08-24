@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h> // size_t
 
 #define MAX_LAYERS (6)
 #define MAX_NODES (2048)
@@ -19,3 +20,8 @@ typedef struct {
 typedef struct {
     float x, y;
 } float2_t;
+
+typedef struct {
+    void* ptr;
+    size_t size;
+} range_t;

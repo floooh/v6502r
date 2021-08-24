@@ -207,7 +207,7 @@ bool ui_input(const sapp_event* ev) {
         l = 5;
     }
     if (l != -1) {
-        app.gfx.layer_visible[l] = !app.gfx.layer_visible[l];
+        gfx_toggle_layer_visibility(l);
         return true;
     }
     if (test_alt(ev, SAPP_KEYCODE_C)) {
@@ -358,12 +358,12 @@ void ui_menu(void) {
         }
         if (ImGui::BeginMenu("Layers")) {
             if (ImGui::BeginMenu("Visible")) {
-                ImGui::MenuItem("Layer #1##V", "Alt+1", &app.gfx.layer_visible[0]);
-                ImGui::MenuItem("Layer #2##V", "Alt+2", &app.gfx.layer_visible[1]);
-                ImGui::MenuItem("Layer #3##V", "Alt+3", &app.gfx.layer_visible[2]);
-                ImGui::MenuItem("Layer #4##V", "Alt+4", &app.gfx.layer_visible[3]);
-                ImGui::MenuItem("Layer #5##V", "Alt+5", &app.gfx.layer_visible[4]);
-                ImGui::MenuItem("Layer #6##V", "Alt+6", &app.gfx.layer_visible[5]);
+                ImGui::MenuItem("Layer #1##V", "Alt+1", gfx_get_layer_visibility(0));
+                ImGui::MenuItem("Layer #2##V", "Alt+2", gfx_get_layer_visibility(1));
+                ImGui::MenuItem("Layer #3##V", "Alt+3", gfx_get_layer_visibility(2));
+                ImGui::MenuItem("Layer #4##V", "Alt+4", gfx_get_layer_visibility(3));
+                ImGui::MenuItem("Layer #5##V", "Alt+5", gfx_get_layer_visibility(4));
+                ImGui::MenuItem("Layer #6##V", "Alt+6", gfx_get_layer_visibility(5));
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Pickable")) {
@@ -379,48 +379,52 @@ void ui_menu(void) {
         }
         if (ImGui::BeginMenu("Theme")) {
             if (ImGui::MenuItem("Default")) {
-                app.gfx.layer_palette = { {
-                    { 1.0f, 0.0f, 0.0f, 1.0f },
-                    { 0.0f, 1.0f, 0.0f, 1.0f },
-                    { 0.0f, 0.0f, 1.0f, 1.0f },
-                    { 1.0f, 1.0f, 0.0f, 1.0f },
-                    { 0.0f, 1.0f, 1.0f, 1.0f },
-                    { 1.0f, 0.0f, 1.0f, 1.0f },
-                } };
-                app.gfx.use_additive_blend = false;
+                gfx_set_layer_palette(false, (gfx_palette_t){
+                    .colors = {
+                        { 1.0f, 0.0f, 0.0f, 1.0f },
+                        { 0.0f, 1.0f, 0.0f, 1.0f },
+                        { 0.0f, 0.0f, 1.0f, 1.0f },
+                        { 1.0f, 1.0f, 0.0f, 1.0f },
+                        { 0.0f, 1.0f, 1.0f, 1.0f },
+                        { 1.0f, 0.0f, 1.0f, 1.0f },
+                    }
+                });
             }
             if (ImGui::MenuItem("Visual6502")) {
-                app.gfx.layer_palette = { {
-                    { 1.0f, 0.0f, 0.0f, 1.0f },
-                    { 1.0f, 1.0f, 0.0f, 1.0f },
-                    { 1.0f, 0.0f, 1.0f, 1.0f },
-                    { 0.3f, 1.0f, 0.3f, 1.0f },
-                    { 1.0f, 0.3f, 0.3f, 1.0f },
-                    { 0.5f, 0.1f, 0.75f, 1.0f },
-                } };
-                app.gfx.use_additive_blend = false;
+                gfx_set_layer_palette(false, (gfx_palette_t){
+                    .colors = {
+                        { 1.0f, 0.0f, 0.0f, 1.0f },
+                        { 1.0f, 1.0f, 0.0f, 1.0f },
+                        { 1.0f, 0.0f, 1.0f, 1.0f },
+                        { 0.3f, 1.0f, 0.3f, 1.0f },
+                        { 1.0f, 0.3f, 0.3f, 1.0f },
+                        { 0.5f, 0.1f, 0.75f, 1.0f },
+                    }
+                });
             }
             if (ImGui::MenuItem("Matrix")) {
-                app.gfx.layer_palette = { {
-                    { 0.0f, 0.5f, 0.0f, 1.0f },
-                    { 0.0f, 0.5f, 0.0f, 1.0f },
-                    { 0.0f, 0.5f, 0.0f, 1.0f },
-                    { 0.0f, 0.5f, 0.0f, 1.0f },
-                    { 0.0f, 0.5f, 0.0f, 1.0f },
-                    { 0.0f, 0.5f, 0.0f, 1.0f },
-                } };
-                app.gfx.use_additive_blend = true;
+                gfx_set_layer_palette(true, (gfx_palette_t){
+                    .colors = {
+                        { 0.0f, 0.5f, 0.0f, 1.0f },
+                        { 0.0f, 0.5f, 0.0f, 1.0f },
+                        { 0.0f, 0.5f, 0.0f, 1.0f },
+                        { 0.0f, 0.5f, 0.0f, 1.0f },
+                        { 0.0f, 0.5f, 0.0f, 1.0f },
+                        { 0.0f, 0.5f, 0.0f, 1.0f },
+                    }
+                });
             }
             if (ImGui::MenuItem("X-Ray")) {
-                app.gfx.layer_palette = { {
-                    { 0.5f, 0.5f, 0.5f, 1.0f },
-                    { 0.5f, 0.5f, 0.5f, 1.0f },
-                    { 0.5f, 0.5f, 0.5f, 1.0f },
-                    { 0.5f, 0.5f, 0.5f, 1.0f },
-                    { 0.5f, 0.5f, 0.5f, 1.0f },
-                    { 0.5f, 0.5f, 0.5f, 1.0f },
-                } };
-                app.gfx.use_additive_blend = true;
+                gfx_set_layer_palette(true, (gfx_palette_t){
+                    .colors = {
+                        { 0.5f, 0.5f, 0.5f, 1.0f },
+                        { 0.5f, 0.5f, 0.5f, 1.0f },
+                        { 0.5f, 0.5f, 0.5f, 1.0f },
+                        { 0.5f, 0.5f, 0.5f, 1.0f },
+                        { 0.5f, 0.5f, 0.5f, 1.0f },
+                        { 0.5f, 0.5f, 0.5f, 1.0f },
+                    }
+                });
             }
             ImGui::EndMenu();
         }

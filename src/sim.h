@@ -1,8 +1,8 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
+#include "common.h"
 #include "trace.h"
-#include "gfx.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -16,12 +16,12 @@ typedef struct sim_t {
 void sim_init_or_reset(sim_t* sim);
 void sim_shutdown(sim_t* sim);
 void sim_start(sim_t* sim, trace_t* trace);
-void sim_frame(sim_t* sim, trace_t* trace, gfx_t* gfx);
+void sim_frame(sim_t* sim, trace_t* trace);
 void sim_step(sim_t* sim, trace_t* trace, int num_half_cycles);
 void sim_step_op(sim_t* sim, trace_t* trace);
 void sim_pause(sim_t* sim, bool paused);
 bool sim_paused(const sim_t* sim);
-void sim_update_nodestate(sim_t* sim, uint8_t* buf_ptr, size_t buf_size);
+void sim_update_nodestate(sim_t* sim, range_t from_buffer);
 void sim_w8(uint16_t addr, uint8_t val);
 uint8_t sim_r8(uint16_t addr);
 void sim_w16(uint16_t addr, uint16_t val);
