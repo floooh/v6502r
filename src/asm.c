@@ -3,7 +3,7 @@
 //  Wrapper and glue code for asmx.
 //------------------------------------------------------------------------------
 #include "asmx.h"
-#include "v6502r.h"
+#include "asm.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
