@@ -25,6 +25,7 @@ void gfx_begin(void);
 void gfx_draw(void);
 void gfx_end(void);
 
+float2_t gfx_get_display_size(void);
 void gfx_set_offset(float2_t offset);
 float2_t gfx_get_offset(void);
 void gfx_add_scale(float scale_add);

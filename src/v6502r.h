@@ -27,7 +27,6 @@ typedef struct {
         float2_t offset_start;
         float2_t mouse;
     } input;
-    pick_t pick;
     trace_t trace;
     sim_t sim;
     struct {

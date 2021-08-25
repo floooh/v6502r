@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h> // size_t
+#include <assert.h>
+#include <string.h>
 
 #define MAX_LAYERS (6)
 #define MAX_NODES (2048)

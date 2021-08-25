@@ -358,21 +358,28 @@ void ui_menu(void) {
         }
         if (ImGui::BeginMenu("Layers")) {
             if (ImGui::BeginMenu("Visible")) {
-                ImGui::MenuItem("Layer #1##V", "Alt+1", gfx_get_layer_visibility(0));
-                ImGui::MenuItem("Layer #2##V", "Alt+2", gfx_get_layer_visibility(1));
-                ImGui::MenuItem("Layer #3##V", "Alt+3", gfx_get_layer_visibility(2));
-                ImGui::MenuItem("Layer #4##V", "Alt+4", gfx_get_layer_visibility(3));
-                ImGui::MenuItem("Layer #5##V", "Alt+5", gfx_get_layer_visibility(4));
-                ImGui::MenuItem("Layer #6##V", "Alt+6", gfx_get_layer_visibility(5));
+                const char* label[MAX_LAYERS] = {
+                    "Layer #1##V", "Layer #2##V", "Layer #3##V", "Layer #4##V", "Layer #5##V", "Layer #6##V",
+                };
+                const char* hotkey[MAX_LAYERS] = {
+                    "Alt+1", "Alt+2", "Alt+3", "Alt+4", "Alt+5", "Alt+6"
+                };
+                for (int i = 0; i < MAX_LAYERS; i++) {
+                    if (ImGui::MenuItem(label[i], hotkey[i], gfx_get_layer_visibility(i))) {
+                        gfx_toggle_layer_visibility(i);
+                    }
+                }
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Pickable")) {
-                ImGui::MenuItem("Layer #1##P", 0, &app.pick.layer_enabled[0]);
-                ImGui::MenuItem("Layer #2##P", 0, &app.pick.layer_enabled[1]);
-                ImGui::MenuItem("Layer #3##P", 0, &app.pick.layer_enabled[2]);
-                ImGui::MenuItem("Layer #4##P", 0, &app.pick.layer_enabled[3]);
-                ImGui::MenuItem("Layer #5##P", 0, &app.pick.layer_enabled[4]);
-                ImGui::MenuItem("Layer #6##P", 0, &app.pick.layer_enabled[5]);
+                const char* label[MAX_LAYERS] = {
+                    "Layer #1##P", "Layer #2##P", "Layer #3##P", "Layer #4##P", "Layer #5##P", "Layer #6##P",
+                };
+                for (int i = 0; i < MAX_LAYERS; i++) {
+                    if (ImGui::MenuItem(label[i], 0, pick_get_layer_enabled(i))) {
+                        pick_toggle_layer_enabled(i);
+                    }
+                }
                 ImGui::EndMenu();
             }
             ImGui::EndMenu();
@@ -705,10 +712,11 @@ void ui_tracelog(void) {
 }
 
 void ui_picking(void) {
-    if (app.pick.result.num_hits > 0) {
+    const pick_result_t pick_result = pick_get_last_result();
+    if (pick_result.num_hits > 0) {
         char str[256] = { 0 };
-        for (int i = 0; i < app.pick.result.num_hits; i++) {
-            int node_index = app.pick.result.node_index[i];
+        for (int i = 0; i < pick_result.num_hits; i++) {
+            int node_index = pick_result.node_index[i];
             assert((node_index >= 0) && (node_index < max_node_names));
             if (node_names[node_index][0] != 0) {
                 if (i != 0) {

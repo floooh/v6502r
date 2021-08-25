@@ -8,7 +8,6 @@
 #include "sokol_glue.h"
 #include "gfx.h"
 #include "gfx.glsl.h"
-#include <assert.h>
 
 static const gfx_palette_t default_palette = { {
     { 1.0f, 0.0f, 0.0f, 0.5f },
@@ -126,7 +125,7 @@ void gfx_shutdown(void) {
     sg_destroy_pipeline(gfx.pip_add);
     sg_destroy_image(gfx.img);
     sg_shutdown();
-    gfx.valid = false;
+    memset(&gfx, 0, sizeof(gfx));
 }
 
 void gfx_new_frame(float disp_width, float disp_height) {
@@ -178,6 +177,11 @@ void gfx_end(void) {
     assert(gfx.valid);
     sg_end_pass();
     sg_commit();
+}
+
+float2_t gfx_get_display_size(void) {
+    assert(gfx.valid);
+    return gfx.display_size;
 }
 
 void gfx_set_offset(float2_t offset) {

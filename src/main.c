@@ -49,10 +49,9 @@ static void app_init(void) {
         .seg_max_y = seg_max_y,
     });
     ui_init();
-    pick_init(&app.pick, &(pick_desc_t){
+    pick_init(&(pick_desc_t){
         .seg_max_x = seg_max_x,
         .seg_max_y = seg_max_y,
-        .grid_cells = grid_cells,
         .layers = {
             [0] = {
                 .verts = (const pick_vertex_t*) seg_vertices_0,
@@ -84,6 +83,8 @@ static void app_init(void) {
             .num_tris = sizeof(pick_tris) / 8,
         },
         .grid = {
+            .num_cells_x = grid_cells,
+            .num_cells_y = grid_cells,
             .cells = (const pick_cell_t*) pick_grid,
             .num_cells = sizeof(pick_grid) / 8,
         }
@@ -98,14 +99,14 @@ static void app_frame(void) {
     gfx_new_frame(sapp_widthf(), sapp_heightf());
     ui_frame();
     sim_frame(&app.sim, &app.trace);
-    pick_frame(&app.pick,
+    const pick_result_t pick_result = pick_dopick(
         app.input.mouse,
-        (float2_t){ sapp_widthf(), sapp_heightf() },
+        gfx_get_display_size(),
         gfx_get_offset(),
         gfx_get_aspect(),
         gfx_get_scale());
-    for (int i = 0; i < app.pick.result.num_hits; i++) {
-        gfx_highlight_node(app.pick.result.node_index[i]);
+    for (int i = 0; i < pick_result.num_hits; i++) {
+        gfx_highlight_node(pick_result.node_index[i]);
     }
     gfx_begin();
     gfx_draw();
