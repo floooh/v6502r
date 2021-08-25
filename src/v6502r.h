@@ -27,8 +27,6 @@ typedef struct {
         float2_t offset_start;
         float2_t mouse;
     } input;
-    trace_t trace;
-    sim_t sim;
     struct {
         ui_memedit_t memedit;
         ui_memedit_t memedit_integrated;

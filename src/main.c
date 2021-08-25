@@ -89,16 +89,17 @@ static void app_init(void) {
             .num_cells = sizeof(pick_grid) / 8,
         }
     });
-    trace_init(&app.trace);
-    sim_init_or_reset(&app.sim);
+    trace_init();
+    sim_init();
     sim_write(0x0000, sizeof(test_prog), test_prog);
-    sim_start(&app.sim, &app.trace);
+    sim_start();
 }
 
 static void app_frame(void) {
     gfx_new_frame(sapp_widthf(), sapp_heightf());
     ui_frame();
-    sim_frame(&app.sim, &app.trace);
+    sim_frame();
+    sim_get_node_state(gfx_get_nodestate_buffer());
     const pick_result_t pick_result = pick_dopick(
         app.input.mouse,
         gfx_get_display_size(),
@@ -160,8 +161,9 @@ static void app_input(const sapp_event* ev) {
 }
 
 static void app_cleanup(void) {
-    sim_shutdown(&app.sim);
-    trace_shutdown(&app.trace);
+    pick_shutdown();
+    sim_shutdown();
+    trace_shutdown();
     ui_shutdown();
     gfx_shutdown();
 }

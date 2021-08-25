@@ -5,20 +5,44 @@
 #include "perfect6502.h"
 #include "trace.h"
 #include "sim.h"
-#include <string.h>
 
-void trace_init(trace_t* trace) {
-    assert(trace);
-    memset(trace, 0, sizeof(trace_t));
+typedef struct {
+    uint32_t cycle;
+    uint32_t flip_bits;     // for grouping instruction and cycle ticks
+    uint32_t node_values[64];
+    uint32_t transistors_on[128];
+    uint8_t mem[4096];      // only trace the first few KB of memory
+} trace_item_t;
+
+static struct {
+    bool valid;
+    uint32_t flip_bits;         // for visually separating instructions and cycles
+    uint32_t head;
+    uint32_t tail;
+    trace_item_t items[MAX_TRACE_ITEMS];
+    struct {
+        bool scroll_to_end;
+        bool hovered;               // true if mouse is currently hovering a UI trace item
+        bool selected;              // true if a trace item is currently selected in the UI
+        uint32_t hovered_cycle;     // mouse-hovered cycle number
+        uint32_t selected_cycle;    // selected cycle number
+    } ui;
+} trace;
+
+void trace_init(void) {
+    assert(!trace.valid);
+    trace.valid = true;
 }
 
-void trace_shutdown(trace_t* trace) {
-    (void)trace;
+void trace_shutdown(void) {
+    assert(trace.valid);
+    memset(&trace, 0, sizeof(trace));
 }
 
-void trace_clear(trace_t* trace) {
-    assert(trace);
-    memset(trace, 0, sizeof(trace_t));
+void trace_clear(void) {
+    assert(trace.valid);
+    memset(&trace, 0, sizeof(trace));
+    trace.valid = true;
 }
 
 // ring buffer helper functions
@@ -26,52 +50,51 @@ static uint32_t ring_idx(uint32_t i) {
     return (i % MAX_TRACE_ITEMS);
 }
 
-static bool ring_full(const trace_t* trace) {
-    return ring_idx(trace->head+1) == trace->tail;
+static bool ring_full(void) {
+    return ring_idx(trace.head+1) == trace.tail;
 }
 
-static bool ring_empty(const trace_t* trace) {
-    return trace->head == trace->tail;
+static bool ring_empty(void) {
+    return trace.head == trace.tail;
 }
 
-static uint32_t ring_count(const trace_t* trace) {
-    if (trace->head >= trace->tail) {
-        return trace->head - trace->tail;
+static uint32_t ring_count(void) {
+    if (trace.head >= trace.tail) {
+        return trace.head - trace.tail;
     }
     else {
-        return (trace->head + MAX_TRACE_ITEMS) - trace->tail;
+        return (trace.head + MAX_TRACE_ITEMS) - trace.tail;
     }
 }
 
-static uint32_t ring_add(trace_t* trace) {
-    uint32_t idx = trace->head;
-    if (ring_full(trace)) {
-        trace->tail = ring_idx(trace->tail+1);
+static uint32_t ring_add(void) {
+    uint32_t idx = trace.head;
+    if (ring_full()) {
+        trace.tail = ring_idx(trace.tail+1);
     }
-    trace->head = ring_idx(trace->head+1);
+    trace.head = ring_idx(trace.head+1);
     return idx;
 }
 
-static void ring_pop(trace_t* trace) {
-    if (!ring_empty(trace)) {
-        trace->head = ring_idx(trace->head-1);
+static void ring_pop(void) {
+    if (!ring_empty()) {
+        trace.head = ring_idx(trace.head-1);
     }
 }
 
-uint32_t trace_num_items(const trace_t* trace) {
-    assert(trace);
-    return ring_count(trace);
+uint32_t trace_num_items(void) {
+    assert(trace.valid);
+    return ring_count();
 }
 
-bool trace_empty(const trace_t* trace) {
-    assert(trace);
-    return ring_empty(trace);
+bool trace_empty(void) {
+    assert(trace.valid);
+    return ring_empty();
 }
 
-static uint32_t trace_to_ring_index(const trace_t* trace, uint32_t trace_index) {
-    assert(trace);
-    uint32_t idx = ring_idx(trace->head - 1 - trace_index);
-    assert(idx != trace->head);
+static uint32_t trace_to_ring_index(uint32_t trace_index) {
+    uint32_t idx = ring_idx(trace.head - 1 - trace_index);
+    assert(idx != trace.head);
     return idx;
 }
 
@@ -83,16 +106,16 @@ static int get_nodes_value(const trace_item_t* item, uint32_t node_index) {
     return get_bitmap(item->node_values, node_index);
 };
 
-static bool is_node_high(const trace_t* trace, uint32_t trace_index, uint32_t node_index) {
-    uint32_t idx = trace_to_ring_index(trace, trace_index);
-    return 0 != get_nodes_value(&trace->items[idx], node_index);
+static bool is_node_high(uint32_t trace_index, uint32_t node_index) {
+    uint32_t idx = trace_to_ring_index(trace_index);
+    return 0 != get_nodes_value(&trace.items[idx], node_index);
 }
 
-static uint32_t read_nodes(const trace_t* trace, uint32_t trace_index, uint32_t count, uint32_t* node_indices) {
+static uint32_t read_nodes(uint32_t trace_index, uint32_t count, uint32_t* node_indices) {
     uint32_t result = 0;
     for (int i = count - 1; i >= 0; i--) {
         result <<=  1;
-        result |= is_node_high(trace, trace_index, node_indices[i]);
+        result |= is_node_high(trace_index, node_indices[i]);
     }
     return result;
 }
@@ -285,151 +308,219 @@ enum {
     y7 = 843,
 };
 
-uint32_t trace_get_cycle(const trace_t* trace, uint32_t index) {
-    assert(trace);
-    uint32_t idx = trace_to_ring_index(trace, index);
-    return trace->items[idx].cycle;
+uint32_t trace_get_cycle(uint32_t index) {
+    assert(trace.valid);
+    uint32_t idx = trace_to_ring_index(index);
+    return trace.items[idx].cycle;
 }
 
-uint32_t trace_get_flipbits(const trace_t* trace, uint32_t index) {
-    assert(trace);
-    uint32_t idx = trace_to_ring_index(trace, index);
-    return trace->items[idx].flip_bits;
+uint32_t trace_get_flipbits(uint32_t index) {
+    assert(trace.valid);
+    uint32_t idx = trace_to_ring_index(index);
+    return trace.items[idx].flip_bits;
 }
 
-uint8_t trace_get_a(const trace_t* trace, uint32_t index) {
-    return read_nodes(trace, index, 8, (uint32_t[]){ a0,a1,a2,a3,a4,a5,a6,a7 });
+uint8_t trace_get_a(uint32_t index) {
+    assert(trace.valid);
+    return read_nodes(index, 8, (uint32_t[]){ a0,a1,a2,a3,a4,a5,a6,a7 });
 }
 
-uint8_t trace_get_x(const trace_t* trace, uint32_t index) {
-    return read_nodes(trace, index, 8, (uint32_t[]){ x0,x1,x2,x3,x4,x5,x6,x7 });
+uint8_t trace_get_x(uint32_t index) {
+    assert(trace.valid);
+    return read_nodes(index, 8, (uint32_t[]){ x0,x1,x2,x3,x4,x5,x6,x7 });
 }
 
-uint8_t trace_get_y(const trace_t* trace, uint32_t index) {
-    return read_nodes(trace, index, 8, (uint32_t[]){ y0,y1,y2,y3,y4,y5,y6,y7 });
+uint8_t trace_get_y(uint32_t index) {
+    assert(trace.valid);
+    return read_nodes(index, 8, (uint32_t[]){ y0,y1,y2,y3,y4,y5,y6,y7 });
 }
 
-uint8_t trace_get_sp(const trace_t* trace, uint32_t index) {
-    return read_nodes(trace, index, 8, (uint32_t[]){ s0,s1,s2,s3,s4,s5,s6,s7 });
+uint8_t trace_get_sp(uint32_t index) {
+    assert(trace.valid);
+    return read_nodes(index, 8, (uint32_t[]){ s0,s1,s2,s3,s4,s5,s6,s7 });
 }
 
-static uint8_t trace_get_pcl(const trace_t* trace, uint32_t index) {
-    return read_nodes(trace, index, 8, (uint32_t[]){ pcl0,pcl1,pcl2,pcl3,pcl4,pcl5,pcl6,pcl7 });
+static uint8_t trace_get_pcl(uint32_t index) {
+    assert(trace.valid);
+    return read_nodes(index, 8, (uint32_t[]){ pcl0,pcl1,pcl2,pcl3,pcl4,pcl5,pcl6,pcl7 });
 }
 
-static uint8_t trace_get_pch(const trace_t* trace, uint32_t index) {
-    return read_nodes(trace, index, 8, (uint32_t[]){ pch0,pch1,pch2,pch3,pch4,pch5,pch6,pch7 });
+static uint8_t trace_get_pch(uint32_t index) {
+    assert(trace.valid);
+    return read_nodes(index, 8, (uint32_t[]){ pch0,pch1,pch2,pch3,pch4,pch5,pch6,pch7 });
 }
 
-uint16_t trace_get_pc(const trace_t* trace, uint32_t index) {
-    return (trace_get_pch(trace, index)<<8)|trace_get_pcl(trace, index);
+uint16_t trace_get_pc(uint32_t index) {
+    assert(trace.valid);
+    return (trace_get_pch(index)<<8)|trace_get_pcl(index);
 }
 
-uint8_t trace_get_ir(const trace_t* trace, uint32_t index) {
-    return ~read_nodes(trace, index, 8, (uint32_t[]){ notir0,notir1,notir2,notir3,notir4,notir5,notir6,notir7 });
+uint8_t trace_get_ir(uint32_t index) {
+    assert(trace.valid);
+    return ~read_nodes(index, 8, (uint32_t[]){ notir0,notir1,notir2,notir3,notir4,notir5,notir6,notir7 });
 }
 
-uint8_t trace_get_p(const trace_t* trace, uint32_t index) {
-    return read_nodes(trace, index, 8, (uint32_t[]){ p0,p1,p2,p3,p4,p5,p6,p7 });
+uint8_t trace_get_p(uint32_t index) {
+    assert(trace.valid);
+    return read_nodes(index, 8, (uint32_t[]){ p0,p1,p2,p3,p4,p5,p6,p7 });
 }
 
-bool trace_get_rw(const trace_t* trace, uint32_t index) {
-    return is_node_high(trace, index, rw);
+bool trace_get_rw(uint32_t index) {
+    assert(trace.valid);
+    return is_node_high(index, rw);
 }
 
-bool trace_get_sync(const trace_t* trace, uint32_t index) {
-    return is_node_high(trace, index, sync_);
+bool trace_get_sync(uint32_t index) {
+    assert(trace.valid);
+    return is_node_high(index, sync_);
 }
 
-bool trace_get_clk0(const trace_t* trace, uint32_t index) {
-    return is_node_high(trace, index, clk0);
+bool trace_get_clk0(uint32_t index) {
+    assert(trace.valid);
+    return is_node_high(index, clk0);
 }
 
-bool trace_get_irq(const trace_t* trace, uint32_t index) {
-    return is_node_high(trace, index, irq);
+bool trace_get_irq(uint32_t index) {
+    assert(trace.valid);
+    return is_node_high(index, irq);
 }
 
-bool trace_get_nmi(const trace_t* trace, uint32_t index) {
-    return is_node_high(trace, index, nmi);
+bool trace_get_nmi(uint32_t index) {
+    assert(trace.valid);
+    return is_node_high(index, nmi);
 }
 
-bool trace_get_res(const trace_t* trace, uint32_t index) {
-    return is_node_high(trace, index, res);
+bool trace_get_res(uint32_t index) {
+    assert(trace.valid);
+    return is_node_high(index, res);
 }
 
-bool trace_get_rdy(const trace_t* trace, uint32_t index) {
-    return is_node_high(trace, index, rdy);
+bool trace_get_rdy(uint32_t index) {
+    assert(trace.valid);
+    return is_node_high(index, rdy);
 }
 
-uint16_t trace_get_addr(const trace_t* trace, uint32_t index) {
-    return read_nodes(trace, index, 16, (uint32_t[]){ ab0, ab1, ab2, ab3, ab4, ab5, ab6, ab7, ab8, ab9, ab10, ab11, ab12, ab13, ab14, ab15 });
+uint16_t trace_get_addr(uint32_t index) {
+    assert(trace.valid);
+    return read_nodes(index, 16, (uint32_t[]){ ab0, ab1, ab2, ab3, ab4, ab5, ab6, ab7, ab8, ab9, ab10, ab11, ab12, ab13, ab14, ab15 });
 }
 
-uint8_t trace_get_data(const trace_t* trace, uint32_t index) {
-    return read_nodes(trace, index, 8, (uint32_t[]){ db0, db1, db2, db3, db4, db5, db6, db7 });
+uint8_t trace_get_data(uint32_t index) {
+    assert(trace.valid);
+    return read_nodes(index, 8, (uint32_t[]){ db0, db1, db2, db3, db4, db5, db6, db7 });
 }
 
-void trace_store(trace_t* trace, struct sim_t* sim) {
-    assert(trace && sim);
-    uint32_t idx = ring_add(trace);
-    trace_item_t* item = &trace->items[idx];
+void trace_store(void) {
+    assert(trace.valid);
+    uint32_t idx = ring_add();
+    trace_item_t* item = &trace.items[idx];
     item->cycle = sim_get_cycle();
     memcpy(&item->mem, memory, sizeof(item->mem));
-    sim_read_node_values(sim, (uint8_t*)item->node_values, sizeof(item->node_values));
-    sim_read_transistor_on(sim, (uint8_t*)item->transistors_on, sizeof(item->transistors_on));
+    sim_get_node_values((range_t){ .ptr=item->node_values, .size=sizeof(item->node_values) });
+    sim_get_transistor_on((range_t){ .ptr=item->transistors_on, .size=sizeof(item->transistors_on) });
     // find start of instruction (first half tick after sync)
-    if (!sim_get_sync(sim) && (trace_num_items(trace) > 1) && trace_get_sync(trace, 1)) {
-        trace->flip_bits ^= TRACE_FLIPBIT_OP;
+    if (!sim_get_sync() && (trace_num_items() > 1) && trace_get_sync(1)) {
+        trace.flip_bits ^= TRACE_FLIPBIT_OP;
     }
-    if (sim_get_clk0(sim)) {
-        trace->flip_bits |= TRACE_FLIPBIT_CLK0;
+    if (sim_get_clk0()) {
+        trace.flip_bits |= TRACE_FLIPBIT_CLK0;
     }
     else {
-        trace->flip_bits &= ~TRACE_FLIPBIT_CLK0;
+        trace.flip_bits &= ~TRACE_FLIPBIT_CLK0;
     }
-    item->flip_bits = trace->flip_bits;
-    trace->ui.log_scroll_to_end = true;
+    item->flip_bits = trace.flip_bits;
+    trace.ui.scroll_to_end = true;
 }
 
-static void load_item(trace_t* trace, trace_item_t* item, sim_t* sim) {
-    trace->flip_bits = item->flip_bits;
+static void load_item(trace_item_t* item) {
+    trace.flip_bits = item->flip_bits;
     sim_set_cycle(item->cycle);
     memcpy(memory, &item->mem, sizeof(item->mem));
-    sim_write_node_values(sim, (const uint8_t*)item->node_values, sizeof(item->node_values));
-    sim_write_transistor_on(sim, (const uint8_t*)item->transistors_on, sizeof(item->transistors_on));
+    sim_set_node_values((range_t){ item->node_values, sizeof(item->node_values) });
+    sim_set_transistor_on((range_t){ item->transistors_on, sizeof(item->transistors_on) });
 }
 
 // load the previous trace item into the simulator and pop it from the trace log
-bool trace_revert_to_previous(trace_t* trace, struct sim_t* sim) {
-    assert(trace);
-    if (trace_num_items(trace) < 1) {
+bool trace_revert_to_previous(void) {
+    assert(trace.valid);
+    if (trace_num_items() < 1) {
         return false;
     }
-    uint32_t idx = trace_to_ring_index(trace, 1);
-    trace_item_t* item = &trace->items[idx];
-    load_item(trace, item, sim);
-    ring_pop(trace);
+    uint32_t idx = trace_to_ring_index(1);
+    trace_item_t* item = &trace.items[idx];
+    load_item(item);
+    ring_pop();
     return true;
 }
 
 // load the selected trace item into the simulator, and drop following trace items
-bool trace_revert_to_selected(trace_t* trace, struct sim_t* sim) {
-    assert(trace);
-    if (!trace->ui.selected) {
+bool trace_revert_to_selected(void) {
+    assert(trace.valid);
+    if (!trace.ui.selected) {
         return false;
     }
     // find the selected item by cycle
     uint32_t idx;
-    for (idx = trace->tail; idx != trace->head; idx = ring_idx(idx+1)) {
-        if (trace->ui.selected_cycle == trace->items[idx].cycle) {
+    for (idx = trace.tail; idx != trace.head; idx = ring_idx(idx+1)) {
+        if (trace.ui.selected_cycle == trace.items[idx].cycle) {
             break;
         }
     }
-    if (idx == trace->head) {
+    if (idx == trace.head) {
         return false;
     }
-    trace_item_t* item = &trace->items[idx];
-    load_item(trace, item, sim);
-    trace->head = ring_idx(idx+1);
+    trace_item_t* item = &trace.items[idx];
+    load_item(item);
+    trace.head = ring_idx(idx+1);
     return true;
+}
+
+void trace_ui_set_selected(bool selected) {
+    assert(trace.valid);
+    trace.ui.selected = selected;
+}
+
+bool trace_ui_get_selected(void) {
+    assert(trace.valid);
+    return trace.ui.selected;
+}
+
+void trace_ui_set_selected_cycle(uint32_t cycle) {
+    assert(trace.valid);
+    trace.ui.selected_cycle = cycle;
+}
+
+uint32_t trace_ui_get_selected_cycle(void) {
+    assert(trace.valid);
+    return trace.ui.selected_cycle;
+}
+
+void trace_ui_set_hovered(bool hovered) {
+    assert(trace.valid);
+    trace.ui.hovered = hovered;
+}
+
+bool trace_ui_get_hovered(void) {
+    assert(trace.valid);
+    return trace.ui.hovered;
+}
+
+void trace_ui_set_hovered_cycle(uint32_t cycle) {
+    assert(trace.valid);
+    trace.ui.hovered_cycle = cycle;
+}
+
+uint32_t trace_ui_get_hovered_cycle(void) {
+    assert(trace.valid);
+    return trace.ui.hovered_cycle;
+}
+
+void trace_ui_set_scroll_to_end(bool b) {
+    assert(trace.valid);
+    trace.ui.scroll_to_end = b;
+}
+
+bool trace_ui_get_scroll_to_end(void) {
+    assert(trace.valid);
+    return trace.ui.scroll_to_end;
 }

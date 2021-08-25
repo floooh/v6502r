@@ -239,7 +239,7 @@ void gfx_set_layer_palette(bool use_additive_blend, gfx_palette_t palette) {
     gfx.layer_palette = palette;
 }
 
-range_t gfx_get_nodestate(void) {
+range_t gfx_get_nodestate_buffer(void) {
     assert(gfx.valid);
     return (range_t){ .ptr = gfx.node_state, .size = sizeof(gfx.node_state) };
 }
