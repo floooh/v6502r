@@ -170,11 +170,11 @@ const char* ui_asm_source(void) {
     return asm_source();
 }
 
-void ui_asm_put_source(const char* name, const uint8_t* bytes, int num_bytes) {
+void ui_asm_put_source(const char* name, range_t src) {
     assert(state.valid);
     (void)name;
-    if (bytes && (num_bytes > 0)) {
-        std::string str((char*)bytes, num_bytes);
+    if (src.ptr && (src.size > 0)) {
+        std::string str((char*)src.ptr, src.size);
         state.editor->SetText(str);
     }
 }

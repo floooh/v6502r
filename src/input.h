@@ -6,11 +6,10 @@
 extern "C" {
 #endif
 
-void ui_init(void);
-void ui_shutdown(void);
-void ui_frame(void);
-void ui_draw(void);
-bool ui_handle_input(const sapp_event* event);
+void input_init(void);
+void input_shutdown(void);
+void input_handle_event(const sapp_event* ev);
+float2_t input_get_mouse_pos(void);
 
 #if defined(__cplusplus)
 } // extern "C"

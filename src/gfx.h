@@ -1,5 +1,4 @@
 #pragma once
-#include <stdint.h>
 #include "sokol_gfx.h"
 #include "common.h"
 

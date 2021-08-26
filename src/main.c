@@ -2,10 +2,16 @@
 //  v6502r.c
 //  Main source file.
 //------------------------------------------------------------------------------
-#include "v6502r.h"
+#include "sokol_app.h"
 #include "sokol_args.h"
-
-app_state_t app;
+#include "util.h"
+#include "gfx.h"
+#include "input.h"
+#include "ui.h"
+#include "pick.h"
+#include "trace.h"
+#include "sim.h"
+#include "segdefs.h"
 
 /* example program from visual6502.org:
                    * = 0000
@@ -48,6 +54,7 @@ static void app_init(void) {
         .seg_max_x = seg_max_x,
         .seg_max_y = seg_max_y,
     });
+    input_init();
     ui_init();
     pick_init(&(pick_desc_t){
         .seg_max_x = seg_max_x,
@@ -101,7 +108,7 @@ static void app_frame(void) {
     sim_frame();
     sim_get_node_state(gfx_get_nodestate_buffer());
     const pick_result_t pick_result = pick_dopick(
-        app.input.mouse,
+        input_get_mouse_pos(),
         gfx_get_display_size(),
         gfx_get_offset(),
         gfx_get_aspect(),
@@ -116,48 +123,7 @@ static void app_frame(void) {
 }
 
 static void app_input(const sapp_event* ev) {
-    if (ui_input(ev)) {
-        app.input.mouse.x = 0;
-        app.input.mouse.y = 0;
-        app.input.dragging = false;
-        return;
-    }
-    float w = (float) ev->framebuffer_width * gfx_get_scale();
-    float h = (float) ev->framebuffer_height * gfx_get_scale() * gfx_get_aspect();
-    switch (ev->type) {
-        case SAPP_EVENTTYPE_MOUSE_SCROLL:
-            gfx_add_scale(ev->scroll_y * 0.25f);
-            app.input.mouse.x = ev->mouse_x;
-            app.input.mouse.y = ev->mouse_y;
-            break;
-        case SAPP_EVENTTYPE_MOUSE_DOWN:
-            app.input.dragging = true;
-            app.input.drag_start = (float2_t){ev->mouse_x, ev->mouse_y};
-            app.input.offset_start = gfx_get_offset();
-            app.input.mouse.x = ev->mouse_x;
-            app.input.mouse.y = ev->mouse_y;
-            break;
-        case SAPP_EVENTTYPE_MOUSE_MOVE:
-            if (app.input.dragging) {
-                float dx = ((ev->mouse_x - app.input.drag_start.x) * 2.0f) / w;
-                float dy = ((ev->mouse_y - app.input.drag_start.y) * -2.0f) / h;
-                gfx_set_offset((float2_t){
-                    .x = app.input.offset_start.x + dx,
-                    .y = app.input.offset_start.y + dy,
-                });
-            }
-            app.input.mouse.x = ev->mouse_x;
-            app.input.mouse.y = ev->mouse_y;
-            break;
-        case SAPP_EVENTTYPE_MOUSE_UP:
-            app.input.dragging = false;
-            break;
-        case SAPP_EVENTTYPE_MOUSE_LEAVE:
-            app.input.dragging = false;
-            break;
-        default:
-            break;
-    }
+    input_handle_event(ev);
 }
 
 static void app_shutdown(void) {
@@ -165,6 +131,7 @@ static void app_shutdown(void) {
     sim_shutdown();
     trace_shutdown();
     ui_shutdown();
+    input_shutdown();
     gfx_shutdown();
     util_shutdown();
 }

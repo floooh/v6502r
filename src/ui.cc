@@ -225,7 +225,7 @@ static bool handle_special_link(void) {
     return false;
 }
 
-bool ui_input(const sapp_event* ev) {
+bool ui_handle_input(const sapp_event* ev) {
     assert(ui.valid);
     int l = -1;
     if (test_click(ev, ui.link_hovered)) {

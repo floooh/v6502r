@@ -107,8 +107,8 @@ EM_JS(void, emsc_js_cursor_to_default, (void), {
     document.getElementById('canvas').style.cursor = 'default';
 });
 
-EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, const uint8_t* data, int size) {
-    ui_asm_put_source(name, data, size);
+EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, uint8_t* data, int size) {
+    ui_asm_put_source(name, (range_t){ .ptr=data, .size=(size_t)size });
     ui_asm_set_window_open(true);
     ui_asm_assemble();
     return 1;
