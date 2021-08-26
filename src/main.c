@@ -160,12 +160,13 @@ static void app_input(const sapp_event* ev) {
     }
 }
 
-static void app_cleanup(void) {
+static void app_shutdown(void) {
     pick_shutdown();
     sim_shutdown();
     trace_shutdown();
     ui_shutdown();
     gfx_shutdown();
+    util_shutdown();
 }
 
 sapp_desc sokol_main(int argc, char* argv[]) {
@@ -174,7 +175,7 @@ sapp_desc sokol_main(int argc, char* argv[]) {
         .init_cb = app_init,
         .frame_cb = app_frame,
         .event_cb = app_input,
-        .cleanup_cb = app_cleanup,
+        .cleanup_cb = app_shutdown,
         .width = 900,
         .height = 700,
         .window_title = "Visual6502 Remix",

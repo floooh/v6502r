@@ -2,14 +2,54 @@
 //  ui.cc
 //------------------------------------------------------------------------------
 #include "imgui.h"
-#define CHIPS_IMPL
-#include "v6502r.h"
 #include "res/fonts.h"
 #include "res/iconsfontawesome4_c.h"
 #include "res/markdown.h"
 #include "imgui_markdown/imgui_markdown.h"
+
+#include "sokol_app.h"
+#include "sokol_gfx.h"
 #include "sokol_imgui.h"
+
+#define CHIPS_IMPL
+#define UI_DASM_USE_M6502
+#include "ui/ui_memedit.h"
+#include "util/m6502dasm.h"
+#include "ui/ui_util.h"
+#include "ui/ui_dasm.h"
+
+#include "ui.h"
+#include "ui_asm.h"
+#include "asm.h"
+#include "gfx.h"
+#include "sim.h"
+#include "pick.h"
+#include "trace.h"
+#include "util.h"
+#include "nodenames.h"
+
 #include <math.h>
+
+static struct {
+    bool valid;
+    ui_memedit_t memedit;
+    ui_memedit_t memedit_integrated;
+    ui_dasm_t dasm;
+    bool cpu_controls_open;
+    bool tracelog_open;
+    bool listing_open;
+    bool help_asm_open;
+    bool help_opcodes_open;
+    bool help_about_open;
+    bool open_source_hovered;
+    bool save_source_hovered;
+    bool save_binary_hovered;
+    bool save_listing_hovered;
+    bool cut_hovered;
+    bool copy_hovered;
+    bool link_hovered;
+    char link_url[MAX_LINKURL_SIZE];
+} ui;
 
 static void ui_menu(void);
 static void ui_picking(void);
@@ -33,9 +73,11 @@ static void ui_mem_write(int /*layer*/, uint16_t addr, uint8_t data, void* /*use
 }
 
 void ui_init() {
+    assert(!ui.valid);
+
     // default window open state
-    app.ui.cpu_controls_open = true;
-    app.ui.tracelog_open = true;
+    ui.cpu_controls_open = true;
+    ui.tracelog_open = true;
 
     // setup sokol-imgui
     simgui_desc_t simgui_desc = { };
@@ -92,11 +134,11 @@ void ui_init() {
         desc.hide_ascii = true;
         desc.read_cb = ui_mem_read;
         desc.write_cb = ui_mem_write;
-        ui_memedit_init(&app.ui.memedit, &desc);
+        ui_memedit_init(&ui.memedit, &desc);
         desc.title = "Integrated Memory Editor";
         desc.hide_options = true;
         desc.hide_addr_input = true;
-        ui_memedit_init(&app.ui.memedit_integrated, &desc);
+        ui_memedit_init(&ui.memedit_integrated, &desc);
     }
     {
         ui_dasm_desc_t desc = { };
@@ -107,7 +149,7 @@ void ui_init() {
         desc.read_cb = ui_mem_read;
         desc.x = 50;
         desc.y = 50;
-        ui_dasm_init(&app.ui.dasm, &desc);
+        ui_dasm_init(&ui.dasm, &desc);
     }
     ui_asm_init();
 
@@ -118,13 +160,16 @@ void ui_init() {
     md_conf.headingFormats[0].newline_below = false;
     md_conf.headingFormats[1].newline_below = false;
     md_conf.linkIcon = ICON_FA_LINK;
+
+    ui.valid = true;
 }
 
 void ui_shutdown() {
+    assert(ui.valid);
     ui_asm_discard();
-    ui_dasm_discard(&app.ui.dasm);
-    ui_memedit_discard(&app.ui.memedit);
-    ui_memedit_discard(&app.ui.memedit_integrated);
+    ui_dasm_discard(&ui.dasm);
+    ui_memedit_discard(&ui.memedit);
+    ui_memedit_discard(&ui.memedit_integrated);
     simgui_shutdown();
 }
 
@@ -167,13 +212,13 @@ static bool test_click(const sapp_event* ev, bool hovered) {
 }
 
 static bool handle_special_link(void) {
-    if (0 == strcmp(app.ui.link_url, "ui://listing")) {
-        app.ui.listing_open = true;
+    if (0 == strcmp(ui.link_url, "ui://listing")) {
+        ui.listing_open = true;
         ImGui::SetWindowFocus("Listing");
         return true;
     }
-    else if (0 == strcmp(app.ui.link_url, "ui://assembler")) {
-        app.ui.asm_open = true;
+    else if (0 == strcmp(ui.link_url, "ui://assembler")) {
+        ui_asm_set_window_open(true);
         ImGui::SetWindowFocus("Assembler");
         return true;
     }
@@ -181,11 +226,12 @@ static bool handle_special_link(void) {
 }
 
 bool ui_input(const sapp_event* ev) {
+    assert(ui.valid);
     int l = -1;
-    if (test_click(ev, app.ui.link_hovered)) {
-        app.ui.link_hovered = false;
+    if (test_click(ev, ui.link_hovered)) {
+        ui.link_hovered = false;
         if (!handle_special_link()) {
-            util_html5_open_link(app.ui.link_url);
+            util_html5_open_link(ui.link_url);
         }
     }
     if (test_alt(ev, SAPP_KEYCODE_1)) {
@@ -211,42 +257,40 @@ bool ui_input(const sapp_event* ev) {
         return true;
     }
     if (test_alt(ev, SAPP_KEYCODE_C)) {
-        app.ui.cpu_controls_open = !app.ui.cpu_controls_open;
+        ui.cpu_controls_open = !ui.cpu_controls_open;
     }
     if (test_alt(ev, SAPP_KEYCODE_T)) {
-        app.ui.tracelog_open = !app.ui.tracelog_open;
+        ui.tracelog_open = !ui.tracelog_open;
     }
     if (test_alt(ev, SAPP_KEYCODE_A)) {
-        app.ui.asm_open = !app.ui.asm_open;
+        ui_asm_toggle_window_open();
     }
     if (test_alt(ev, SAPP_KEYCODE_L)) {
-        app.ui.listing_open = !app.ui.listing_open;
+        ui.listing_open = !ui.listing_open;
     }
     if (test_alt(ev, SAPP_KEYCODE_M)) {
-        app.ui.memedit.open = !app.ui.memedit.open;
+        ui.memedit.open = !ui.memedit.open;
     }
     if (test_alt(ev, SAPP_KEYCODE_D)) {
-        app.ui.dasm.open = !app.ui.dasm.open;
+        ui.dasm.open = !ui.dasm.open;
     }
-    if (test_click(ev, app.ui.open_source_hovered) || test_ctrl_shift(ev, SAPP_KEYCODE_O)) {
+    if (test_click(ev, ui.open_source_hovered) || test_ctrl_shift(ev, SAPP_KEYCODE_O)) {
         util_html5_load();
-        app.ui.open_source_hovered = false;
+        ui.open_source_hovered = false;
         sapp_consume_event();
     }
-    if (test_click(ev, app.ui.save_source_hovered) || test_ctrl_shift(ev, SAPP_KEYCODE_S)) {
+    if (test_click(ev, ui.save_source_hovered) || test_ctrl_shift(ev, SAPP_KEYCODE_S)) {
         util_html5_download_string("v6502r.asm", ui_asm_source());
-        app.ui.save_source_hovered = false;
+        ui.save_source_hovered = false;
         sapp_consume_event();
     }
-    if (test_click(ev, app.ui.save_listing_hovered)) {
+    if (test_click(ev, ui.save_listing_hovered)) {
         util_html5_download_string("v6502r.lst", asm_listing());
-        app.ui.save_listing_hovered = false;
+        ui.save_listing_hovered = false;
     }
-    if (test_click(ev, app.ui.save_binary_hovered)) {
-        if (app.binary.num_bytes > 0) {
-            util_html5_download_binary("v6502r.bin", app.binary.buf, app.binary.num_bytes);
-        }
-        app.ui.save_binary_hovered = false;
+    if (test_click(ev, ui.save_binary_hovered)) {
+        util_html5_download_binary("v6502r.bin", ui_asm_get_binary());
+        ui.save_binary_hovered = false;
     }
     if (test_ctrl(ev, SAPP_KEYCODE_Z) || test_ctrl(ev, SAPP_KEYCODE_Y)) {
         ui_asm_undo();
@@ -256,14 +300,14 @@ bool ui_input(const sapp_event* ev) {
         ui_asm_redo();
         sapp_consume_event();
     }
-    if (test_click(ev, app.ui.cut_hovered) || test_ctrl(ev, SAPP_KEYCODE_X)) {
+    if (test_click(ev, ui.cut_hovered) || test_ctrl(ev, SAPP_KEYCODE_X)) {
         ui_asm_cut();
-        app.ui.cut_hovered = false;
+        ui.cut_hovered = false;
         sapp_consume_event();
     }
-    if (test_click(ev, app.ui.copy_hovered) || test_ctrl(ev, SAPP_KEYCODE_C)) {
+    if (test_click(ev, ui.copy_hovered) || test_ctrl(ev, SAPP_KEYCODE_C)) {
         ui_asm_copy();
-        app.ui.copy_hovered = false;
+        ui.copy_hovered = false;
         sapp_consume_event();
     }
     if (ev->type == SAPP_EVENTTYPE_CLIPBOARD_PASTED) {
@@ -278,12 +322,13 @@ bool ui_input(const sapp_event* ev) {
 }
 
 void ui_frame() {
-    app.ui.link_hovered = false;
+    assert(ui.valid);
+    ui.link_hovered = false;
     simgui_new_frame(sapp_width(), sapp_height(), 1.0/60.0);
     ui_menu();
     ui_picking();
-    ui_memedit_draw(&app.ui.memedit);
-    ui_dasm_draw(&app.ui.dasm);
+    ui_memedit_draw(&ui.memedit);
+    ui_dasm_draw(&ui.dasm);
     ui_tracelog();
     ui_controls();
     ui_asm_draw();
@@ -291,7 +336,7 @@ void ui_frame() {
     ui_help_assembler();
     ui_help_opcodes();
     ui_help_about();
-    if (app.ui.link_hovered) {
+    if (ui.link_hovered) {
         util_html5_cursor_to_pointer();
     }
     else {
@@ -300,27 +345,28 @@ void ui_frame() {
 }
 
 void ui_draw() {
+    assert(ui.valid);
     simgui_render();
 }
 
-void ui_menu(void) {
-    app.ui.open_source_hovered = false;
-    app.ui.save_source_hovered = false;
-    app.ui.save_binary_hovered = false;
-    app.ui.save_listing_hovered = false;
+static void ui_menu(void) {
+    ui.open_source_hovered = false;
+    ui.save_source_hovered = false;
+    ui.save_binary_hovered = false;
+    ui.save_listing_hovered = false;
     if (ImGui::BeginMainMenuBar()) {
         bool is_osx = util_is_osx();
         if (ImGui::BeginMenu("File")) {
             // this looks all a bit weired because on the web platforms
             // these actions must be invoked from within an input handler
             ImGui::MenuItem("Open Source...", is_osx?"Cmd+Shift+O":"Ctrl+Shift+O");
-            app.ui.open_source_hovered = ImGui::IsItemHovered();
+            ui.open_source_hovered = ImGui::IsItemHovered();
             ImGui::MenuItem("Save Source...", is_osx?"Cmd+Shift+S":"Ctrl+Shift+S");
-            app.ui.save_source_hovered = ImGui::IsItemHovered();
+            ui.save_source_hovered = ImGui::IsItemHovered();
             ImGui::MenuItem("Save .BIN/.PRG...", 0);
-            app.ui.save_binary_hovered = ImGui::IsItemHovered();
+            ui.save_binary_hovered = ImGui::IsItemHovered();
             ImGui::MenuItem("Save Listing...", 0);
-            app.ui.save_listing_hovered = ImGui::IsItemHovered();
+            ui.save_listing_hovered = ImGui::IsItemHovered();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
@@ -332,9 +378,9 @@ void ui_menu(void) {
             }
             ImGui::Separator();
             ImGui::MenuItem("Cut", is_osx?"Cmd+X":"Ctrl+X");
-            app.ui.cut_hovered = ImGui::IsItemHovered();
+            ui.cut_hovered = ImGui::IsItemHovered();
             ImGui::MenuItem("Copy", is_osx?"Cmd+C":"Ctrl+C");
-            app.ui.copy_hovered = ImGui::IsItemHovered();
+            ui.copy_hovered = ImGui::IsItemHovered();
             #if defined(__EMSCRIPTEN__)
             ImGui::MenuItem("Paste", is_osx?"Cmd+V":"Ctrl+V");
             if (ImGui::IsItemHovered()) {
@@ -348,12 +394,14 @@ void ui_menu(void) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("Controls", "Alt+C", &app.ui.cpu_controls_open);
-            ImGui::MenuItem("Trace Log", "Alt+T", &app.ui.tracelog_open);
-            ImGui::MenuItem("Assembler", "Alt+A", &app.ui.asm_open);
-            ImGui::MenuItem("Listing", "Alt+L", &app.ui.listing_open);
-            ImGui::MenuItem("Memory Editor", "Alt+M", &app.ui.memedit.open);
-            ImGui::MenuItem("Disassembler", "Alt+D", &app.ui.dasm.open);
+            ImGui::MenuItem("Controls", "Alt+C", &ui.cpu_controls_open);
+            ImGui::MenuItem("Trace Log", "Alt+T", &ui.tracelog_open);
+            ImGui::MenuItem("Listing", "Alt+L", &ui.listing_open);
+            ImGui::MenuItem("Memory Editor", "Alt+M", &ui.memedit.open);
+            ImGui::MenuItem("Disassembler", "Alt+D", &ui.dasm.open);
+            if (ImGui::MenuItem("Assembler", "Alt+A", ui_asm_get_window_open())) {
+                ui_asm_toggle_window_open();
+            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Layers")) {
@@ -436,9 +484,9 @@ void ui_menu(void) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help")) {
-            ImGui::MenuItem("Assembler", 0, &app.ui.help_asm_open);
-            ImGui::MenuItem("Opcode Table", 0, &app.ui.help_opcodes_open);
-            ImGui::MenuItem("About", 0, &app.ui.help_about_open);
+            ImGui::MenuItem("Assembler", 0, &ui.help_asm_open);
+            ImGui::MenuItem("Opcode Table", 0, &ui.help_opcodes_open);
+            ImGui::MenuItem("About", 0, &ui.help_about_open);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -451,14 +499,14 @@ static void ui_input_uint16(const char* label, const char* id, uint16_t addr) {
     sim_w16(addr, ui_util_input_u16(id, sim_r16(addr)));
 }
 
-void ui_controls(void) {
-    if (!app.ui.cpu_controls_open) {
+static void ui_controls(void) {
+    if (!ui.cpu_controls_open) {
         return;
     }
     const float disp_w = (float) sapp_width();
     ImGui::SetNextWindowPos({ disp_w - 300, 50 }, ImGuiCond_Once);
     ImGui::SetNextWindowSize({ 270, 480 }, ImGuiCond_Once);
-    if (ImGui::Begin("MOS 6502", &app.ui.cpu_controls_open, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin("MOS 6502", &ui.cpu_controls_open, ImGuiWindowFlags_None)) {
         /* cassette deck controls */
         const char* tooltip = 0;
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
@@ -584,26 +632,26 @@ void ui_controls(void) {
         /* memory dump */
         ImGui::Text("Memory:");
         ImGui::BeginChild("##memedit");
-        ui_memedit_draw_content(&app.ui.memedit_integrated);
+        ui_memedit_draw_content(&ui.memedit_integrated);
         ImGui::EndChild();
     }
     ImGui::End();
 }
 
-void ui_listing(void) {
-    if (!app.ui.listing_open) {
+static void ui_listing(void) {
+    if (!ui.listing_open) {
         return;
     }
     ImGui::SetNextWindowPos({60, 320}, ImGuiCond_Once);
     ImGui::SetNextWindowSize({480, 200}, ImGuiCond_Once);
-    if (ImGui::Begin("Listing", &app.ui.listing_open, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin("Listing", &ui.listing_open, ImGuiWindowFlags_None)) {
         ImGui::Text("%s", asm_listing());
     }
     ImGui::End();
 }
 
-void ui_tracelog(void) {
-    if (!app.ui.tracelog_open) {
+static void ui_tracelog(void) {
+    if (!ui.tracelog_open) {
         return;
     }
     // clear the selected item is outside the trace log
@@ -620,7 +668,7 @@ void ui_tracelog(void) {
     const float footer_h = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
     ImGui::SetNextWindowPos({ disp_w / 2, disp_h - 150 }, ImGuiCond_Once, { 0.5f, 0.0f });
     ImGui::SetNextWindowSize({ 600, 128 }, ImGuiCond_Once);
-    if (ImGui::Begin("Trace Log", &app.ui.tracelog_open, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin("Trace Log", &ui.tracelog_open, ImGuiWindowFlags_None)) {
         ImGui::Text("cycle/h rw ab   db pc   a  x  y  s  p        sync ir mnemonic    irq nmi res rdy"); ImGui::NextColumn();
         ImGui::Separator();
         ImGui::BeginChild("##trace_data", ImVec2(0, -footer_h));
@@ -712,7 +760,7 @@ void ui_tracelog(void) {
     ImGui::End();
 }
 
-void ui_picking(void) {
+static void ui_picking(void) {
     const pick_result_t pick_result = pick_get_last_result();
     if (pick_result.num_hits > 0) {
         char str[256] = { 0 };
@@ -736,15 +784,15 @@ static void markdown_link_callback(ImGui::MarkdownLinkCallbackData data) {
     assert(data.link && (data.linkLength > 0));
     int i = 0;
     for (i = 0; (i < data.linkLength) && (i < MAX_LINKURL_SIZE); i++) {
-        app.ui.link_url[i] = data.link[i];
+        ui.link_url[i] = data.link[i];
     }
     if (i < MAX_LINKURL_SIZE) {
-        app.ui.link_url[i] = 0;
-        app.ui.link_hovered = true;
+        ui.link_url[i] = 0;
+        ui.link_hovered = true;
     }
     else {
-        app.ui.link_url[0] = 0;
-        app.ui.link_hovered = false;
+        ui.link_url[0] = 0;
+        ui.link_hovered = false;
     }
 }
 
@@ -753,23 +801,23 @@ static ImVec2 display_center(void) {
 }
 
 static void ui_help_assembler(void) {
-    if (!app.ui.help_asm_open) {
+    if (!ui.help_asm_open) {
         return;
     }
     ImGui::SetNextWindowSize({640, 400}, ImGuiCond_Once);
     ImGui::SetNextWindowPos(display_center(), ImGuiCond_Once, { 0.5f, 0.5f });
-    if (ImGui::Begin("Assembler Help", &app.ui.help_asm_open, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin("Assembler Help", &ui.help_asm_open, ImGuiWindowFlags_None)) {
         ImGui::Markdown(dump_help_assembler_md, sizeof(dump_help_assembler_md)-1, md_conf);
     }
     ImGui::End();
 }
 
 static void ui_help_opcodes(void) {
-    if (!app.ui.help_opcodes_open) {
+    if (!ui.help_opcodes_open) {
         return;
     }
     ImGui::SetNextWindowSize({640, 400}, ImGuiCond_Once);
-    if (ImGui::Begin("Opcode Help", &app.ui.help_opcodes_open, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin("Opcode Help", &ui.help_opcodes_open, ImGuiWindowFlags_None)) {
         ImGui::Text("TODO!");
     }
     ImGui::End();
@@ -1042,7 +1090,7 @@ static void draw_footer(ImVec2 c_pos, float win_width) {
 }
 
 static void ui_help_about(void) {
-    if (!app.ui.help_about_open) {
+    if (!ui.help_about_open) {
         footer_time = 0.0f;
         footer_frame_count = 0;
         return;
@@ -1053,7 +1101,7 @@ static void ui_help_about(void) {
     const float box_padding = 40.0f;
     ImGui::SetNextWindowSize({win_width, win_height}, ImGuiCond_Once);
     ImGui::SetNextWindowPos(disp_center, ImGuiCond_Once, { 0.5f, 0.5f });
-    if (ImGui::Begin("About", &app.ui.help_about_open, ImGuiWindowFlags_NoResize)) {
+    if (ImGui::Begin("About", &ui.help_about_open, ImGuiWindowFlags_NoResize)) {
         ImVec2 c_pos = ImGui::GetCursorScreenPos();
         ImVec2 p = draw_header(c_pos, win_width);
         c_pos.y = p.y + 16.0f;

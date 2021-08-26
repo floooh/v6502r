@@ -7,9 +7,10 @@
 #endif
 
 static struct {
+    bool valid;
     bool is_osx;
     bool cursor_is_pointer;
-} state;
+} util;
 
 #if defined(__EMSCRIPTEN__)
 EM_JS(void, emsc_js_init, (void), {
@@ -80,7 +81,7 @@ EM_JS(void, emsc_js_onload, (void), {
                     [file.name, uint8Array, uint8Array.length]);
                 if (res == 0) {
                     console.warn('util_emsc_loadfile() failed!');
-                } 
+                }
             }
             else {
                 console.warn('load result empty!');
@@ -116,14 +117,21 @@ EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, const uint8_t* dat
 #endif
 
 void util_init(void) {
+    assert(!util.valid);
     #if defined(__EMSCRIPTEN__)
     emsc_js_init();
-    state.is_osx = emsc_js_is_osx();
+    util.is_osx = emsc_js_is_osx();
     #elif defined(__APPLE__)
-    state.is_osx = true;
+    util.is_osx = true;
     #else
-    state.is_osx = false;
+    util.is_osx = false;
     #endif
+    util.valid = true;
+}
+
+void util_shutdown(void) {
+    assert(util.valid);
+    util.valid = false;
 }
 
 void util_html5_download_string(const char* filename, const char* content) {
@@ -134,11 +142,15 @@ void util_html5_download_string(const char* filename, const char* content) {
     #endif
 }
 
-void util_html5_download_binary(const char* filename, const uint8_t* content, uint32_t num_bytes) {
+void util_html5_download_binary(const char* filename, range_t bytes) {
+    if (bytes.size == 0) {
+        return;
+    }
+    assert(bytes.ptr);
     #if defined(__EMSCRIPTEN__)
-    emsc_js_download_binary(filename, content, num_bytes);
+    emsc_js_download_binary(filename, bytes.ptr, bytes.size);
     #else
-    (void)filename; (void)content; (void)num_bytes;
+    (void)filename; (void)bytes;
     #endif
 }
 
@@ -157,7 +169,8 @@ void util_html5_open_link(const char* url) {
 }
 
 bool util_is_osx(void) {
-    return state.is_osx;
+    assert(util.valid);
+    return util.is_osx;
 }
 
 void util_html5_cursor_to_pointer(void) {

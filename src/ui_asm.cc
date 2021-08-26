@@ -3,17 +3,47 @@
 //
 //  UI code for the integrated assembler.
 //------------------------------------------------------------------------------
-#include "v6502r.h"
 #include "TextEditor.h"
 #include "imgui_internal.h"
 
+#include "ui_asm.h"
+#include "asm.h"
+#include "sim.h"
+
 static struct {
+    bool valid;
+    bool window_open;
     TextEditor* editor;
     uint16_t prev_addr;
     uint16_t prev_len;
+    struct {
+        uint32_t num_bytes;
+        uint8_t buf[MAX_BINARY_SIZE];
+    } binary;
 } state;
 
+bool ui_asm_get_window_open(void) {
+    assert(state.valid);
+    return state.window_open;
+}
+
+void ui_asm_set_window_open(bool b) {
+    assert(state.valid);
+    state.window_open = b;
+}
+
+void ui_asm_toggle_window_open(void) {
+    assert(state.valid);
+    state.window_open = !state.window_open;
+}
+
+range_t ui_asm_get_binary(void) {
+    assert(state.valid);
+    return (range_t) { .ptr = state.binary.buf, .size = state.binary.num_bytes };
+}
+
 void ui_asm_init(void) {
+    assert(!state.valid);
     state.prev_addr = 0x0000;
     state.prev_len = 0x0200;
     state.editor = new TextEditor();
@@ -48,15 +78,19 @@ void ui_asm_init(void) {
     def.mAutoIndentation = true;
     def.mName = "6502 ASM";
     state.editor->SetLanguageDefinition(def);
+    state.valid = true;
 }
 
 void ui_asm_discard(void) {
+    assert(state.valid);
     assert(state.editor);
     delete state.editor;
+    state.valid = false;
 }
 
 void ui_asm_draw(void) {
-    if (!app.ui.asm_open) {
+    assert(state.valid);
+    if (!state.window_open) {
         return;
     }
     auto cpos = state.editor->GetCursorPosition();
@@ -69,7 +103,7 @@ void ui_asm_draw(void) {
             cur_error_msg = err->msg;
         }
     }
-    if (ImGui::Begin("Assembler", &app.ui.asm_open, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin("Assembler", &state.window_open, ImGuiWindowFlags_None)) {
         bool is_active = ImGui::IsWindowFocused();
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(state.editor->GetPalette()[(int)TextEditor::PaletteIndex::Background]));
         ImGui::BeginChild("##asm", {0,-footer_h}, false, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
@@ -93,7 +127,8 @@ void ui_asm_draw(void) {
 }
 
 void ui_asm_assemble(void) {
-    app.binary.num_bytes = 0;
+    assert(state.valid);
+    state.binary.num_bytes = 0;
     asm_init();
     asm_source_open();
     auto lines = state.editor->GetTextLines();
@@ -109,10 +144,10 @@ void ui_asm_assemble(void) {
         state.prev_addr = asm_res.addr;
         state.prev_len = asm_res.len;
         // store in app.binary as PRG/BIN format (start address in first two bytes)
-        app.binary.num_bytes = asm_res.len + 2;
-        app.binary.buf[0] = (uint8_t) asm_res.addr;
-        app.binary.buf[1] = (uint8_t) (asm_res.addr>>8);
-        memcpy(&app.binary.buf[2], asm_res.bytes, asm_res.len);
+        state.binary.num_bytes = asm_res.len + 2;
+        state.binary.buf[0] = (uint8_t) asm_res.addr;
+        state.binary.buf[1] = (uint8_t) (asm_res.addr>>8);
+        memcpy(&state.binary.buf[2], asm_res.bytes, asm_res.len);
     }
     TextEditor::ErrorMarkers err_markers;
     for (int err_index = 0; err_index < asm_num_errors(); err_index++) {
@@ -123,6 +158,7 @@ void ui_asm_assemble(void) {
 }
 
 const char* ui_asm_source(void) {
+    assert(state.valid);
     asm_init();
     asm_source_open();
     auto lines = state.editor->GetTextLines();
@@ -135,6 +171,7 @@ const char* ui_asm_source(void) {
 }
 
 void ui_asm_put_source(const char* name, const uint8_t* bytes, int num_bytes) {
+    assert(state.valid);
     (void)name;
     if (bytes && (num_bytes > 0)) {
         std::string str((char*)bytes, num_bytes);
@@ -143,26 +180,31 @@ void ui_asm_put_source(const char* name, const uint8_t* bytes, int num_bytes) {
 }
 
 void ui_asm_undo(void) {
+    assert(state.valid);
     state.editor->Undo();
     ui_asm_assemble();
 }
 
 void ui_asm_redo(void) {
+    assert(state.valid);
     state.editor->Redo();
     ui_asm_assemble();
 }
 
 void ui_asm_cut(void) {
+    assert(state.valid);
     state.editor->Cut();
     ui_asm_assemble();
 }
 
 void ui_asm_copy(void) {
+    assert(state.valid);
     state.editor->Copy();
     ui_asm_assemble();
 }
 
 void ui_asm_paste(void) {
+    assert(state.valid);
     state.editor->Paste();
     ui_asm_assemble();
 }
