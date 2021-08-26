@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //  util.c
 //------------------------------------------------------------------------------
-#include "v6502r.h"
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
 #endif
+#include "ui_asm.h"
 
 static struct {
     bool valid;
@@ -109,7 +109,7 @@ EM_JS(void, emsc_js_cursor_to_default, (void), {
 
 EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, const uint8_t* data, int size) {
     ui_asm_put_source(name, data, size);
-    app.ui.asm_open = true;
+    ui_asm_set_window_open(true);
     ui_asm_assemble();
     return 1;
 }
@@ -174,18 +174,20 @@ bool util_is_osx(void) {
 }
 
 void util_html5_cursor_to_pointer(void) {
+    assert(util.valid);
     #if defined(__EMSCRIPTEN__)
-    if (!state.cursor_is_pointer) {
-        state.cursor_is_pointer = true;
+    if (!util.cursor_is_pointer) {
+        util.cursor_is_pointer = true;
         emsc_js_cursor_to_pointer();
     }
     #endif
 }
 
 void util_html5_cursor_to_default(void) {
+    assert(util.valid);
     #if defined(__EMSCRIPTEN__)
-    if (state.cursor_is_pointer) {
-        state.cursor_is_pointer = false;
+    if (util.cursor_is_pointer) {
+        util.cursor_is_pointer = false;
         emsc_js_cursor_to_default();
     }
     #endif
