@@ -26,7 +26,7 @@
 #include "pick.h"
 #include "trace.h"
 #include "util.h"
-#include "nodenames.h"
+#include "m6502/nodenames.h"
 
 #include <math.h>
 
