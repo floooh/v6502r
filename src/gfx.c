@@ -67,7 +67,7 @@ void gfx_init(const gfx_desc_t* desc) {
 
     // create vertex buffer from offline-baked vertex data
     for (int i = 0; i < MAX_LAYERS; i++) {
-        if (desc->seg_vertices[i].ptr) {
+        if (desc->seg_vertices[i].ptr && (desc->seg_vertices[i].size > 0)) {
             gfx.layers[i].vb = sg_make_buffer(&(sg_buffer_desc){
                 .data = desc->seg_vertices[i]
             });
@@ -104,7 +104,7 @@ void gfx_init(const gfx_desc_t* desc) {
 
     // a 2048x1 dynamic palette texture
     gfx.img = sg_make_image(&(sg_image_desc){
-        .width = 2048,
+        .width = MAX_NODES,
         .height = 1,
         .pixel_format = SG_PIXELFORMAT_R8,
         .min_filter = SG_FILTER_NEAREST,
@@ -162,7 +162,7 @@ void gfx_draw(void) {
     }
     for (int i = 0; i < MAX_LAYERS; i++) {
         vs_params.color0 = gfx.layer_palette.colors[i];
-        if (gfx.layer_visible[i]) {
+        if (gfx.layer_visible[i] && (gfx.layers[i].vb.id != SG_INVALID_ID)) {
             sg_apply_bindings(&(sg_bindings){
                 .vertex_buffers[0] = gfx.layers[i].vb,
                 .vs_images[SLOT_palette_tex] = gfx.img

@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define MAX_LAYERS (6)
-#define MAX_NODES (2048)
+#define MAX_NODES (4096)    // NOTE: ALSO CHANGE IN SHADER!
 #define MAX_TRACE_ITEMS (256)
 #define MAX_BINARY_SIZE ((1<<16)+2)
 #define MAX_LINKURL_SIZE (128)
