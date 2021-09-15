@@ -11,7 +11,7 @@
 #include "pick.h"
 #include "trace.h"
 #include "sim.h"
-#include "m6502/segdefs.h"
+#include "segdefs.h"
 
 /* example program from visual6502.org:
                    * = 0000
