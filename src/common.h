@@ -15,6 +15,12 @@
 #define TRACE_FLIPBIT_CLK0 (1<<0)
 #define TRACE_FLIPBIT_OP (1<<1)
 
+#if defined(CHIP_6502)
+#define WINDOW_TITLE "Visual 6502 Remix"
+#else
+#define WINDOW_TITLE "Visual Z80 Remix"
+#endif
+
 typedef struct {
     float x, y, z, w;
 } float4_t;

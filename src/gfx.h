@@ -12,6 +12,8 @@ typedef struct {
 
 typedef struct {
     sg_range seg_vertices[MAX_LAYERS];
+    uint16_t seg_min_x;
+    uint16_t seg_min_y;
     uint16_t seg_max_x;
     uint16_t seg_max_y;
 } gfx_desc_t;

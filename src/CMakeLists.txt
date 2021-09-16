@@ -14,7 +14,7 @@ endif()
 
 fips_begin_lib(common)
     fips_vs_warning_level(3)
-    fips_files(common.c common.h)
+    fips_files(dummy.c)
     sokol_shader(gfx.glsl ${slang})
     fips_dir(res)
     fips_generate(FROM fonts.yml TYPE dump HEADER fonts.h)
@@ -34,6 +34,7 @@ set(SOURCES
     asm.c asm.h
     ui.cc ui.h
     ui_asm.cc ui_asm.h
+    common.h
 )
 
 fips_begin_app(v6502r windowed)
@@ -44,7 +45,7 @@ fips_begin_app(v6502r windowed)
     fips_files(nodenames.c nodenames.h)
     fips_deps(common perfect6502)
 fips_end_app()
-target_compile_definitions(v6502r PRIVATE V6502R_6502)
+target_compile_definitions(v6502r PRIVATE CHIP_6502)
 target_include_directories(v6502r PRIVATE m6502)
 
 fips_begin_app(vz80r windowed)
@@ -55,5 +56,5 @@ fips_begin_app(vz80r windowed)
     fips_files(nodenames.c nodenames.h)
     fips_deps(common perfect6502)
 fips_end_app()
-target_compile_definitions(vz80r PRIVATE V6502R_Z80)
+target_compile_definitions(vz80r PRIVATE CHIP_Z80)
 target_include_directories(vz80r PRIVATE z80)

@@ -24,6 +24,8 @@ static struct {
         sg_buffer vb;
         int num_elms;
     } layers[MAX_LAYERS];
+    uint16_t seg_min_x;
+    uint16_t seg_min_y;
     uint16_t seg_max_x;
     uint16_t seg_max_y;
     sg_pipeline pip_alpha;
@@ -55,11 +57,13 @@ void gfx_init(const gfx_desc_t* desc) {
     });
 
     // default values
+    gfx.seg_min_x = desc->seg_min_x;
+    gfx.seg_min_y = desc->seg_min_y;
     gfx.seg_max_x = desc->seg_max_x;
     gfx.seg_max_y = desc->seg_max_y;
     gfx.aspect = 1.0f;
-    gfx.scale = 3.5f;
-    gfx.offset = (float2_t) { -0.1f, +0.025f };
+    gfx.scale = 7.0f;
+    gfx.offset = (float2_t) { -0.05f, 0.0f };
     gfx.layer_palette = default_palette;
     for (int i = 0; i < MAX_LAYERS; i++) {
         gfx.layer_visible[i] = true;

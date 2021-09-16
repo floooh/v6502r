@@ -9,5 +9,5 @@ dst_dir = cur_dir + '/../../src/m6502'
 print("writing nodenames...")
 nodenames.dump(src_dir, dst_dir)
 print("writing segdefs...")
-segdefs.dump(src_dir, dst_dir)
+segdefs.dump(src_dir, dst_dir, 1)
 print("done.")

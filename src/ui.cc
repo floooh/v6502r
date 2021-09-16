@@ -766,7 +766,7 @@ static void ui_picking(void) {
         char str[256] = { 0 };
         for (int i = 0; i < pick_result.num_hits; i++) {
             int node_index = pick_result.node_index[i];
-            assert((node_index >= 0) && (node_index < max_node_names));
+            assert((node_index >= 0) && (node_index < num_node_names));
             if (node_names[node_index][0] != 0) {
                 if (i != 0) {
                     strcat(str, "\n");

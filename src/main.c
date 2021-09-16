@@ -51,12 +51,16 @@ static void app_init(void) {
             [4] = SG_RANGE(seg_vertices_4),
             [5] = SG_RANGE(seg_vertices_5),
         },
+        .seg_min_x = seg_min_x,
+        .seg_min_y = seg_min_y,
         .seg_max_x = seg_max_x,
         .seg_max_y = seg_max_y,
     });
     input_init();
     ui_init();
     pick_init(&(pick_desc_t){
+        .seg_min_x = seg_min_x,
+        .seg_min_y = seg_min_y,
         .seg_max_x = seg_max_x,
         .seg_max_y = seg_max_y,
         .layers = {
@@ -112,7 +116,8 @@ static void app_frame(void) {
         gfx_get_display_size(),
         gfx_get_offset(),
         gfx_get_aspect(),
-        gfx_get_scale());
+        gfx_get_scale()
+    );
     for (int i = 0; i < pick_result.num_hits; i++) {
         gfx_highlight_node(pick_result.node_index[i]);
     }
@@ -145,7 +150,7 @@ sapp_desc sokol_main(int argc, char* argv[]) {
         .cleanup_cb = app_shutdown,
         .width = 900,
         .height = 700,
-        .window_title = "Visual6502 Remix",
+        .window_title = WINDOW_TITLE,
         .enable_clipboard = true,
         .clipboard_size = 16*1024,
         .icon = {

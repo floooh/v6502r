@@ -17,6 +17,8 @@ import tripy
 VERTICES = []   # each vertex is a (x,y,u,v) tuple (u being the node index)
 MAX_X = 0
 MAX_Y = 0
+MIN_X = 65536
+MIN_Y = 65536
 
 # segments (== polygons) bucketed into layers, each segment is a triple
 # of [node_index, start_vertex_index, num_vertices]
@@ -42,11 +44,11 @@ VERTEXBUFFERS = [[] for i in range(0, MAX_LAYERS)]
 # read the segdefs.js file and extract vertex-, segment- and node-data
 # into VERTICES, SEGMENTS and NODES
 #
-def parse_segdef(src_dir):
-    global MAX_X, MAX_Y
+def parse_segdef(src_dir, scale):
+    global MAX_X, MAX_Y, MIN_X, MIN_Y
     fp = open(src_dir + '/segdefs.js', 'r')
     lines = fp.readlines()
-    fp.close
+    fp.close()
     for line in lines:
         if not line.startswith('['):
             continue
@@ -56,12 +58,17 @@ def parse_segdef(src_dir):
         layer = int(tokens[2])
         verts = []
         for i in range(3, len(tokens), 2):
-            x = int(float(tokens[i]) * 2.0)
-            y = int(float(tokens[i+1]) * 2)
+            # NOTE: the +1 is because the Z80 has some coords -0.5
+            x = int(float(tokens[i]) * scale) + 1
+            y = int(float(tokens[i+1]) * scale) + 1
             if x > MAX_X:
                 MAX_X = x
             if y > MAX_Y:
                 MAX_Y = y
+            if x < MIN_X:
+                MIN_X = x
+            if y < MIN_Y:
+                MIN_Y = y
             verts.append((x,y))
         SEGMENTS[layer].append( [ node_index, len(VERTICES), len(verts) ] )
         if NODES[node_index][2] == 0:
@@ -129,8 +136,10 @@ def write_header(dst_dir):
     fp.write('#pragma once\n')
     fp.write("// machine generated, don't edit!\n");
     fp.write('#include <stdint.h>\n')
-    fp.write('static const uint16_t seg_max_x = {}; // max x coordinate (min is 0)\n'.format(MAX_X))
-    fp.write('static const uint16_t seg_max_y = {}; // max y coordinate (min is 0)\n'.format(MAX_Y))
+    fp.write('static const uint16_t seg_max_x = {}; // max x coordinate\n'.format(MAX_X))
+    fp.write('static const uint16_t seg_max_y = {}; // max y coordinate\n'.format(MAX_Y))
+    fp.write('static const uint16_t seg_min_x = {}; // min x coordinate\n'.format(MIN_X))
+    fp.write('static const uint16_t seg_min_y = {}; // min y coordinate\n'.format(MIN_Y))
     fp.write('static const uint16_t grid_cells = {}; // length of picking grid in one dimension\n'.format(GRID_NUM_CELLS))
     for i,vb in enumerate(VERTEXBUFFERS):
         fp.write('extern uint16_t seg_vertices_{}[{}]; // (x,y,u=node_index,v=0) as triangle list\n'.format(i,len(vb)*4))
@@ -165,8 +174,8 @@ def write_source(dst_dir):
     fp.close()
 
 #-------------------------------------------------------------------------------
-def dump(src_dir, dst_dir):
-    parse_segdef(src_dir)
+def dump(src_dir, dst_dir, scale):
+    parse_segdef(src_dir, scale)
     gen_triangles()
     flatten_picking_grid()
     write_header(dst_dir)

@@ -37,6 +37,8 @@ typedef struct {
 } pick_grid_t;
 
 typedef struct {
+    uint16_t seg_min_x;
+    uint16_t seg_min_y;
     uint16_t seg_max_x;
     uint16_t seg_max_y;
     pick_layer_t layers[MAX_LAYERS];
