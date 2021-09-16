@@ -2,7 +2,12 @@
 //  trace.c
 //  Keep a history of chip state.
 //------------------------------------------------------------------------------
+#if defined(CHIP_6502)
 #include "perfect6502.h"
+#else
+#include "perfectz80.h"
+#endif
+#include "nodenames.h"
 #include "trace.h"
 #include "sim.h"
 
@@ -120,194 +125,6 @@ static uint32_t read_nodes(uint32_t trace_index, uint32_t count, uint32_t* node_
     return result;
 }
 
-enum {
-//    D1x1 = 827,
-    a0 = 737,
-    a1 = 1234,
-    a2 = 978,
-    a3 = 162,
-    a4 = 727,
-    a5 = 858,
-    a6 = 1136,
-    a7 = 1653,
-    ab0 = 268,
-    ab1 = 451,
-    ab2 = 1340,
-    ab3 = 211,
-    ab4 = 435,
-    ab5 = 736,
-    ab6 = 887,
-    ab7 = 1493,
-    ab8 = 230,
-    ab9 = 148,
-    ab10 = 1443,
-    ab11 = 399,
-    ab12 = 1237,
-    ab13 = 349,
-    ab14 = 672,
-    ab15 = 195,
-//    adh0 = 407,
-//    adh1 = 52,
-//    adh2 = 1651,
-//    adh3 = 315,
-//    adh4 = 1160,
-//    adh5 = 483,
-//    adh6 = 13,
-//    adh7 = 1539,
-//    adl0 = 413,
-//    adl1 = 1282,
-//    adl2 = 1242,
-//    adl3 = 684,
-//    adl4 = 1437,
-//    adl5 = 1630,
-//    adl6 = 121,
-//    adl7 = 1299,
-//    alu0 = 394,
-//    alu1 = 697,
-//    alu2 = 276,
-//    alu3 = 495,
-//    alu4 = 1490,
-//    alu5 = 893,
-//    alu6 = 68,
-//    alu7 = 1123,
-//    cclk = 943,   // aka cp2
-//    clearIR = 1077,
-    clk0 = 1171,
-//    clk1out = 1163,
-//    clk2out = 421,
-//    clock1 = 156,
-//    clock2 = 1536,
-//    cp1 = 710,
-    db0 = 1005,
-    db1 = 82,
-    db2 = 945,
-    db3 = 650,
-    db4 = 1393,
-    db5 = 175,
-    db6 = 1591,
-    db7 = 1349,
-//    dor0 = 222,
-//    dor1 = 527,
-//    dor2 = 1288,
-//    dor3 = 823,
-//    dor4 = 873,
-//    dor5 = 1266,
-//    dor6 = 1418,
-//    dor7 = 158,
-//    fetch = 879,
-//    h1x1 = 1042 // drive status byte onto databus
-//    idb0 = 1108,
-//    idb1 = 991,
-//    idb2 = 1473,
-//    idb3 = 1302,
-//    idb4 = 892,
-//    idb5 = 1503,
-//    idb6 = 833,
-//    idb7 = 493,
-//    idl0 = 116,
-//    idl1 = 576,
-//    idl2 = 1485,
-//    idl3 = 1284,
-//    idl4 = 1516,
-//    idl5 = 498,
-//    idl6 = 1537,
-//    idl7 = 529,
-    irq = 103,
-    nmi = 1297,
-//    notRdy0 = 248,
-    notir0 = 194,
-    notir1 = 702,
-    notir2 = 1182,
-    notir3 = 1125,
-    notir4 = 26,
-    notir5 = 1394,  // OK
-    notir6 = 895,   // OK
-    notir7 = 1320,
-//    nots0 = 418,
-//    nots1 = 1064,
-//    nots2 = 752,
-//    nots3 = 828,
-//    nots4 = 1603,
-//    nots5 = 601,
-//    nots6 = 1029,
-//    nots7 = 181,
-    p0 = 687,
-    p1 = 1444,
-    p2 = 1421,
-    p3 = 439,
-    p4 = 1119,
-    p5 = 0,
-    p6 = 77,
-    p7 = 1370,
-    pch0 = 1670,
-    pch1 = 292,
-    pch2 = 502,
-    pch3 = 584,
-    pch4 = 948,
-    pch5 = 49,
-    pch6 = 1551,
-    pch7 = 205,
-    pcl0 = 1139,
-    pcl1 = 1022,
-    pcl2 = 655,
-    pcl3 = 1359,
-    pcl4 = 900,
-    pcl5 = 622,
-    pcl6 = 377,
-    pcl7 = 1611,
-//    pd0 = 758,
-//    pd1 = 361,
-//    pd2 = 955,
-//    pd3 = 894,
-//    pd4 = 369,
-//    pd5 = 829,
-//    pd6 = 1669,
-//    pd7 = 1690,
-    rdy = 89,
-    res = 159,
-    rw = 1156,
-    s0 = 1403,
-    s1 = 183,
-    s2 = 81,
-    s3 = 1532,
-    s4 = 1702,
-    s5 = 1098,
-    s6 = 1212,
-    s7 = 1435,
-//    sb0 = 54,
-//    sb1 = 1150,
-//    sb2 = 1287,
-//    sb3 = 1188,
-//    sb4 = 1405,
-//    sb5 = 166,
-//    sb6 = 1336,
-//    sb7 = 1001,
-    so = 1672,
-    sync_ = 539,
-//    t2 = 971,
-//    t3 = 1567,
-//    t4 = 690,
-//    t5 = 909,
-    vcc = 657,
-    vss = 558,
-    x0 = 1216,
-    x1 = 98,
-    x2 = 1,
-    x3 = 1648,
-    x4 = 85,
-    x5 = 589,
-    x6 = 448,
-    x7 = 777,
-    y0 = 64,
-    y1 = 1148,
-    y2 = 573,
-    y3 = 305,
-    y4 = 989,
-    y5 = 615,
-    y6 = 115,
-    y7 = 843,
-};
-
 uint32_t trace_get_cycle(uint32_t index) {
     assert(trace.valid);
     uint32_t idx = trace_to_ring_index(index);
@@ -320,94 +137,135 @@ uint32_t trace_get_flipbits(uint32_t index) {
     return trace.items[idx].flip_bits;
 }
 
+#if defined(CHIP_6502)
 uint8_t trace_get_a(uint32_t index) {
     assert(trace.valid);
-    return read_nodes(index, 8, (uint32_t[]){ a0,a1,a2,a3,a4,a5,a6,a7 });
+    return read_nodes(index, 8, (uint32_t[]){ p6502_a0,p6502_a1,p6502_a2,p6502_a3,p6502_a4,p6502_a5,p6502_a6,p6502_a7 });
 }
+#endif
 
+#if defined(CHIP_6502)
 uint8_t trace_get_x(uint32_t index) {
     assert(trace.valid);
-    return read_nodes(index, 8, (uint32_t[]){ x0,x1,x2,x3,x4,x5,x6,x7 });
+    return read_nodes(index, 8, (uint32_t[]){ p6502_x0,p6502_x1,p6502_x2,p6502_x3,p6502_x4,p6502_x5,p6502_x6,p6502_x7 });
 }
+#endif
 
+#if defined(CHIP_6502)
 uint8_t trace_get_y(uint32_t index) {
     assert(trace.valid);
-    return read_nodes(index, 8, (uint32_t[]){ y0,y1,y2,y3,y4,y5,y6,y7 });
+    return read_nodes(index, 8, (uint32_t[]){ p6502_y0,p6502_y1,p6502_y2,p6502_y3,p6502_y4,p6502_y5,p6502_y6,p6502_y7 });
 }
+#endif
 
+#if defined(CHIP_6502)
 uint8_t trace_get_sp(uint32_t index) {
     assert(trace.valid);
-    return read_nodes(index, 8, (uint32_t[]){ s0,s1,s2,s3,s4,s5,s6,s7 });
+    return read_nodes(index, 8, (uint32_t[]){ p6502_s0,p6502_s1,p6502_s2,p6502_s3,p6502_s4,p6502_s5,p6502_s6,p6502_s7 });
 }
+#endif
 
+#if defined(CHIP_6502)
 static uint8_t trace_get_pcl(uint32_t index) {
     assert(trace.valid);
-    return read_nodes(index, 8, (uint32_t[]){ pcl0,pcl1,pcl2,pcl3,pcl4,pcl5,pcl6,pcl7 });
+    return read_nodes(index, 8, (uint32_t[]){ p6502_pcl0,p6502_pcl1,p6502_pcl2,p6502_pcl3,p6502_pcl4,p6502_pcl5,p6502_pcl6,p6502_pcl7 });
 }
+#endif
 
+#if defined(CHIP_6502)
 static uint8_t trace_get_pch(uint32_t index) {
     assert(trace.valid);
-    return read_nodes(index, 8, (uint32_t[]){ pch0,pch1,pch2,pch3,pch4,pch5,pch6,pch7 });
+    return read_nodes(index, 8, (uint32_t[]){ p6502_pch0,p6502_pch1,p6502_pch2,p6502_pch3,p6502_pch4,p6502_pch5,p6502_pch6,p6502_pch7 });
 }
+#endif
 
+#if defined(CHIP_6502)
 uint16_t trace_get_pc(uint32_t index) {
     assert(trace.valid);
     return (trace_get_pch(index)<<8)|trace_get_pcl(index);
 }
+#endif
 
+#if defined(CHIP_6502)
 uint8_t trace_get_ir(uint32_t index) {
     assert(trace.valid);
-    return ~read_nodes(index, 8, (uint32_t[]){ notir0,notir1,notir2,notir3,notir4,notir5,notir6,notir7 });
+    return ~read_nodes(index, 8, (uint32_t[]){ p6502_notir0,p6502_notir1,p6502_notir2,p6502_notir3,p6502_notir4,p6502_notir5,p6502_notir6,p6502_notir7 });
 }
+#endif
 
+#if defined(CHIP_6502)
 uint8_t trace_get_p(uint32_t index) {
     assert(trace.valid);
-    return read_nodes(index, 8, (uint32_t[]){ p0,p1,p2,p3,p4,p5,p6,p7 });
+    // missing p6502_p5 is not a typo (there is no physical bit 5 in status reg)
+    return read_nodes(index, 8, (uint32_t[]){ p6502_p0,p6502_p1,p6502_p2,p6502_p3,p6502_p4,0,p6502_p6,p6502_p7 });
 }
+#endif
 
+#if defined(CHIP_6502)
 bool trace_get_rw(uint32_t index) {
     assert(trace.valid);
-    return is_node_high(index, rw);
+    return is_node_high(index, p6502_rw);
 }
+#endif
 
+#if defined(CHIP_6502)
 bool trace_get_sync(uint32_t index) {
     assert(trace.valid);
-    return is_node_high(index, sync_);
+    return is_node_high(index, p6502_sync);
 }
+#endif
 
+#if defined(CHIP_6502)
 bool trace_get_clk0(uint32_t index) {
     assert(trace.valid);
-    return is_node_high(index, clk0);
+    return is_node_high(index, p6502_clk0);
 }
+#endif
 
+#if defined(CHIP_6502)
 bool trace_get_irq(uint32_t index) {
     assert(trace.valid);
-    return is_node_high(index, irq);
+    return is_node_high(index, p6502_irq);
 }
+#endif
 
+#if defined(CHIP_6502)
 bool trace_get_nmi(uint32_t index) {
     assert(trace.valid);
-    return is_node_high(index, nmi);
+    return is_node_high(index, p6502_nmi);
 }
+#endif
 
+#if defined(CHIP_6502)
 bool trace_get_res(uint32_t index) {
     assert(trace.valid);
-    return is_node_high(index, res);
+    return is_node_high(index, p6502_res);
 }
+#endif
 
+#if defined(CHIP_6502)
 bool trace_get_rdy(uint32_t index) {
     assert(trace.valid);
-    return is_node_high(index, rdy);
+    return is_node_high(index, p6502_rdy);
 }
+#endif
 
 uint16_t trace_get_addr(uint32_t index) {
     assert(trace.valid);
-    return read_nodes(index, 16, (uint32_t[]){ ab0, ab1, ab2, ab3, ab4, ab5, ab6, ab7, ab8, ab9, ab10, ab11, ab12, ab13, ab14, ab15 });
+    #if defined(CHIP_6502)
+    return read_nodes(index, 16, (uint32_t[]){ p6502_ab0, p6502_ab1, p6502_ab2, p6502_ab3, p6502_ab4, p6502_ab5, p6502_ab6, p6502_ab7, p6502_ab8, p6502_ab9, p6502_ab10, p6502_ab11, p6502_ab12, p6502_ab13, p6502_ab14, p6502_ab15 });
+    #else
+    return read_nodes(index, 16, (uint32_t[]){ pz80_ab0, pz80_ab1, pz80_ab2, pz80_ab3, pz80_ab4, pz80_ab5, pz80_ab6, pz80_ab7, pz80_ab8, pz80_ab9, pz80_ab10, pz80_ab11, pz80_ab12, pz80_ab13, pz80_ab14, pz80_ab15 });
+    #endif
 }
 
 uint8_t trace_get_data(uint32_t index) {
     assert(trace.valid);
-    return read_nodes(index, 8, (uint32_t[]){ db0, db1, db2, db3, db4, db5, db6, db7 });
+    #if defined(CHIP_6502)
+    return read_nodes(index, 8, (uint32_t[]){ p6502_db0, p6502_db1, p6502_db2, p6502_db3, p6502_db4, p6502_db5, p6502_db6, p6502_db7 });
+    #else
+    return read_nodes(index, 8, (uint32_t[]){ pz80_db0, pz80_db1, pz80_db2, pz80_db3, pz80_db4, pz80_db5, pz80_db6, pz80_db7 });
+    #endif
 }
 
 void trace_store(void) {
@@ -415,19 +273,23 @@ void trace_store(void) {
     uint32_t idx = ring_add();
     trace_item_t* item = &trace.items[idx];
     item->cycle = sim_get_cycle();
-    memcpy(&item->mem, memory, sizeof(item->mem));
+    memcpy(&item->mem, cpu_memory, sizeof(item->mem));
     sim_get_node_values((range_t){ .ptr=item->node_values, .size=sizeof(item->node_values) });
     sim_get_transistor_on((range_t){ .ptr=item->transistors_on, .size=sizeof(item->transistors_on) });
     // find start of instruction (first half tick after sync)
-    if (!sim_get_sync() && (trace_num_items() > 1) && trace_get_sync(1)) {
-        trace.flip_bits ^= TRACE_FLIPBIT_OP;
-    }
-    if (sim_get_clk0()) {
-        trace.flip_bits |= TRACE_FLIPBIT_CLK0;
-    }
-    else {
-        trace.flip_bits &= ~TRACE_FLIPBIT_CLK0;
-    }
+    #if defined(CHIP_6502)
+        if (!sim_get_sync() && (trace_num_items() > 1) && trace_get_sync(1)) {
+            trace.flip_bits ^= TRACE_FLIPBIT_OP;
+        }
+        if (sim_get_clk0()) {
+            trace.flip_bits |= TRACE_FLIPBIT_CLK0;
+        }
+        else {
+            trace.flip_bits &= ~TRACE_FLIPBIT_CLK0;
+        }
+    #else
+        // FIXME
+    #endif
     item->flip_bits = trace.flip_bits;
     trace.ui.scroll_to_end = true;
 }
@@ -435,7 +297,7 @@ void trace_store(void) {
 static void load_item(trace_item_t* item) {
     trace.flip_bits = item->flip_bits;
     sim_set_cycle(item->cycle);
-    memcpy(memory, &item->mem, sizeof(item->mem));
+    memcpy(cpu_memory, &item->mem, sizeof(item->mem));
     sim_set_node_values((range_t){ item->node_values, sizeof(item->node_values) });
     sim_set_transistor_on((range_t){ item->transistors_on, sizeof(item->transistors_on) });
 }

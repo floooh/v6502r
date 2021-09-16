@@ -1,8 +1,9 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h> // size_t
 
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
 typedef unsigned int BOOL;
 typedef uint16_t nodenum_t;
 

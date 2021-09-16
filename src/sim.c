@@ -3,7 +3,11 @@
 //
 //  Wrapper functions around perfect6502.
 //------------------------------------------------------------------------------
+#if defined(CHIP_6502)
 #include "perfect6502.h"
+#else
+#include "perfectz80.h"
+#endif
 #include "sim.h"
 #include "trace.h"
 #include "gfx.h"
@@ -11,22 +15,22 @@
 static struct {
     bool valid;
     bool paused;
-    void* p6502_state;
+    void* cpu_state;
 } sim;
 
 void sim_init(void) {
     assert(!sim.valid);
-    assert(0 == sim.p6502_state);
-    sim.p6502_state = initAndResetChip();
-    assert(sim.p6502_state);
+    assert(0 == sim.cpu_state);
+    sim.cpu_state = cpu_initAndResetChip();
+    assert(sim.cpu_state);
     sim.paused = true;
     sim.valid = true;
 }
 
 void sim_shutdown(void) {
     assert(sim.valid);
-    assert(0 != sim.p6502_state);
-    destroyChip(sim.p6502_state);
+    assert(0 != sim.cpu_state);
+    cpu_destroyChip(sim.cpu_state);
     memset(&sim, 0, sizeof(sim));
 }
 
@@ -55,181 +59,221 @@ bool sim_get_paused(void) {
 void sim_step(int num_half_cycles) {
     assert(sim.valid);
     for (int i = 0; i < num_half_cycles; i++) {
-        step(sim.p6502_state);
+        cpu_step(sim.cpu_state);
         trace_store();
     }
 }
 
 void sim_step_op(void) {
     assert(sim.valid);
-    int num_sync = 0;
-    do {
-        sim_step(1);
-        if (readSYNC(sim.p6502_state)) {
-            num_sync++;
+    #if defined(CHIP_6502)
+        int num_sync = 0;
+        do {
+            sim_step(1);
+            if (cpu_readSYNC(sim.cpu_state)) {
+                num_sync++;
+            }
         }
-    }
-    while (num_sync != 2);
+        while (num_sync != 2);
+    #else
+    // FIXME
+    #endif
 }
 
 void sim_w8(uint16_t addr, uint8_t val) {
-    memory[addr] = val;
+    cpu_memory[addr] = val;
 }
 
 uint8_t sim_r8(uint16_t addr) {
-    return memory[addr];
+    return cpu_memory[addr];
 }
 
 void sim_w16(uint16_t addr, uint16_t val) {
-    memory[addr] = (uint8_t) val;
-    memory[(addr+1)&0xFFFF] = val>>8;
+    cpu_memory[addr] = (uint8_t) val;
+    cpu_memory[(addr+1)&0xFFFF] = val>>8;
 }
 
 uint16_t sim_r16(uint16_t addr) {
-    return (memory[(addr+1) & 0xFFFF]<<8) | memory[addr];
+    return (cpu_memory[(addr+1) & 0xFFFF]<<8) | cpu_memory[addr];
 }
 
 void sim_write(uint16_t addr, uint16_t num_bytes, const uint8_t* ptr) {
     for (uint16_t i = 0; i < num_bytes; i++) {
-        memory[(addr+i)&0xFFFF] = ptr[i];
+        cpu_memory[(addr+i)&0xFFFF] = ptr[i];
     }
 }
 
 void sim_clear(uint16_t addr, uint16_t num_bytes) {
     for (uint16_t i = 0; i < num_bytes; i++) {
-        memory[(addr+i)&0xFFFF] = 0;
+        cpu_memory[(addr+i)&0xFFFF] = 0;
     }
-}
-
-uint8_t sim_get_a(void) {
-    assert(sim.valid);
-    return readA(sim.p6502_state);
-}
-
-uint8_t sim_get_x(void) {
-    assert(sim.valid);
-    return readX(sim.p6502_state);
-}
-
-uint8_t sim_get_y(void) {
-    assert(sim.valid);
-    return readY(sim.p6502_state);
-}
-
-uint8_t sim_get_sp(void) {
-    assert(sim.valid);
-    return readSP(sim.p6502_state);
-}
-
-uint16_t sim_get_pc(void) {
-    assert(sim.valid);
-    return readPC(sim.p6502_state);
-}
-
-uint8_t sim_get_ir(void) {
-    assert(sim.valid);
-    return readIR(sim.p6502_state);
 }
 
 uint16_t sim_get_addr(void) {
     assert(sim.valid);
-    return readAddressBus(sim.p6502_state);
+    return cpu_readAddressBus(sim.cpu_state);
 }
 
 uint8_t sim_get_data(void) {
     assert(sim.valid);
-    return readDataBus(sim.p6502_state);
-}
-
-uint8_t sim_get_p(void) {
-    assert(sim.valid);
-    return readP(sim.p6502_state);
-}
-
-bool sim_get_clk0(void) {
-    assert(sim.valid);
-    return readCLK0(sim.p6502_state) != 0;
-}
-
-bool sim_get_rw(void) {
-    assert(sim.valid);
-    return readRW(sim.p6502_state) != 0;
-}
-
-bool sim_get_sync(void) {
-    assert(sim.valid);
-    return readSYNC(sim.p6502_state) != 0;
+    return cpu_readDataBus(sim.cpu_state);
 }
 
 uint32_t sim_get_cycle(void) {
-    return cycle + 1;
+    return cpu_cycle + 1;
 }
 
 void sim_set_cycle(uint32_t c) {
-    cycle = c - 1;
+    cpu_cycle = c - 1;
 }
 
+#if defined(CHIP_6502)
+uint8_t sim_get_a(void) {
+    assert(sim.valid);
+    return cpu_readA(sim.cpu_state);
+}
+#endif
+
+#if defined(CHIP_6502)
+uint8_t sim_get_x(void) {
+    assert(sim.valid);
+    return cpu_readX(sim.cpu_state);
+}
+#endif
+
+#if defined(CHIP_6502)
+uint8_t sim_get_y(void) {
+    assert(sim.valid);
+    return cpu_readY(sim.cpu_state);
+}
+#endif
+
+#if defined(CHIP_6502)
+uint8_t sim_get_sp(void) {
+    assert(sim.valid);
+    return cpu_readSP(sim.cpu_state);
+}
+#endif
+
+#if defined(CHIP_6502)
+uint16_t sim_get_pc(void) {
+    assert(sim.valid);
+    return cpu_readPC(sim.cpu_state);
+}
+#endif
+
+#if defined(CHIP_6502)
+uint8_t sim_get_ir(void) {
+    assert(sim.valid);
+    return cpu_readIR(sim.cpu_state);
+}
+#endif
+
+#if defined(CHIP_6502)
+uint8_t sim_get_p(void) {
+    assert(sim.valid);
+    return cpu_readP(sim.cpu_state);
+}
+#endif
+
+#if defined(CHIP_6502)
+bool sim_get_clk0(void) {
+    assert(sim.valid);
+    return cpu_readCLK0(sim.cpu_state);
+}
+#endif
+
+#if defined(CHIP_6502)
+bool sim_get_rw(void) {
+    assert(sim.valid);
+    return cpu_readRW(sim.cpu_state);
+}
+#endif
+
+#if defined(CHIP_6502)
+bool sim_get_sync(void) {
+    assert(sim.valid);
+    return cpu_readSYNC(sim.cpu_state);
+}
+#endif
+
+#if defined(CHIP_6502)
 void sim_set_rdy(bool high) {
     assert(sim.valid);
-    writeRDY(sim.p6502_state, high ? 1 : 0);
+    cpu_writeRDY(sim.cpu_state, high);
 }
+#endif
 
+#if defined(CHIP_6502)
 bool sim_get_rdy(void) {
     assert(sim.valid);
-    return 0 != readRDY(sim.p6502_state);
+    return cpu_readRDY(sim.cpu_state);
 }
+#endif
 
+#if defined(CHIP_6502)
 void sim_set_irq(bool high) {
     assert(sim.valid);
-    writeIRQ(sim.p6502_state, high ? 1 : 0);
+    cpu_writeIRQ(sim.cpu_state, high);
 }
+#endif
 
+#if defined(CHIP_6502)
 bool sim_get_irq(void) {
     assert(sim.valid);
-    return 0 != readIRQ(sim.p6502_state);
+    return cpu_readIRQ(sim.cpu_state);
 }
+#endif
 
+#if defined(CHIP_6502)
 void sim_set_nmi(bool high) {
     assert(sim.valid);
-    writeNMI(sim.p6502_state, high ? 1 : 0);
+    cpu_writeNMI(sim.cpu_state, high);
 }
+#endif
 
+#if defined(CHIP_6502)
 bool sim_get_nmi(void) {
     assert(sim.valid);
-    return 0 != readNMI(sim.p6502_state);
+    return cpu_readNMI(sim.cpu_state);
 }
+#endif
 
+#if defined(CHIP_6502)
 void sim_set_res(bool high) {
     assert(sim.valid);
-    writeRES(sim.p6502_state, high ? 1 : 0);
+    cpu_writeRES(sim.cpu_state, high);
 }
+#endif
 
+#if defined(CHIP_6502)
 bool sim_get_res(void) {
     assert(sim.valid);
-    return 0 != readRES(sim.p6502_state);
+    return cpu_readRES(sim.cpu_state);
 }
+#endif
 
 bool sim_get_node_state(range_t to_buffer) {
     assert(sim.valid && to_buffer.ptr && (to_buffer.size > 0));
-    return 0 != p6502_read_node_state_as_bytes(sim.p6502_state, to_buffer.ptr, to_buffer.size);
+    return cpu_read_node_state_as_bytes(sim.cpu_state, to_buffer.ptr, to_buffer.size);
 }
 
 bool sim_get_node_values(range_t to_buffer) {
     assert(sim.valid && to_buffer.ptr && (to_buffer.size > 0));
-    return 0 != p6502_read_node_values(sim.p6502_state, to_buffer.ptr, to_buffer.size);
+    return cpu_read_node_values(sim.cpu_state, to_buffer.ptr, to_buffer.size);
 }
 
 bool sim_get_transistor_on(range_t to_buffer) {
     assert(sim.valid && to_buffer.ptr && (to_buffer.size > 0));
-    return 0 != p6502_read_transistor_on(sim.p6502_state, to_buffer.ptr, to_buffer.size);
+    return cpu_read_transistor_on(sim.cpu_state, to_buffer.ptr, to_buffer.size);
 }
 
 bool sim_set_node_values(range_t from_buffer) {
     assert(sim.valid && from_buffer.ptr && (from_buffer.size > 0));
-    return 0 != p6502_write_node_values(sim.p6502_state, from_buffer.ptr, from_buffer.size);
+    return cpu_write_node_values(sim.cpu_state, from_buffer.ptr, from_buffer.size);
 }
 
 bool sim_set_transistor_on(range_t from_buffer) {
     assert(sim.valid && from_buffer.ptr && (from_buffer.size > 0));
-    return 0 != p6502_write_transistor_on(sim.p6502_state, from_buffer.ptr, from_buffer.size);
+    return cpu_write_transistor_on(sim.cpu_state, from_buffer.ptr, from_buffer.size);
 }

@@ -8,7 +8,7 @@ src_dir = cur_dir + '/z80'
 dst_dir = cur_dir + '/../../src/z80'
 
 print("writing nodenames...")
-nodenames.dump(src_dir, dst_dir)
+nodenames.dump(src_dir, dst_dir, 'pz80')
 print("writing netlist...")
 netlist.dump(src_dir, cur_dir + '/../perfect6502/netlist_z80.h', 'z80', nodenames.NODENAMES)
 print("writing segdefs...")

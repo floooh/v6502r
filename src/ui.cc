@@ -581,52 +581,56 @@ static void ui_controls(void) {
         ImGui::Separator();
 
         /* CPU state */
-        const uint8_t ir = sim_get_ir();
-        const uint8_t p = sim_get_p();
-        char p_str[9] = {
-            (p & (1<<7)) ? 'N':'n',
-            (p & (1<<6)) ? 'V':'v',
-            (p & (1<<5)) ? 'X':'x',
-            (p & (1<<4)) ? 'B':'b',
-            (p & (1<<3)) ? 'D':'d',
-            (p & (1<<2)) ? 'I':'i',
-            (p & (1<<1)) ? 'Z':'z',
-            (p & (1<<0)) ? 'C':'c',
-            0,
-        };
-        ImGui::Text("A:%02X X:%02X Y:%02X SP:%02X PC:%04X",
-            sim_get_a(), sim_get_x(), sim_get_y(), sim_get_sp(), sim_get_pc());
-        ImGui::Text("P:%02X (%s) Cycle: %d", p, p_str, sim_get_cycle()>>1);
-        ImGui::Text("IR:%02X %s\n", ir, util_opcode_to_str(ir));
-        ImGui::Text("Data:%02X Addr:%04X %s %s %s",
-            sim_get_data(), sim_get_addr(),
-            sim_get_rw()?"R":"W",
-            sim_get_clk0()?"CLK0":"    ",
-            sim_get_sync()?"SYNC":"    ");
-        ImGui::Separator();
-        ui_input_uint16("NMI vector (FFFA): ", "##nmi_vec", 0xFFFA);
-        ui_input_uint16("RES vector (FFFC): ", "##res_vec", 0xFFFC);
-        ui_input_uint16("IRQ vector (FFFE): ", "##irq_vec", 0xFFFE);
-        ImGui::Separator();
-        bool rdy_active = !sim_get_rdy();
-        if (ImGui::Checkbox("RDY", &rdy_active)) {
-            sim_set_rdy(!rdy_active);
-        }
-        ImGui::SameLine();
-        bool irq_active = !sim_get_irq();
-        if (ImGui::Checkbox("IRQ", &irq_active)) {
-            sim_set_irq(!irq_active);
-        }
-        ImGui::SameLine();
-        bool nmi_active = !sim_get_nmi();
-        if (ImGui::Checkbox("NMI", &nmi_active)) {
-            sim_set_nmi(!nmi_active);
-        }
-        ImGui::SameLine();
-        bool res_active = !sim_get_res();
-        if (ImGui::Checkbox("RES", &res_active)) {
-            sim_set_res(!res_active);
-        }
+        #if defined(CHIP_6502)
+            const uint8_t ir = sim_get_ir();
+            const uint8_t p = sim_get_p();
+            char p_str[9] = {
+                (p & (1<<7)) ? 'N':'n',
+                (p & (1<<6)) ? 'V':'v',
+                (p & (1<<5)) ? 'X':'x',
+                (p & (1<<4)) ? 'B':'b',
+                (p & (1<<3)) ? 'D':'d',
+                (p & (1<<2)) ? 'I':'i',
+                (p & (1<<1)) ? 'Z':'z',
+                (p & (1<<0)) ? 'C':'c',
+                0,
+            };
+            ImGui::Text("A:%02X X:%02X Y:%02X SP:%02X PC:%04X",
+                sim_get_a(), sim_get_x(), sim_get_y(), sim_get_sp(), sim_get_pc());
+            ImGui::Text("P:%02X (%s) Cycle: %d", p, p_str, sim_get_cycle()>>1);
+            ImGui::Text("IR:%02X %s\n", ir, util_opcode_to_str(ir));
+            ImGui::Text("Data:%02X Addr:%04X %s %s %s",
+                sim_get_data(), sim_get_addr(),
+                sim_get_rw()?"R":"W",
+                sim_get_clk0()?"CLK0":"    ",
+                sim_get_sync()?"SYNC":"    ");
+            ImGui::Separator();
+            ui_input_uint16("NMI vector (FFFA): ", "##nmi_vec", 0xFFFA);
+            ui_input_uint16("RES vector (FFFC): ", "##res_vec", 0xFFFC);
+            ui_input_uint16("IRQ vector (FFFE): ", "##irq_vec", 0xFFFE);
+            ImGui::Separator();
+            bool rdy_active = !sim_get_rdy();
+            if (ImGui::Checkbox("RDY", &rdy_active)) {
+                sim_set_rdy(!rdy_active);
+            }
+            ImGui::SameLine();
+            bool irq_active = !sim_get_irq();
+            if (ImGui::Checkbox("IRQ", &irq_active)) {
+                sim_set_irq(!irq_active);
+            }
+            ImGui::SameLine();
+            bool nmi_active = !sim_get_nmi();
+            if (ImGui::Checkbox("NMI", &nmi_active)) {
+                sim_set_nmi(!nmi_active);
+            }
+            ImGui::SameLine();
+            bool res_active = !sim_get_res();
+            if (ImGui::Checkbox("RES", &res_active)) {
+                sim_set_res(!res_active);
+            }
+        #else
+            ImGui::Text("FIXME: Z80 CPU STATE");
+        #endif
         ImGui::Separator();
 
         /* memory dump */
@@ -698,38 +702,42 @@ static void ui_tracelog(void) {
                 ImVec2 p1 = { p0.x + window_width, p0.y + text_height};
                 dl->AddRectFilled(p0, p1, bg_color);
 
-                const uint8_t ir = trace_get_ir(i);
-                const uint8_t p = trace_get_p(i);
-                char p_str[9] = {
-                    (p & (1<<7)) ? 'N':'n',
-                    (p & (1<<6)) ? 'V':'v',
-                    (p & (1<<5)) ? 'X':'x',
-                    (p & (1<<4)) ? 'B':'b',
-                    (p & (1<<3)) ? 'D':'d',
-                    (p & (1<<2)) ? 'I':'i',
-                    (p & (1<<1)) ? 'Z':'z',
-                    (p & (1<<0)) ? 'C':'c',
-                    0,
-                };
-                ImGui::Text("%5d/%c %s  %04X %02X %04X %02X %02X %02X %02X %s %s %02X %s %s %s %s %s",
-                    cur_cycle>>1,
-                    trace_get_clk0(i)?'1':'0',
-                    trace_get_rw(i)?"R":"W",
-                    trace_get_addr(i),
-                    trace_get_data(i),
-                    trace_get_pc(i),
-                    trace_get_a(i),
-                    trace_get_x(i),
-                    trace_get_y(i),
-                    trace_get_sp(i),
-                    p_str,
-                    trace_get_sync(i)?"SYNC":"    ",
-                    ir,
-                    util_opcode_to_str(ir),
-                    trace_get_irq(i)?"   ":"IRQ",
-                    trace_get_nmi(i)?"   ":"NMI",
-                    trace_get_res(i)?"   ":"RES",
-                    trace_get_rdy(i)?"   ":"RDY");
+                #if defined(CHIP_6502)
+                    const uint8_t ir = trace_get_ir(i);
+                    const uint8_t p = trace_get_p(i);
+                    char p_str[9] = {
+                        (p & (1<<7)) ? 'N':'n',
+                        (p & (1<<6)) ? 'V':'v',
+                        (p & (1<<5)) ? 'X':'x',
+                        (p & (1<<4)) ? 'B':'b',
+                        (p & (1<<3)) ? 'D':'d',
+                        (p & (1<<2)) ? 'I':'i',
+                        (p & (1<<1)) ? 'Z':'z',
+                        (p & (1<<0)) ? 'C':'c',
+                        0,
+                    };
+                    ImGui::Text("%5d/%c %s  %04X %02X %04X %02X %02X %02X %02X %s %s %02X %s %s %s %s %s",
+                        cur_cycle>>1,
+                        trace_get_clk0(i)?'1':'0',
+                        trace_get_rw(i)?"R":"W",
+                        trace_get_addr(i),
+                        trace_get_data(i),
+                        trace_get_pc(i),
+                        trace_get_a(i),
+                        trace_get_x(i),
+                        trace_get_y(i),
+                        trace_get_sp(i),
+                        p_str,
+                        trace_get_sync(i)?"SYNC":"    ",
+                        ir,
+                        util_opcode_to_str(ir),
+                        trace_get_irq(i)?"   ":"IRQ",
+                        trace_get_nmi(i)?"   ":"NMI",
+                        trace_get_res(i)?"   ":"RES",
+                        trace_get_rdy(i)?"   ":"RDY");
+                #else
+                    ImGui::Text("FIXME: Z80 CPU STATE");
+                #endif
                 if (ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(p0, p1)) {
                     any_item_hovered = true;
                     trace_ui_set_hovered_cycle(trace_get_cycle(i));
@@ -763,15 +771,17 @@ static void ui_tracelog(void) {
 static void ui_picking(void) {
     const pick_result_t pick_result = pick_get_last_result();
     if (pick_result.num_hits > 0) {
-        char str[256] = { 0 };
+        char str[256];
+        str[0] = 0;
         for (int i = 0; i < pick_result.num_hits; i++) {
             int node_index = pick_result.node_index[i];
-            assert((node_index >= 0) && (node_index < num_node_names));
-            if (node_names[node_index][0] != 0) {
-                if (i != 0) {
-                    strcat(str, "\n");
+            if ((node_index >= 0) && (node_index < num_node_names)) {
+                if (node_names[node_index][0] != 0) {
+                    if (i != 0) {
+                        strcat(str, "\n");
+                    }
+                    strcat(str, node_names[node_index]);
                 }
-                strcat(str, node_names[node_index]);
             }
         }
         if ((str[0] != 0) && !ImGui::GetIO().WantCaptureMouse) {

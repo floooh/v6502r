@@ -22,6 +22,15 @@ void sim_clear(uint16_t addr, uint16_t num_bytes);
 void sim_write(uint16_t addr, uint16_t num_bytes, const uint8_t* ptr);
 uint32_t sim_get_cycle(void);
 void sim_set_cycle(uint32_t c);
+uint16_t sim_get_addr(void);
+uint8_t sim_get_data(void);
+bool sim_set_node_values(range_t from_buffer);
+bool sim_get_node_state(range_t to_buffer);
+bool sim_get_node_values(range_t to_buffer);
+bool sim_set_transistor_on(range_t from_buffer);
+bool sim_get_transistor_on(range_t to_buffer);
+
+#if defined(CHIP_6502)
 uint8_t sim_get_a(void);
 uint8_t sim_get_x(void);
 uint8_t sim_get_y(void);
@@ -32,8 +41,6 @@ uint8_t sim_get_p(void);
 bool sim_get_clk0(void);
 bool sim_get_rw(void);
 bool sim_get_sync(void);
-uint16_t sim_get_addr(void);
-uint8_t sim_get_data(void);
 void sim_set_rdy(bool high);
 void sim_set_irq(bool high);
 void sim_set_nmi(bool high);
@@ -42,11 +49,9 @@ bool sim_get_irq(void);
 bool sim_get_nmi(void);
 bool sim_get_res(void);
 bool sim_get_rdy(void);
-bool sim_set_node_values(range_t from_buffer);
-bool sim_get_node_state(range_t to_buffer);
-bool sim_get_node_values(range_t to_buffer);
-bool sim_set_transistor_on(range_t from_buffer);
-bool sim_get_transistor_on(range_t to_buffer);
+#else
+// FIXME: Z80 specific setters/getters
+#endif
 
 #if defined(__cplusplus)
 } // extern "C"

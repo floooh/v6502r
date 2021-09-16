@@ -26,30 +26,30 @@
 #include "netlist_6502.h"
 
 // v6502r additions
-int p6502_read_node_state_as_bytes(void* state, uint8_t* ptr, int max_nodes) {
-    int num_nodes = sizeof(netlist_6502_node_is_pullup)/sizeof(*netlist_6502_node_is_pullup);
+bool cpu_read_node_state_as_bytes(void* state, uint8_t* ptr, size_t max_nodes) {
+    size_t num_nodes = sizeof(netlist_6502_node_is_pullup)/sizeof(*netlist_6502_node_is_pullup);
     if (num_nodes > max_nodes) {
-        return 0;
+        return false;
     }
-    for (int i = 0; i < num_nodes; i++) {
-        ptr[i] = isNodeHigh(state, i) ? 160 : 48;
+    for (size_t i = 0; i < num_nodes; i++) {
+        ptr[i] = (isNodeHigh(state, i) != 0) ? 160 : 48;
     }
-    return 1;
+    return true;
 }
 
-int p6502_read_node_values(void* state, uint8_t* ptr, int max_bytes) {
+bool cpu_read_node_values(void* state, uint8_t* ptr, size_t max_bytes) {
     return read_node_values(state, ptr, max_bytes);
 }
 
-int p6502_read_transistor_on(void* state, uint8_t* ptr, int max_bytes) {
+bool cpu_read_transistor_on(void* state, uint8_t* ptr, size_t max_bytes) {
     return read_transistor_on(state, ptr, max_bytes);
 }
 
-int p6502_write_node_values(void* state, const uint8_t* ptr, int max_bytes) {
+bool cpu_write_node_values(void* state, const uint8_t* ptr, size_t max_bytes) {
     return write_node_values(state, ptr, max_bytes);
 }
 
-int p6502_write_transistor_on(void* state, const uint8_t* ptr, int max_bytes) {
+bool cpu_write_transistor_on(void* state, const uint8_t* ptr, size_t max_bytes) {
     return write_transistor_on(state, ptr, max_bytes);
 }
 
@@ -59,126 +59,96 @@ int p6502_write_transistor_on(void* state, const uint8_t* ptr, int max_bytes) {
  *
  ************************************************************/
 
-uint16_t
-readAddressBus(void *state)
-{
-	return readNodes(state, 16, (nodenum_t[]){ ab0, ab1, ab2, ab3, ab4, ab5, ab6, ab7, ab8, ab9, ab10, ab11, ab12, ab13, ab14, ab15 });
+uint16_t cpu_readAddressBus(void *state) {
+    return readNodes(state, 16, (nodenum_t[]){ ab0, ab1, ab2, ab3, ab4, ab5, ab6, ab7, ab8, ab9, ab10, ab11, ab12, ab13, ab14, ab15 });
 }
 
-uint8_t
-readDataBus(void *state)
-{
-	return readNodes(state, 8, (nodenum_t[]){ db0, db1, db2, db3, db4, db5, db6, db7 });
+uint8_t cpu_readDataBus(void *state) {
+    return readNodes(state, 8, (nodenum_t[]){ db0, db1, db2, db3, db4, db5, db6, db7 });
 }
 
-void
-writeDataBus(void *state, uint8_t d)
-{
-	writeNodes(state, 8, (nodenum_t[]){ db0, db1, db2, db3, db4, db5, db6, db7 }, d);
+void cpu_writeDataBus(void *state, uint8_t d) {
+    writeNodes(state, 8, (nodenum_t[]){ db0, db1, db2, db3, db4, db5, db6, db7 }, d);
 }
 
-BOOL
-readCLK0(void* state)
-{
-    return isNodeHigh(state, clk0);
+bool cpu_readCLK0(void* state) {
+    return isNodeHigh(state, clk0) != 0;
 }
 
-BOOL
-readRW(void *state)
-{
-	return isNodeHigh(state, rw);
+bool cpu_readRW(void *state) {
+    return isNodeHigh(state, rw) != 0;
 }
 
-BOOL
-readSYNC(void* state)
-{
-    return isNodeHigh(state, sync_);
+bool cpu_readSYNC(void* state) {
+    return isNodeHigh(state, sync_) != 0;
 }
 
-uint8_t
-readA(void *state)
-{
-	return readNodes(state, 8, (nodenum_t[]){ a0,a1,a2,a3,a4,a5,a6,a7 });
+uint8_t cpu_readA(void *state) {
+    return readNodes(state, 8, (nodenum_t[]){ a0,a1,a2,a3,a4,a5,a6,a7 });
 }
 
-uint8_t
-readX(void *state)
-{
-	return readNodes(state, 8, (nodenum_t[]){ x0,x1,x2,x3,x4,x5,x6,x7 });
+uint8_t cpu_readX(void *state) {
+    return readNodes(state, 8, (nodenum_t[]){ x0,x1,x2,x3,x4,x5,x6,x7 });
 }
 
-uint8_t
-readY(void *state)
-{
-	return readNodes(state, 8, (nodenum_t[]){ y0,y1,y2,y3,y4,y5,y6,y7 });
+uint8_t cpu_readY(void *state) {
+    return readNodes(state, 8, (nodenum_t[]){ y0,y1,y2,y3,y4,y5,y6,y7 });
 }
 
-uint8_t
-readP(void *state)
-{
-	return readNodes(state, 8, (nodenum_t[]){ p0,p1,p2,p3,p4,p5,p6,p7 });
+uint8_t cpu_readP(void *state) {
+    return readNodes(state, 8, (nodenum_t[]){ p0,p1,p2,p3,p4,p5,p6,p7 });
 }
 
-uint8_t
-readIR(void *state)
-{
-	return readNodes(state, 8, (nodenum_t[]){ notir0,notir1,notir2,notir3,notir4,notir5,notir6,notir7 }) ^ 0xFF;
+uint8_t cpu_readIR(void *state) {
+    return readNodes(state, 8, (nodenum_t[]){ notir0,notir1,notir2,notir3,notir4,notir5,notir6,notir7 }) ^ 0xFF;
 }
 
-uint8_t
-readSP(void *state)
-{
-	return readNodes(state, 8, (nodenum_t[]){ s0,s1,s2,s3,s4,s5,s6,s7 });
+uint8_t cpu_readSP(void *state) {
+    return readNodes(state, 8, (nodenum_t[]){ s0,s1,s2,s3,s4,s5,s6,s7 });
 }
 
-uint8_t
-readPCL(void *state)
-{
-	return readNodes(state, 8, (nodenum_t[]){ pcl0,pcl1,pcl2,pcl3,pcl4,pcl5,pcl6,pcl7 });
+uint8_t cpu_readPCL(void *state) {
+    return readNodes(state, 8, (nodenum_t[]){ pcl0,pcl1,pcl2,pcl3,pcl4,pcl5,pcl6,pcl7 });
 }
 
-uint8_t
-readPCH(void *state)
-{
-	return readNodes(state, 8, (nodenum_t[]){ pch0,pch1,pch2,pch3,pch4,pch5,pch6,pch7 });
+uint8_t cpu_readPCH(void *state) {
+    return readNodes(state, 8, (nodenum_t[]){ pch0,pch1,pch2,pch3,pch4,pch5,pch6,pch7 });
 }
 
-uint16_t
-readPC(void *state)
-{
-	return (readPCH(state) << 8) | readPCL(state);
+uint16_t cpu_readPC(void *state) {
+    return (cpu_readPCH(state) << 8) | cpu_readPCL(state);
 }
 
-void writeRDY(state_t* state, int high) {
-    setNode(state, rdy, high);
+void cpu_writeRDY(void* state, bool high) {
+    setNode(state, rdy, high != 0);
 }
 
-int readRDY(state_t* state) {
-    return isNodeHigh(state, rdy);
+bool cpu_readRDY(void* state) {
+    return isNodeHigh(state, rdy) != 0;
 }
 
-void writeIRQ(state_t* state, int high) {
-    setNode(state, irq, high);
+void cpu_writeIRQ(void* state, bool high) {
+    setNode(state, irq, high != 0);
 }
 
-int readIRQ(state_t* state) {
-    return isNodeHigh(state, irq);
+bool cpu_readIRQ(void* state) {
+    return isNodeHigh(state, irq) != 0;
 }
 
-void writeNMI(state_t* state, int high) {
-    setNode(state, nmi, high);
+void cpu_writeNMI(void* state, bool high) {
+    setNode(state, nmi, high != 0);
 }
 
-int readNMI(state_t* state) {
-    return isNodeHigh(state, nmi);
+bool cpu_readNMI(void* state) {
+    return isNodeHigh(state, nmi) != 0;
 }
 
-void writeRES(state_t* state, int high) {
-    setNode(state, res, high);
+void cpu_writeRES(void* state, bool high) {
+    setNode(state, res, high != 0);
 }
 
-int readRES(state_t* state) {
-    return isNodeHigh(state, res);
+bool cpu_readRES(void* state) {
+    return isNodeHigh(state, res) != 0;
 }
 
 /************************************************************
@@ -187,27 +157,25 @@ int readRES(state_t* state) {
  *
  ************************************************************/
 
-uint8_t memory[65536];
+uint8_t cpu_memory[65536];
 
-static uint8_t
-mRead(uint16_t a)
+static uint8_t mRead(uint16_t a)
 {
-	return memory[a];
+    return cpu_memory[a];
 }
 
-static void
-mWrite(uint16_t a, uint8_t d)
+static void mWrite(uint16_t a, uint8_t d)
 {
-	memory[a] = d;
+    cpu_memory[a] = d;
 }
 
-static inline void
-handleMemory(void *state)
-{
-	if (isNodeHigh(state, rw))
-		writeDataBus(state, mRead(readAddressBus(state)));
-	else
-		mWrite(readAddressBus(state), readDataBus(state));
+static inline void handleMemory(void *state) {
+    if (isNodeHigh(state, rw)) {
+        cpu_writeDataBus(state, mRead(cpu_readAddressBus(state)));
+    }
+    else {
+        mWrite(cpu_readAddressBus(state), cpu_readDataBus(state));
+    }
 }
 
 /************************************************************
@@ -216,100 +184,56 @@ handleMemory(void *state)
  *
  ************************************************************/
 
-unsigned int cycle;
+uint32_t cpu_cycle;
 
-void
-step(void *state)
-{
-	BOOL clk = isNodeHigh(state, clk0);
+void cpu_step(void *state) {
+    bool clk = isNodeHigh(state, clk0) != 0;
 
-	/* invert clock */
-	setNode(state, clk0, !clk);
-	recalcNodeList(state);
+    /* invert clock */
+    setNode(state, clk0, !clk);
+    recalcNodeList(state);
 
-	/* handle memory reads and writes */
-	if (!clk)
-		handleMemory(state);
-
-	cycle++;
+    /* handle memory reads and writes */
+    if (!clk) {
+        handleMemory(state);
+    }
+    cpu_cycle++;
 }
 
-void *
-initAndResetChip()
-{
-	/* set up data structures for efficient emulation */
-	nodenum_t nodes = sizeof(netlist_6502_node_is_pullup)/sizeof(*netlist_6502_node_is_pullup);
-	nodenum_t transistors = sizeof(netlist_6502_transdefs)/sizeof(*netlist_6502_transdefs);
-	void *state = setupNodesAndTransistors(netlist_6502_transdefs,
-										   netlist_6502_node_is_pullup,
-										   nodes,
-										   transistors,
-										   vss,
-										   vcc);
+void* cpu_initAndResetChip(void) {
+    /* set up data structures for efficient emulation */
+    nodenum_t nodes = sizeof(netlist_6502_node_is_pullup)/sizeof(*netlist_6502_node_is_pullup);
+    nodenum_t transistors = sizeof(netlist_6502_transdefs)/sizeof(*netlist_6502_transdefs);
+    void *state = setupNodesAndTransistors(netlist_6502_transdefs,
+        netlist_6502_node_is_pullup,
+        nodes,
+        transistors,
+        vss,
+        vcc);
 
-	setNode(state, res, 0);
-	setNode(state, clk0, 1);
-	setNode(state, rdy, 1);
-	setNode(state, so, 0);
-	setNode(state, irq, 1);
-	setNode(state, nmi, 1);
+    setNode(state, res, 0);
+    setNode(state, clk0, 1);
+    setNode(state, rdy, 1);
+    setNode(state, so, 0);
+    setNode(state, irq, 1);
+    setNode(state, nmi, 1);
 
-	stabilizeChip(state);
+    stabilizeChip(state);
 
-	/* hold RESET for 8 cycles */
-	for (int i = 0; i < 16; i++)
-		step(state);
+    /* hold RESET for 8 cycles */
+    for (int i = 0; i < 16; i++) {
+        cpu_step(state);
+    }
 
-	/* release RESET */
-	setNode(state, res, 1);
-	recalcNodeList(state);
+    /* release RESET */
+    setNode(state, res, 1);
+    recalcNodeList(state);
 
-	cycle = 0;
+    cpu_cycle = 0;
 
-	return state;
+    return state;
 }
 
-void
-destroyChip(void *state)
-{
+void cpu_destroyChip(void *state) {
     destroyNodesAndTransistors(state);
 }
-
-/************************************************************
- *
- * Tracing/Debugging
- *
- ************************************************************/
-
-/*
-void
-chipStatus(void *state)
-{
-	BOOL clk = isNodeHigh(state, clk0);
-	uint16_t a = readAddressBus(state);
-	uint8_t d = readDataBus(state);
-	BOOL r_w = isNodeHigh(state, rw);
-
-	printf("halfcyc:%d phi0:%d AB:%04X D:%02X RnW:%d PC:%04X A:%02X X:%02X Y:%02X SP:%02X P:%02X IR:%02X",
-		   cycle,
-		   clk,
-		   a,
-		   d,
-		   r_w,
-		   readPC(state),
-		   readA(state),
-		   readX(state),
-		   readY(state),
-		   readSP(state),
-		   readP(state),
-		   readIR(state));
-
-	if (clk) {
-		if (r_w)
-		printf(" R$%04X=$%02X", a, memory[a]);
-		else
-		printf(" W$%04X=$%02X", a, d);
-	}
-	printf("\n");
-}
-*/

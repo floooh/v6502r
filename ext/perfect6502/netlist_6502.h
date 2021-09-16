@@ -199,6 +199,7 @@ enum {
 	y7 = 843,
 };
 
+#if !defined(PERFECT6502_ONLY_NODENAMES)
 BOOL
 netlist_6502_node_is_pullup[] = {
 	1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1,
@@ -3791,3 +3792,4 @@ netlist_6502_transdefs[] = {
 	{923, 1334, 558},
 	{923, 810, 558}
 };
+#endif
