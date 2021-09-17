@@ -187,7 +187,7 @@ static inline void handleMemory(void *state) {
 uint32_t cpu_cycle;
 
 void cpu_step(void *state) {
-    bool clk = isNodeHigh(state, clk0) != 0;
+    BOOL clk = isNodeHigh(state, clk0);
 
     /* invert clock */
     setNode(state, clk0, !clk);

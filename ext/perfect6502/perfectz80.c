@@ -36,7 +36,18 @@ bool cpu_write_transistor_on(void* state, const uint8_t* ptr, size_t max_bytes) 
  *
  ************************************************************/
 
-// FIXME
+uint16_t cpu_readAddressBus(void *state) {
+    return readNodes(state, 16, (nodenum_t[]){ ab0, ab1, ab2, ab3, ab4, ab5, ab6, ab7, ab8, ab9, ab10, ab11, ab12, ab13, ab14, ab15 });
+}
+
+uint8_t cpu_readDataBus(void *state) {
+    return readNodes(state, 8, (nodenum_t[]){ db0, db1, db2, db3, db4, db5, db6, db7 });
+}
+
+void cpu_writeDataBus(void *state, uint8_t d) {
+    writeNodes(state, 8, (nodenum_t[]){ db0, db1, db2, db3, db4, db5, db6, db7 }, d);
+}
+
 
 /************************************************************
  *
@@ -46,7 +57,27 @@ bool cpu_write_transistor_on(void* state, const uint8_t* ptr, size_t max_bytes) 
 
 uint8_t cpu_memory[65536];
 
-// FIXME
+static uint8_t mRead(uint16_t a)
+{
+    return cpu_memory[a];
+}
+
+static void mWrite(uint16_t a, uint8_t d)
+{
+    cpu_memory[a] = d;
+}
+
+static inline void handleBus(void *state) {
+    if (!isNodeHigh(state, _mreq)) {
+        if (!isNodeHigh(state, _rd)) {
+            cpu_writeDataBus(state, mRead(cpu_readAddressBus(state)));
+        }
+        if (!isNodeHigh(state, _wr)) {
+            mWrite(cpu_readAddressBus(state), cpu_readDataBus(state));
+        }
+    }
+    // FIXME: IO?
+}
 
 /************************************************************
  *
@@ -57,23 +88,20 @@ uint8_t cpu_memory[65536];
 uint32_t cpu_cycle;
 
 void cpu_step(void *state) {
-    /* FIXME
-    bool clk = isNodeHigh(state, clk0) != 0;
+    BOOL clock = isNodeHigh(state, clk);
 
     // invert clock
-    setNode(state, clk0, !clk);
+    setNode(state, clk, !clock);
     recalcNodeList(state);
 
-    / handle memory reads and writes
-    if (!clk) {
-        handleMemory(state);
+    // handle memory reads and writes
+    if (!clock) {
+        handleBus(state);
     }
-    */
     cpu_cycle++;
 }
 
 void* cpu_initAndResetChip(void) {
-    // FIXME
     nodenum_t nodes = sizeof(netlist_z80_node_is_pullup)/sizeof(*netlist_z80_node_is_pullup);
     nodenum_t transistors = sizeof(netlist_z80_transdefs)/sizeof(*netlist_z80_transdefs);
     void *state = setupNodesAndTransistors(netlist_z80_transdefs,
@@ -82,6 +110,21 @@ void* cpu_initAndResetChip(void) {
         transistors,
         vss,
         vcc);
+
+    setNode(state, _reset, 0);
+    setNode(state, clk, 1);
+    setNode(state, _busrq, 1);
+    setNode(state, _int, 1);
+    setNode(state, _nmi, 1);
+    setNode(state, _wait, 1);
+
+    stabilizeChip(state);
+
+    for (int i = 0; i < 31; i++) {
+        cpu_step(state);
+    }
+    setNode(state, _reset, 1);
+    recalcNodeList(state);
 
     cpu_cycle = 0;
     return state;

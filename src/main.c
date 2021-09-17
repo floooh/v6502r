@@ -13,6 +13,7 @@
 #include "sim.h"
 #include "segdefs.h"
 
+#if defined(CHIP_6502)
 /* example program from visual6502.org:
                    * = 0000
  0000   A9 00      LDA #$00
@@ -39,6 +40,11 @@ static uint8_t test_prog[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x43,
     0xe8, 0x88, 0xe6, 0x0f, 0x38, 0x69, 0x02, 0x60
 };
+#else
+static uint8_t test_prog[] = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+#endif
 
 static void app_init(void) {
     util_init();
