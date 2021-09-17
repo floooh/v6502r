@@ -499,6 +499,66 @@ static void ui_input_uint16(const char* label, const char* id, uint16_t addr) {
     sim_w16(addr, ui_util_input_u16(id, sim_r16(addr)));
 }
 
+#if defined(CHIP_6502)
+static void ui_cpu_status_panel(void) {
+    const uint8_t ir = sim_get_ir();
+    const uint8_t p = sim_get_p();
+    char p_str[9] = {
+        (p & (1<<7)) ? 'N':'n',
+        (p & (1<<6)) ? 'V':'v',
+        (p & (1<<5)) ? 'X':'x',
+        (p & (1<<4)) ? 'B':'b',
+        (p & (1<<3)) ? 'D':'d',
+        (p & (1<<2)) ? 'I':'i',
+        (p & (1<<1)) ? 'Z':'z',
+        (p & (1<<0)) ? 'C':'c',
+        0,
+    };
+    ImGui::Text("A:%02X X:%02X Y:%02X SP:%02X PC:%04X",
+        sim_get_a(), sim_get_x(), sim_get_y(), sim_get_sp(), sim_get_pc());
+    ImGui::Text("P:%02X (%s) Cycle: %d", p, p_str, sim_get_cycle()>>1);
+    ImGui::Text("IR:%02X %s\n", ir, util_opcode_to_str(ir));
+    ImGui::Text("Data:%02X Addr:%04X %s %s %s",
+        sim_get_data(), sim_get_addr(),
+        sim_get_rw()?"R":"W",
+        sim_get_clk0()?"CLK0":"    ",
+        sim_get_sync()?"SYNC":"    ");
+    ImGui::Separator();
+    ui_input_uint16("NMI vector (FFFA): ", "##nmi_vec", 0xFFFA);
+    ui_input_uint16("RES vector (FFFC): ", "##res_vec", 0xFFFC);
+    ui_input_uint16("IRQ vector (FFFE): ", "##irq_vec", 0xFFFE);
+    ImGui::Separator();
+    bool rdy_active = !sim_get_rdy();
+    if (ImGui::Checkbox("RDY", &rdy_active)) {
+        sim_set_rdy(!rdy_active);
+    }
+    ImGui::SameLine();
+    bool irq_active = !sim_get_irq();
+    if (ImGui::Checkbox("IRQ", &irq_active)) {
+        sim_set_irq(!irq_active);
+    }
+    ImGui::SameLine();
+    bool nmi_active = !sim_get_nmi();
+    if (ImGui::Checkbox("NMI", &nmi_active)) {
+        sim_set_nmi(!nmi_active);
+    }
+    ImGui::SameLine();
+    bool res_active = !sim_get_res();
+    if (ImGui::Checkbox("RES", &res_active)) {
+        sim_set_res(!res_active);
+    }
+}
+#endif
+
+#if defined(CHIP_Z80)
+static void ui_cpu_status_panel(void) {
+    ImGui::Text("AF:%04X  BC:%04X  DE:%04X  HL:%04X", sim_get_af(), sim_get_bc(), sim_get_de(), sim_get_hl());
+    ImGui::Text("AF'%04X  BC'%04X  DE'%04X  HL'%04X", sim_get_af2(), sim_get_bc2(), sim_get_de2(), sim_get_hl2());
+    ImGui::Text("IX:%04X  IY:%04X  SP:%04X  PC:%04X", sim_get_ix(), sim_get_iy(), sim_get_sp(), sim_get_pc());
+    ImGui::Text("WZ:%04X  I:%02X  R:%02X", sim_get_wz(), sim_get_i(), sim_get_r());
+}
+#endif
+
 static void ui_controls(void) {
     if (!ui.cpu_controls_open) {
         return;
@@ -586,56 +646,7 @@ static void ui_controls(void) {
         ImGui::Separator();
 
         /* CPU state */
-        #if defined(CHIP_6502)
-            const uint8_t ir = sim_get_ir();
-            const uint8_t p = sim_get_p();
-            char p_str[9] = {
-                (p & (1<<7)) ? 'N':'n',
-                (p & (1<<6)) ? 'V':'v',
-                (p & (1<<5)) ? 'X':'x',
-                (p & (1<<4)) ? 'B':'b',
-                (p & (1<<3)) ? 'D':'d',
-                (p & (1<<2)) ? 'I':'i',
-                (p & (1<<1)) ? 'Z':'z',
-                (p & (1<<0)) ? 'C':'c',
-                0,
-            };
-            ImGui::Text("A:%02X X:%02X Y:%02X SP:%02X PC:%04X",
-                sim_get_a(), sim_get_x(), sim_get_y(), sim_get_sp(), sim_get_pc());
-            ImGui::Text("P:%02X (%s) Cycle: %d", p, p_str, sim_get_cycle()>>1);
-            ImGui::Text("IR:%02X %s\n", ir, util_opcode_to_str(ir));
-            ImGui::Text("Data:%02X Addr:%04X %s %s %s",
-                sim_get_data(), sim_get_addr(),
-                sim_get_rw()?"R":"W",
-                sim_get_clk0()?"CLK0":"    ",
-                sim_get_sync()?"SYNC":"    ");
-            ImGui::Separator();
-            ui_input_uint16("NMI vector (FFFA): ", "##nmi_vec", 0xFFFA);
-            ui_input_uint16("RES vector (FFFC): ", "##res_vec", 0xFFFC);
-            ui_input_uint16("IRQ vector (FFFE): ", "##irq_vec", 0xFFFE);
-            ImGui::Separator();
-            bool rdy_active = !sim_get_rdy();
-            if (ImGui::Checkbox("RDY", &rdy_active)) {
-                sim_set_rdy(!rdy_active);
-            }
-            ImGui::SameLine();
-            bool irq_active = !sim_get_irq();
-            if (ImGui::Checkbox("IRQ", &irq_active)) {
-                sim_set_irq(!irq_active);
-            }
-            ImGui::SameLine();
-            bool nmi_active = !sim_get_nmi();
-            if (ImGui::Checkbox("NMI", &nmi_active)) {
-                sim_set_nmi(!nmi_active);
-            }
-            ImGui::SameLine();
-            bool res_active = !sim_get_res();
-            if (ImGui::Checkbox("RES", &res_active)) {
-                sim_set_res(!res_active);
-            }
-        #else
-            ImGui::Text("FIXME: Z80 CPU STATE");
-        #endif
+        ui_cpu_status_panel();
         ImGui::Separator();
 
         /* memory dump */

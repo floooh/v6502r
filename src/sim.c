@@ -36,7 +36,10 @@ void sim_shutdown(void) {
 
 void sim_start(void) {
     assert(sim.valid);
+    // on 6502, run through the initial reset sequence
+    #if defined(CHIP_6502)
     sim_step(17);
+    #endif
 }
 
 void sim_frame(void) {
@@ -127,132 +130,6 @@ void sim_set_cycle(uint32_t c) {
     cpu_cycle = c - 1;
 }
 
-#if defined(CHIP_6502)
-uint8_t sim_get_a(void) {
-    assert(sim.valid);
-    return cpu_readA(sim.cpu_state);
-}
-#endif
-
-#if defined(CHIP_6502)
-uint8_t sim_get_x(void) {
-    assert(sim.valid);
-    return cpu_readX(sim.cpu_state);
-}
-#endif
-
-#if defined(CHIP_6502)
-uint8_t sim_get_y(void) {
-    assert(sim.valid);
-    return cpu_readY(sim.cpu_state);
-}
-#endif
-
-#if defined(CHIP_6502)
-uint8_t sim_get_sp(void) {
-    assert(sim.valid);
-    return cpu_readSP(sim.cpu_state);
-}
-#endif
-
-#if defined(CHIP_6502)
-uint16_t sim_get_pc(void) {
-    assert(sim.valid);
-    return cpu_readPC(sim.cpu_state);
-}
-#endif
-
-#if defined(CHIP_6502)
-uint8_t sim_get_ir(void) {
-    assert(sim.valid);
-    return cpu_readIR(sim.cpu_state);
-}
-#endif
-
-#if defined(CHIP_6502)
-uint8_t sim_get_p(void) {
-    assert(sim.valid);
-    return cpu_readP(sim.cpu_state);
-}
-#endif
-
-#if defined(CHIP_6502)
-bool sim_get_clk0(void) {
-    assert(sim.valid);
-    return cpu_readCLK0(sim.cpu_state);
-}
-#endif
-
-#if defined(CHIP_6502)
-bool sim_get_rw(void) {
-    assert(sim.valid);
-    return cpu_readRW(sim.cpu_state);
-}
-#endif
-
-#if defined(CHIP_6502)
-bool sim_get_sync(void) {
-    assert(sim.valid);
-    return cpu_readSYNC(sim.cpu_state);
-}
-#endif
-
-#if defined(CHIP_6502)
-void sim_set_rdy(bool high) {
-    assert(sim.valid);
-    cpu_writeRDY(sim.cpu_state, high);
-}
-#endif
-
-#if defined(CHIP_6502)
-bool sim_get_rdy(void) {
-    assert(sim.valid);
-    return cpu_readRDY(sim.cpu_state);
-}
-#endif
-
-#if defined(CHIP_6502)
-void sim_set_irq(bool high) {
-    assert(sim.valid);
-    cpu_writeIRQ(sim.cpu_state, high);
-}
-#endif
-
-#if defined(CHIP_6502)
-bool sim_get_irq(void) {
-    assert(sim.valid);
-    return cpu_readIRQ(sim.cpu_state);
-}
-#endif
-
-#if defined(CHIP_6502)
-void sim_set_nmi(bool high) {
-    assert(sim.valid);
-    cpu_writeNMI(sim.cpu_state, high);
-}
-#endif
-
-#if defined(CHIP_6502)
-bool sim_get_nmi(void) {
-    assert(sim.valid);
-    return cpu_readNMI(sim.cpu_state);
-}
-#endif
-
-#if defined(CHIP_6502)
-void sim_set_res(bool high) {
-    assert(sim.valid);
-    cpu_writeRES(sim.cpu_state, high);
-}
-#endif
-
-#if defined(CHIP_6502)
-bool sim_get_res(void) {
-    assert(sim.valid);
-    return cpu_readRES(sim.cpu_state);
-}
-#endif
-
 bool sim_get_node_state(range_t to_buffer) {
     assert(sim.valid && to_buffer.ptr && (to_buffer.size > 0));
     return cpu_read_node_state_as_bytes(sim.cpu_state, to_buffer.ptr, to_buffer.size);
@@ -277,3 +154,139 @@ bool sim_set_transistor_on(range_t from_buffer) {
     assert(sim.valid && from_buffer.ptr && (from_buffer.size > 0));
     return cpu_write_transistor_on(sim.cpu_state, from_buffer.ptr, from_buffer.size);
 }
+
+#if defined(CHIP_6502)
+uint8_t sim_get_a(void) {
+    return cpu_readA(sim.cpu_state);
+}
+
+uint8_t sim_get_x(void) {
+    return cpu_readX(sim.cpu_state);
+}
+
+uint8_t sim_get_y(void) {
+    return cpu_readY(sim.cpu_state);
+}
+
+uint8_t sim_get_sp(void) {
+    return cpu_readSP(sim.cpu_state);
+}
+
+uint16_t sim_get_pc(void) {
+    return cpu_readPC(sim.cpu_state);
+}
+
+uint8_t sim_get_ir(void) {
+    return cpu_readIR(sim.cpu_state);
+}
+
+uint8_t sim_get_p(void) {
+    return cpu_readP(sim.cpu_state);
+}
+
+bool sim_get_clk0(void) {
+    return cpu_readCLK0(sim.cpu_state);
+}
+
+bool sim_get_rw(void) {
+    return cpu_readRW(sim.cpu_state);
+}
+
+bool sim_get_sync(void) {
+    return cpu_readSYNC(sim.cpu_state);
+}
+
+void sim_set_rdy(bool high) {
+    cpu_writeRDY(sim.cpu_state, high);
+}
+
+bool sim_get_rdy(void) {
+    return cpu_readRDY(sim.cpu_state);
+}
+
+void sim_set_irq(bool high) {
+    cpu_writeIRQ(sim.cpu_state, high);
+}
+
+bool sim_get_irq(void) {
+    return cpu_readIRQ(sim.cpu_state);
+}
+
+void sim_set_nmi(bool high) {
+    cpu_writeNMI(sim.cpu_state, high);
+}
+
+bool sim_get_nmi(void) {
+    return cpu_readNMI(sim.cpu_state);
+}
+
+void sim_set_res(bool high) {
+    cpu_writeRES(sim.cpu_state, high);
+}
+
+bool sim_get_res(void) {
+    return cpu_readRES(sim.cpu_state);
+}
+#endif
+
+#if defined(CHIP_Z80)
+uint16_t sim_get_af(void) {
+    return (cpu_readA(sim.cpu_state) << 8) | cpu_readF(sim.cpu_state);
+}
+
+uint16_t sim_get_bc(void) {
+    return (cpu_readB(sim.cpu_state) << 8) | cpu_readC(sim.cpu_state);
+}
+
+uint16_t sim_get_de(void) {
+    return (cpu_readD(sim.cpu_state) << 8) | cpu_readE(sim.cpu_state);
+}
+
+uint16_t sim_get_hl(void) {
+    return (cpu_readH(sim.cpu_state) << 8) | cpu_readL(sim.cpu_state);
+}
+
+uint16_t sim_get_af2(void) {
+    return (cpu_readA2(sim.cpu_state) << 8) | cpu_readF2(sim.cpu_state);
+}
+
+uint16_t sim_get_bc2(void) {
+    return (cpu_readB2(sim.cpu_state) << 8) | cpu_readC2(sim.cpu_state);
+}
+
+uint16_t sim_get_de2(void) {
+    return (cpu_readD2(sim.cpu_state) << 8) | cpu_readE2(sim.cpu_state);
+}
+
+uint16_t sim_get_hl2(void) {
+    return (cpu_readH2(sim.cpu_state) << 8) | cpu_readL2(sim.cpu_state);
+}
+
+uint16_t sim_get_ix(void) {
+    return cpu_readIX(sim.cpu_state);
+}
+
+uint16_t sim_get_iy(void) {
+    return cpu_readIY(sim.cpu_state);
+}
+
+uint16_t sim_get_sp(void) {
+    return cpu_readSP(sim.cpu_state);
+}
+
+uint16_t sim_get_pc(void) {
+    return cpu_readPC(sim.cpu_state);
+}
+
+uint16_t sim_get_wz(void) {
+    return (cpu_readW(sim.cpu_state) << 8) | cpu_readZ(sim.cpu_state);
+}
+
+uint8_t sim_get_i(void) {
+    return cpu_readI(sim.cpu_state);
+}
+
+uint8_t sim_get_r(void) {
+    return cpu_readR(sim.cpu_state);
+}
+#endif

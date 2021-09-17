@@ -50,7 +50,21 @@ bool sim_get_nmi(void);
 bool sim_get_res(void);
 bool sim_get_rdy(void);
 #else
-// FIXME: Z80 specific setters/getters
+uint16_t sim_get_af(void);
+uint16_t sim_get_bc(void);
+uint16_t sim_get_de(void);
+uint16_t sim_get_hl(void);
+uint16_t sim_get_af2(void);
+uint16_t sim_get_bc2(void);
+uint16_t sim_get_de2(void);
+uint16_t sim_get_hl2(void);
+uint16_t sim_get_ix(void);
+uint16_t sim_get_iy(void);
+uint16_t sim_get_sp(void);
+uint16_t sim_get_pc(void);
+uint16_t sim_get_wz(void);
+uint8_t sim_get_i(void);
+uint8_t sim_get_r(void);
 #endif
 
 #if defined(__cplusplus)
