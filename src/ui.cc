@@ -506,7 +506,12 @@ static void ui_controls(void) {
     const float disp_w = (float) sapp_width();
     ImGui::SetNextWindowPos({ disp_w - 300, 50 }, ImGuiCond_Once);
     ImGui::SetNextWindowSize({ 270, 480 }, ImGuiCond_Once);
-    if (ImGui::Begin("MOS 6502", &ui.cpu_controls_open, ImGuiWindowFlags_None)) {
+    #if defined(CHIP_6502)
+    const char* cpu_name = "MOS 6502";
+    #else
+    const char* cpu_name = "Z80";
+    #endif
+    if (ImGui::Begin(cpu_name, &ui.cpu_controls_open, ImGuiWindowFlags_None)) {
         /* cassette deck controls */
         const char* tooltip = 0;
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);

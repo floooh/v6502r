@@ -15,7 +15,34 @@ extern uint16_t cpu_readPC(state_t *state);
 extern uint16_t cpu_readAddressBus(state_t *state);
 extern void cpu_writeDataBus(state_t *state, uint8_t val);
 extern uint8_t cpu_readDataBus(state_t *state);
-// FIXME
+
+extern uint8_t cpu_readA(state_t* state);
+extern uint8_t cpu_readF(state_t* state);
+extern uint8_t cpu_readB(state_t* state);
+extern uint8_t cpu_readC(state_t* state);
+extern uint8_t cpu_readD(state_t* state);
+extern uint8_t cpu_readE(state_t* state);
+extern uint8_t cpu_readH(state_t* state);
+extern uint8_t cpu_readL(state_t* state);
+
+extern uint8_t cpu_readA2(state_t* state);
+extern uint8_t cpu_readF2(state_t* state);
+extern uint8_t cpu_readB2(state_t* state);
+extern uint8_t cpu_readC2(state_t* state);
+extern uint8_t cpu_readD2(state_t* state);
+extern uint8_t cpu_readE2(state_t* state);
+extern uint8_t cpu_readH2(state_t* state);
+extern uint8_t cpu_readL2(state_t* state);
+
+extern uint8_t cpu_readI(state_t* state);
+extern uint8_t cpu_readR(state_t* state);
+extern uint8_t cpu_readW(state_t* state);
+extern uint8_t cpu_readZ(state_t* state);
+
+extern uint16_t cpu_readIX(state_t* state);
+extern uint16_t cpu_readIY(state_t* state);
+extern uint16_t cpu_readSP(state_t* state);
+extern uint16_t cpu_readPC(state_t* state);
 
 // v6502r additions
 extern bool cpu_read_node_state_as_bytes(state_t* state, uint8_t* ptr, size_t max_nodes);
