@@ -41,8 +41,26 @@ static uint8_t test_prog[] = {
     0xe8, 0x88, 0xe6, 0x0f, 0x38, 0x69, 0x02, 0x60
 };
 #else
+
+/*
+0000                LOOP:
+0000   31 00 01               LD   sp,$0100
+0003   CD 09 00               CALL   sub
+0006   C3 00 00               JP   loop
+0009                SUB:
+0009   21 0E 00               LD   hl,data
+000C   34                     INC   (hl)
+000D   C9                     RET
+000E                DATA:
+000E   00                     DB   0
+*/
 static uint8_t test_prog[] = {
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    0x31, 0x00, 0x01,
+    0xCD, 0x09, 0x00,
+    0xC3, 0x00, 0x00,
+    0x21, 0x0E, 0x00,
+    0x34,
+    0xC9,
 };
 #endif
 
