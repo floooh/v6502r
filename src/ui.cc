@@ -12,11 +12,16 @@
 #include "sokol_imgui.h"
 
 #define CHIPS_IMPL
+#if defined(CHIP_6502)
 #define UI_DASM_USE_M6502
-#include "ui/ui_memedit.h"
-#include "util/m6502dasm.h"
-#include "ui/ui_util.h"
-#include "ui/ui_dasm.h"
+#include "chips/m6502dasm.h"
+#elif defined(CHIP_Z80)
+#define UI_DASM_USE_Z80
+#include "chips/z80dasm.h"
+#endif
+#include "chips/ui_memedit.h"
+#include "chips/ui_util.h"
+#include "chips/ui_dasm.h"
 
 #include "ui.h"
 #include "ui_asm.h"
@@ -670,6 +675,20 @@ static void ui_listing(void) {
     ImGui::End();
 }
 
+#if defined(CHIP_6502)
+
+static void ui_trace_status_header(void) {
+    ImGui::Text("cycle/h rw ab   db pc   a  x  y  s  p        sync ir mnemonic    irq nmi res rdy");
+}
+
+#elif defined(CHIP_Z80)
+
+static void ui_trace_status_header(void) {
+    ImGui::Text("FIXME Z80!");
+}
+
+#endif
+
 static void ui_tracelog(void) {
     if (!ui.tracelog_open) {
         return;
@@ -689,7 +708,7 @@ static void ui_tracelog(void) {
     ImGui::SetNextWindowPos({ disp_w / 2, disp_h - 150 }, ImGuiCond_Once, { 0.5f, 0.0f });
     ImGui::SetNextWindowSize({ 600, 128 }, ImGuiCond_Once);
     if (ImGui::Begin("Trace Log", &ui.tracelog_open, ImGuiWindowFlags_None)) {
-        ImGui::Text("cycle/h rw ab   db pc   a  x  y  s  p        sync ir mnemonic    irq nmi res rdy"); ImGui::NextColumn();
+        ui_trace_status_header();
         ImGui::Separator();
         ImGui::BeginChild("##trace_data", ImVec2(0, -footer_h));
         ImDrawList* dl = ImGui::GetWindowDrawList();

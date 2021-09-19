@@ -5,7 +5,7 @@
 //------------------------------------------------------------------------------
 #if defined(CHIP_6502)
 #include "perfect6502.h"
-#else
+#elif defined(CHIP_Z80)
 #include "perfectz80.h"
 #endif
 #include "sim.h"
@@ -78,7 +78,7 @@ void sim_step_op(void) {
             }
         }
         while (num_sync != 2);
-    #else
+    #elif defined(CHIP_Z80)
     // FIXME
     #endif
 }

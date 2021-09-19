@@ -49,7 +49,9 @@ bool sim_get_irq(void);
 bool sim_get_nmi(void);
 bool sim_get_res(void);
 bool sim_get_rdy(void);
-#else
+#endif
+
+#if defined(CHIP_Z80)
 uint16_t sim_get_af(void);
 uint16_t sim_get_bc(void);
 uint16_t sim_get_de(void);

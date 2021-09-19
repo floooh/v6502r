@@ -17,7 +17,7 @@
 
 #if defined(CHIP_6502)
 #define WINDOW_TITLE "Visual 6502 Remix"
-#else
+#elif defined(CHIP_Z80)
 #define WINDOW_TITLE "Visual Z80 Remix"
 #endif
 
