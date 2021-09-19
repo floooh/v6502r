@@ -26,9 +26,8 @@ void pick_init(const pick_desc_t* desc) {
     assert(desc->grid.num_cells == (desc->grid.num_cells_x * desc->grid.num_cells_y));
     pick.seg_max_x = desc->seg_max_x;
     pick.seg_max_y = desc->seg_max_y;
-    const bool layer_enabled[MAX_LAYERS] = { true, true, false, false, false, true };
     for (int i = 0; i < MAX_LAYERS; i++) {
-        pick.layer_enabled[i] = layer_enabled[i];
+        pick.layer_enabled[i] = true;
         pick.layers[i] = desc->layers[i];
     }
     pick.mesh = desc->mesh;

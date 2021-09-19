@@ -808,13 +808,15 @@ static void ui_picking(void) {
     if (pick_result.num_hits > 0) {
         char str[256];
         str[0] = 0;
+        int valid_node_index = 0;
         for (int i = 0; i < pick_result.num_hits; i++) {
             int node_index = pick_result.node_index[i];
             if ((node_index >= 0) && (node_index < num_node_names)) {
-                if (node_names[node_index][0] != 0) {
-                    if (i != 0) {
+                if (!sim_is_ignore_picking_highlight_node(node_index) && (node_names[node_index][0] != 0)) {
+                    if (valid_node_index != 0) {
                         strcat(str, "\n");
                     }
+                    valid_node_index++;
                     strcat(str, node_names[node_index]);
                 }
             }

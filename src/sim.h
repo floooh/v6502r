@@ -29,6 +29,7 @@ bool sim_get_node_state(range_t to_buffer);
 bool sim_get_node_values(range_t to_buffer);
 bool sim_set_transistor_on(range_t from_buffer);
 bool sim_get_transistor_on(range_t to_buffer);
+bool sim_is_ignore_picking_highlight_node(int node_num);
 
 #if defined(CHIP_6502)
 uint8_t sim_get_a(void);

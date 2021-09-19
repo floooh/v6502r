@@ -143,7 +143,9 @@ static void app_frame(void) {
         gfx_get_scale()
     );
     for (int i = 0; i < pick_result.num_hits; i++) {
-        gfx_highlight_node(pick_result.node_index[i]);
+        if (!sim_is_ignore_picking_highlight_node(pick_result.node_index[i])) {
+            gfx_highlight_node(pick_result.node_index[i]);
+        }
     }
     gfx_begin();
     gfx_draw();

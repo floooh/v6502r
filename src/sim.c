@@ -8,6 +8,7 @@
 #elif defined(CHIP_Z80)
 #include "perfectz80.h"
 #endif
+#include "nodenames.h"
 #include "sim.h"
 #include "trace.h"
 #include "gfx.h"
@@ -153,6 +154,15 @@ bool sim_set_node_values(range_t from_buffer) {
 bool sim_set_transistor_on(range_t from_buffer) {
     assert(sim.valid && from_buffer.ptr && (from_buffer.size > 0));
     return cpu_write_transistor_on(sim.cpu_state, from_buffer.ptr, from_buffer.size);
+}
+
+bool sim_is_ignore_picking_highlight_node(int node_num) {
+    // these nodes are all over the place, don't highlight them in picking
+    #if defined(CHIP_6502)
+    return (p6502_vcc == node_num) || (p6502_vss == node_num);
+    #elif defined(CHIP_Z80)
+    return (pz80_vcc == node_num) || (pz80_vss == node_num);
+    #endif
 }
 
 #if defined(CHIP_6502)
