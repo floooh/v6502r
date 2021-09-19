@@ -194,6 +194,7 @@ void util_html5_cursor_to_default(void) {
 }
 
 const char* util_opcode_to_str(uint8_t opcode) {
+    #if defined(CHIP_6502)
     switch (opcode) {
         case 0x0:  return "BRK        ";
         case 0x1:  return "ORA (zp,X) ";
@@ -453,4 +454,9 @@ const char* util_opcode_to_str(uint8_t opcode) {
         case 0xff: return "*ISB abs,X ";
         default: return "???";
     }
+    #elif defined(CHIP_Z80)
+    return "???";
+    #else
+    return "???";
+    #endif
 }

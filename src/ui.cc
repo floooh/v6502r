@@ -40,18 +40,22 @@ static struct {
     ui_memedit_t memedit;
     ui_memedit_t memedit_integrated;
     ui_dasm_t dasm;
-    bool cpu_controls_open;
-    bool tracelog_open;
-    bool listing_open;
-    bool help_asm_open;
-    bool help_opcodes_open;
-    bool help_about_open;
-    bool open_source_hovered;
-    bool save_source_hovered;
-    bool save_binary_hovered;
-    bool save_listing_hovered;
-    bool cut_hovered;
-    bool copy_hovered;
+    struct {
+        bool cpu_controls;
+        bool tracelog;
+        bool listing;
+        bool help_asm;
+        bool help_opcodes;
+        bool help_about;
+    } window_open;
+    struct {
+        bool open_source_hovered;
+        bool save_source_hovered;
+        bool save_binary_hovered;
+        bool save_listing_hovered;
+        bool cut_hovered;
+        bool copy_hovered;
+    } menu;
     bool link_hovered;
     char link_url[MAX_LINKURL_SIZE];
 } ui;
@@ -81,8 +85,8 @@ void ui_init() {
     assert(!ui.valid);
 
     // default window open state
-    ui.cpu_controls_open = true;
-    ui.tracelog_open = true;
+    ui.window_open.cpu_controls = true;
+    ui.window_open.tracelog = true;
 
     // setup sokol-imgui
     simgui_desc_t simgui_desc = { };
@@ -218,7 +222,7 @@ static bool test_click(const sapp_event* ev, bool hovered) {
 
 static bool handle_special_link(void) {
     if (0 == strcmp(ui.link_url, "ui://listing")) {
-        ui.listing_open = true;
+        ui.window_open.listing = true;
         ImGui::SetWindowFocus("Listing");
         return true;
     }
@@ -262,16 +266,16 @@ bool ui_handle_input(const sapp_event* ev) {
         return true;
     }
     if (test_alt(ev, SAPP_KEYCODE_C)) {
-        ui.cpu_controls_open = !ui.cpu_controls_open;
+        ui.window_open.cpu_controls = !ui.window_open.cpu_controls;
     }
     if (test_alt(ev, SAPP_KEYCODE_T)) {
-        ui.tracelog_open = !ui.tracelog_open;
+        ui.window_open.tracelog = !ui.window_open.tracelog;
     }
     if (test_alt(ev, SAPP_KEYCODE_A)) {
         ui_asm_toggle_window_open();
     }
     if (test_alt(ev, SAPP_KEYCODE_L)) {
-        ui.listing_open = !ui.listing_open;
+        ui.window_open.listing = !ui.window_open.listing;
     }
     if (test_alt(ev, SAPP_KEYCODE_M)) {
         ui.memedit.open = !ui.memedit.open;
@@ -279,23 +283,23 @@ bool ui_handle_input(const sapp_event* ev) {
     if (test_alt(ev, SAPP_KEYCODE_D)) {
         ui.dasm.open = !ui.dasm.open;
     }
-    if (test_click(ev, ui.open_source_hovered) || test_ctrl_shift(ev, SAPP_KEYCODE_O)) {
+    if (test_click(ev, ui.menu.open_source_hovered) || test_ctrl_shift(ev, SAPP_KEYCODE_O)) {
         util_html5_load();
-        ui.open_source_hovered = false;
+        ui.menu.open_source_hovered = false;
         sapp_consume_event();
     }
-    if (test_click(ev, ui.save_source_hovered) || test_ctrl_shift(ev, SAPP_KEYCODE_S)) {
+    if (test_click(ev, ui.menu.save_source_hovered) || test_ctrl_shift(ev, SAPP_KEYCODE_S)) {
         util_html5_download_string("v6502r.asm", ui_asm_source());
-        ui.save_source_hovered = false;
+        ui.menu.save_source_hovered = false;
         sapp_consume_event();
     }
-    if (test_click(ev, ui.save_listing_hovered)) {
+    if (test_click(ev, ui.menu.save_listing_hovered)) {
         util_html5_download_string("v6502r.lst", asm_listing());
-        ui.save_listing_hovered = false;
+        ui.menu.save_listing_hovered = false;
     }
-    if (test_click(ev, ui.save_binary_hovered)) {
+    if (test_click(ev, ui.menu.save_binary_hovered)) {
         util_html5_download_binary("v6502r.bin", ui_asm_get_binary());
-        ui.save_binary_hovered = false;
+        ui.menu.save_binary_hovered = false;
     }
     if (test_ctrl(ev, SAPP_KEYCODE_Z) || test_ctrl(ev, SAPP_KEYCODE_Y)) {
         ui_asm_undo();
@@ -305,14 +309,14 @@ bool ui_handle_input(const sapp_event* ev) {
         ui_asm_redo();
         sapp_consume_event();
     }
-    if (test_click(ev, ui.cut_hovered) || test_ctrl(ev, SAPP_KEYCODE_X)) {
+    if (test_click(ev, ui.menu.cut_hovered) || test_ctrl(ev, SAPP_KEYCODE_X)) {
         ui_asm_cut();
-        ui.cut_hovered = false;
+        ui.menu.cut_hovered = false;
         sapp_consume_event();
     }
-    if (test_click(ev, ui.copy_hovered) || test_ctrl(ev, SAPP_KEYCODE_C)) {
+    if (test_click(ev, ui.menu.copy_hovered) || test_ctrl(ev, SAPP_KEYCODE_C)) {
         ui_asm_copy();
-        ui.copy_hovered = false;
+        ui.menu.copy_hovered = false;
         sapp_consume_event();
     }
     if (ev->type == SAPP_EVENTTYPE_CLIPBOARD_PASTED) {
@@ -355,23 +359,23 @@ void ui_draw() {
 }
 
 static void ui_menu(void) {
-    ui.open_source_hovered = false;
-    ui.save_source_hovered = false;
-    ui.save_binary_hovered = false;
-    ui.save_listing_hovered = false;
+    ui.menu.open_source_hovered = false;
+    ui.menu.save_source_hovered = false;
+    ui.menu.save_binary_hovered = false;
+    ui.menu.save_listing_hovered = false;
     if (ImGui::BeginMainMenuBar()) {
         bool is_osx = util_is_osx();
         if (ImGui::BeginMenu("File")) {
             // this looks all a bit weired because on the web platforms
             // these actions must be invoked from within an input handler
             ImGui::MenuItem("Open Source...", is_osx?"Cmd+Shift+O":"Ctrl+Shift+O");
-            ui.open_source_hovered = ImGui::IsItemHovered();
+            ui.menu.open_source_hovered = ImGui::IsItemHovered();
             ImGui::MenuItem("Save Source...", is_osx?"Cmd+Shift+S":"Ctrl+Shift+S");
-            ui.save_source_hovered = ImGui::IsItemHovered();
+            ui.menu.save_source_hovered = ImGui::IsItemHovered();
             ImGui::MenuItem("Save .BIN/.PRG...", 0);
-            ui.save_binary_hovered = ImGui::IsItemHovered();
+            ui.menu.save_binary_hovered = ImGui::IsItemHovered();
             ImGui::MenuItem("Save Listing...", 0);
-            ui.save_listing_hovered = ImGui::IsItemHovered();
+            ui.menu.save_listing_hovered = ImGui::IsItemHovered();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
@@ -383,9 +387,9 @@ static void ui_menu(void) {
             }
             ImGui::Separator();
             ImGui::MenuItem("Cut", is_osx?"Cmd+X":"Ctrl+X");
-            ui.cut_hovered = ImGui::IsItemHovered();
+            ui.menu.cut_hovered = ImGui::IsItemHovered();
             ImGui::MenuItem("Copy", is_osx?"Cmd+C":"Ctrl+C");
-            ui.copy_hovered = ImGui::IsItemHovered();
+            ui.menu.copy_hovered = ImGui::IsItemHovered();
             #if defined(__EMSCRIPTEN__)
             ImGui::MenuItem("Paste", is_osx?"Cmd+V":"Ctrl+V");
             if (ImGui::IsItemHovered()) {
@@ -399,9 +403,9 @@ static void ui_menu(void) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("Controls", "Alt+C", &ui.cpu_controls_open);
-            ImGui::MenuItem("Trace Log", "Alt+T", &ui.tracelog_open);
-            ImGui::MenuItem("Listing", "Alt+L", &ui.listing_open);
+            ImGui::MenuItem("Controls", "Alt+C", &ui.window_open.cpu_controls);
+            ImGui::MenuItem("Trace Log", "Alt+T", &ui.window_open.tracelog);
+            ImGui::MenuItem("Listing", "Alt+L", &ui.window_open.listing);
             ImGui::MenuItem("Memory Editor", "Alt+M", &ui.memedit.open);
             ImGui::MenuItem("Disassembler", "Alt+D", &ui.dasm.open);
             if (ImGui::MenuItem("Assembler", "Alt+A", ui_asm_get_window_open())) {
@@ -489,9 +493,9 @@ static void ui_menu(void) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help")) {
-            ImGui::MenuItem("Assembler", 0, &ui.help_asm_open);
-            ImGui::MenuItem("Opcode Table", 0, &ui.help_opcodes_open);
-            ImGui::MenuItem("About", 0, &ui.help_about_open);
+            ImGui::MenuItem("Assembler", 0, &ui.window_open.help_asm);
+            ImGui::MenuItem("Opcode Table", 0, &ui.window_open.help_opcodes);
+            ImGui::MenuItem("About", 0, &ui.window_open.help_about);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -565,7 +569,7 @@ static void ui_cpu_status_panel(void) {
 #endif
 
 static void ui_controls(void) {
-    if (!ui.cpu_controls_open) {
+    if (!ui.window_open.cpu_controls) {
         return;
     }
     const float disp_w = (float) sapp_width();
@@ -576,7 +580,7 @@ static void ui_controls(void) {
     #else
     const char* cpu_name = "Z80";
     #endif
-    if (ImGui::Begin(cpu_name, &ui.cpu_controls_open, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin(cpu_name, &ui.window_open.cpu_controls, ImGuiWindowFlags_None)) {
         /* cassette deck controls */
         const char* tooltip = 0;
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
@@ -664,36 +668,22 @@ static void ui_controls(void) {
 }
 
 static void ui_listing(void) {
-    if (!ui.listing_open) {
+    if (!ui.window_open.listing) {
         return;
     }
     ImGui::SetNextWindowPos({60, 320}, ImGuiCond_Once);
     ImGui::SetNextWindowSize({480, 200}, ImGuiCond_Once);
-    if (ImGui::Begin("Listing", &ui.listing_open, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin("Listing", &ui.window_open.listing, ImGuiWindowFlags_None)) {
         ImGui::Text("%s", asm_listing());
     }
     ImGui::End();
 }
 
-#if defined(CHIP_6502)
-
-static void ui_trace_status_header(void) {
-    ImGui::Text("cycle/h rw ab   db pc   a  x  y  s  p        sync ir mnemonic    irq nmi res rdy");
-}
-
-#elif defined(CHIP_Z80)
-
-static void ui_trace_status_header(void) {
-    ImGui::Text("FIXME Z80!");
-}
-
-#endif
-
 static void ui_tracelog(void) {
-    if (!ui.tracelog_open) {
+    if (!ui.window_open.tracelog) {
         return;
     }
-    // clear the selected item is outside the trace log
+    // clear the selected item if it is outside the trace log
     if (!trace_empty()) {
         if ((trace_ui_get_selected_cycle() < trace_get_cycle(trace_num_items()-1)) ||
             (trace_ui_get_selected_cycle() > trace_get_cycle(0)))
@@ -707,39 +697,85 @@ static void ui_tracelog(void) {
     const float footer_h = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
     ImGui::SetNextWindowPos({ disp_w / 2, disp_h - 150 }, ImGuiCond_Once, { 0.5f, 0.0f });
     ImGui::SetNextWindowSize({ 600, 128 }, ImGuiCond_Once);
-    if (ImGui::Begin("Trace Log", &ui.tracelog_open, ImGuiWindowFlags_None)) {
-        ui_trace_status_header();
-        ImGui::Separator();
-        ImGui::BeginChild("##trace_data", ImVec2(0, -footer_h));
-        ImDrawList* dl = ImGui::GetWindowDrawList();
-        float text_height = ImGui::GetTextLineHeightWithSpacing();
-        float window_width = ImGui::GetWindowWidth();
-        bool any_item_hovered = false;
-        if (trace_num_items() > 0) {
-            // set mouse-hovered-cycle to an impossible value
-            for (int32_t i = trace_num_items()-1; i >= 0; i--) {
-                const uint32_t cur_cycle = trace_get_cycle(i);
-                uint32_t bg_color = 0;
-                const uint32_t flip_bits = trace_get_flipbits(i);
-                switch (flip_bits) {
-                    case 0: bg_color = 0xFF327D2E; break;
-                    case 1: bg_color = 0xFF3C8E38; break;
-                    case 2: bg_color = 0xFFC06515; break;
-                    case 3: bg_color = 0xFFD17619; break;
-                }
-                if (trace_ui_get_hovered() && (cur_cycle == trace_ui_get_hovered_cycle())) {
-                    bg_color = 0xFF3643F4;
-                }
-                if (trace_ui_get_selected() && (cur_cycle == trace_ui_get_selected_cycle())) {
-                    bg_color = 0xFF0000D5;
-                }
-                ImVec2 p0 = ImGui::GetCursorScreenPos();
-                ImVec2 p1 = { p0.x + window_width, p0.y + text_height};
-                dl->AddRectFilled(p0, p1, bg_color);
+    if (ImGui::Begin("Trace Log", &ui.window_open.tracelog, ImGuiWindowFlags_None)) {
+        const ImGuiTableFlags table_flags =
+            ImGuiTableFlags_ScrollY |
+            ImGuiTableFlags_ScrollX |
+            ImGuiTableFlags_Hideable |
+            ImGuiTableFlags_RowBg |
+            ImGuiTableFlags_BordersOuter |
+            ImGuiTableFlags_BordersV |
+            ImGuiTableFlags_SizingFixedFit;
+        if (ImGui::BeginTable("##trace_data", 17, table_flags, {0.0f, -footer_h})) {
+            const float char_width = 8.0f;
+            ImGui::TableSetupScrollFreeze(0, 1); // top row always visible
+            ImGui::TableSetupColumn("Cycle/h", ImGuiTableColumnFlags_None, 6*char_width);
+            ImGui::TableSetupColumn("RW", ImGuiTableColumnFlags_None, 2*char_width);
+            ImGui::TableSetupColumn("AB", ImGuiTableColumnFlags_None, 4*char_width);
+            ImGui::TableSetupColumn("DB", ImGuiTableColumnFlags_None, 2*char_width);
+            ImGui::TableSetupColumn("PC", ImGuiTableColumnFlags_None, 4*char_width);
+            ImGui::TableSetupColumn("A", ImGuiTableColumnFlags_None, 2*char_width);
+            ImGui::TableSetupColumn("X", ImGuiTableColumnFlags_None, 2*char_width);
+            ImGui::TableSetupColumn("Y", ImGuiTableColumnFlags_None, 2*char_width);
+            ImGui::TableSetupColumn("S", ImGuiTableColumnFlags_None, 2*char_width);
+            ImGui::TableSetupColumn("P", ImGuiTableColumnFlags_None, 8*char_width);
+            ImGui::TableSetupColumn("Sync", ImGuiTableColumnFlags_None, 4*char_width);
+            ImGui::TableSetupColumn("IR", ImGuiTableColumnFlags_None, 2*char_width);
+            ImGui::TableSetupColumn("Mnmemonic", ImGuiTableColumnFlags_None, 8*char_width);
+            ImGui::TableSetupColumn("IRQ", ImGuiTableColumnFlags_None, 3*char_width);
+            ImGui::TableSetupColumn("NMI", ImGuiTableColumnFlags_None, 3*char_width);
+            ImGui::TableSetupColumn("RES", ImGuiTableColumnFlags_None, 3*char_width);
+            ImGui::TableSetupColumn("RDY", ImGuiTableColumnFlags_None, 3*char_width);
+            ImGui::TableHeadersRow();
 
-                #if defined(CHIP_6502)
-                    const uint8_t ir = trace_get_ir(i);
-                    const uint8_t p = trace_get_p(i);
+            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, 0xFF3643F4);
+            ImGui::PushStyleColor(ImGuiCol_Header, 0xFF0000D5);
+            ImGuiListClipper clipper;
+            clipper.Begin(trace_num_items());
+            while (clipper.Step()) {
+                for (int row_index = clipper.DisplayStart; row_index < clipper.DisplayEnd; row_index++) {
+                    ImGui::TableNextRow();
+
+                    const int trace_index = trace_num_items() - 1 - row_index;
+                    assert(trace_index >= 0);
+                    const uint32_t cur_cycle = trace_get_cycle(trace_index);
+                    uint32_t bg_color = 0;
+                    const uint32_t flip_bits = trace_get_flipbits(trace_index);
+                    switch (flip_bits) {
+                        case 0: bg_color = 0xFF327D2E; break;
+                        case 1: bg_color = 0xFF3C8E38; break;
+                        case 2: bg_color = 0xFFC06515; break;
+                        case 3: bg_color = 0xFFD17619; break;
+                    }
+                    ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, bg_color);
+
+                    #if defined(CHIP_6502)
+                    ImGui::TableSetColumnIndex(0);
+                    const bool row_is_selected = trace_ui_get_selected() && (cur_cycle == trace_ui_get_selected_cycle());
+                    char cycle_str[32];
+                    snprintf(cycle_str, sizeof(cycle_str), "%5d/%c", cur_cycle>>1, trace_get_clk0(trace_index)?'1':'0');
+                    if (ImGui::Selectable(cycle_str, row_is_selected, ImGuiSelectableFlags_SpanAllColumns|ImGuiSelectableFlags_AllowItemOverlap)) {
+                        trace_ui_set_selected(true);
+                        trace_ui_set_selected_cycle(cur_cycle);
+                    }
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%c", trace_get_rw(trace_index)?'R':'W');
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%04X", trace_get_addr(trace_index));
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%02X", trace_get_data(trace_index));
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%04X", trace_get_pc(trace_index));
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%02X", trace_get_a(trace_index));
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%02X", trace_get_x(trace_index));
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%02X", trace_get_y(trace_index));
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%02X", trace_get_sp(trace_index));
+                    ImGui::TableNextColumn();
+                    const uint8_t p = trace_get_p(trace_index);
                     char p_str[9] = {
                         (p & (1<<7)) ? 'N':'n',
                         (p & (1<<6)) ? 'V':'v',
@@ -751,52 +787,39 @@ static void ui_tracelog(void) {
                         (p & (1<<0)) ? 'C':'c',
                         0,
                     };
-                    ImGui::Text("%5d/%c %s  %04X %02X %04X %02X %02X %02X %02X %s %s %02X %s %s %s %s %s",
-                        cur_cycle>>1,
-                        trace_get_clk0(i)?'1':'0',
-                        trace_get_rw(i)?"R":"W",
-                        trace_get_addr(i),
-                        trace_get_data(i),
-                        trace_get_pc(i),
-                        trace_get_a(i),
-                        trace_get_x(i),
-                        trace_get_y(i),
-                        trace_get_sp(i),
-                        p_str,
-                        trace_get_sync(i)?"SYNC":"    ",
-                        ir,
-                        util_opcode_to_str(ir),
-                        trace_get_irq(i)?"   ":"IRQ",
-                        trace_get_nmi(i)?"   ":"NMI",
-                        trace_get_res(i)?"   ":"RES",
-                        trace_get_rdy(i)?"   ":"RDY");
-                #else
-                    ImGui::Text("FIXME: Z80 CPU STATE");
-                #endif
-                if (ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(p0, p1)) {
-                    any_item_hovered = true;
-                    trace_ui_set_hovered_cycle(trace_get_cycle(i));
-                    if (ImGui::IsMouseClicked(0)) {
-                        trace_ui_set_selected(true);
-                        trace_ui_set_selected_cycle(trace_ui_get_hovered_cycle());
-                    }
+                    ImGui::Text("%s", p_str);
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", trace_get_sync(trace_index)?"SYNC":"    ");
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%02X", trace_get_ir(trace_index));
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", util_opcode_to_str(trace_get_ir(trace_index)));
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", trace_get_irq(trace_index)?"   ":"IRQ");
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", trace_get_nmi(trace_index)?"   ":"NMI");
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", trace_get_res(trace_index)?"   ":"RES");
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", trace_get_rdy(trace_index)?"   ":"RDY");
+                    #endif
                 }
             }
+            ImGui::PopStyleColor(2);
             if (trace_ui_get_scroll_to_end()) {
                 trace_ui_set_scroll_to_end(false);
                 ImGui::SetScrollHereY();
             }
-        }
-        trace_ui_set_hovered(any_item_hovered);
-        ImGui::EndChild();
-        ImGui::Separator();
-        if (ImGui::Button("Clear Log")) {
-            trace_clear();
-        }
-        ImGui::SameLine();
-        if (trace_ui_get_selected()) {
-            if (ImGui::Button("Revert to Selected")) {
-                trace_revert_to_selected();
+            ImGui::EndTable();
+            ImGui::Separator();
+            if (ImGui::Button("Clear Log")) {
+                trace_clear();
+            }
+            if (trace_ui_get_selected()) {
+                ImGui::SameLine();
+                if (ImGui::Button("Revert to Selected")) {
+                    trace_revert_to_selected();
+                }
             }
         }
     }
@@ -848,23 +871,23 @@ static ImVec2 display_center(void) {
 }
 
 static void ui_help_assembler(void) {
-    if (!ui.help_asm_open) {
+    if (!ui.window_open.help_asm) {
         return;
     }
     ImGui::SetNextWindowSize({640, 400}, ImGuiCond_Once);
     ImGui::SetNextWindowPos(display_center(), ImGuiCond_Once, { 0.5f, 0.5f });
-    if (ImGui::Begin("Assembler Help", &ui.help_asm_open, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin("Assembler Help", &ui.window_open.help_asm, ImGuiWindowFlags_None)) {
         ImGui::Markdown(dump_help_assembler_md, sizeof(dump_help_assembler_md)-1, md_conf);
     }
     ImGui::End();
 }
 
 static void ui_help_opcodes(void) {
-    if (!ui.help_opcodes_open) {
+    if (!ui.window_open.help_opcodes) {
         return;
     }
     ImGui::SetNextWindowSize({640, 400}, ImGuiCond_Once);
-    if (ImGui::Begin("Opcode Help", &ui.help_opcodes_open, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin("Opcode Help", &ui.window_open.help_opcodes, ImGuiWindowFlags_None)) {
         ImGui::Text("TODO!");
     }
     ImGui::End();
@@ -1137,7 +1160,7 @@ static void draw_footer(ImVec2 c_pos, float win_width) {
 }
 
 static void ui_help_about(void) {
-    if (!ui.help_about_open) {
+    if (!ui.window_open.help_about) {
         footer_time = 0.0f;
         footer_frame_count = 0;
         return;
@@ -1148,7 +1171,7 @@ static void ui_help_about(void) {
     const float box_padding = 40.0f;
     ImGui::SetNextWindowSize({win_width, win_height}, ImGuiCond_Once);
     ImGui::SetNextWindowPos(disp_center, ImGuiCond_Once, { 0.5f, 0.5f });
-    if (ImGui::Begin("About", &ui.help_about_open, ImGuiWindowFlags_NoResize)) {
+    if (ImGui::Begin("About", &ui.window_open.help_about, ImGuiWindowFlags_NoResize)) {
         ImVec2 c_pos = ImGui::GetCursorScreenPos();
         ImVec2 p = draw_header(c_pos, win_width);
         c_pos.y = p.y + 16.0f;

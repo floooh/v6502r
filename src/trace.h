@@ -40,10 +40,6 @@ void trace_ui_set_selected(bool selected);
 bool trace_ui_get_selected(void);
 void trace_ui_set_selected_cycle(uint32_t cycle);
 uint32_t trace_ui_get_selected_cycle(void);
-void trace_ui_set_hovered(bool hovered);
-bool trace_ui_get_hovered(void);
-void trace_ui_set_hovered_cycle(uint32_t cycle);
-uint32_t trace_ui_get_hovered_cycle(void);
 void trace_ui_set_scroll_to_end(bool b);
 bool trace_ui_get_scroll_to_end(void);
 

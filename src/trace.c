@@ -27,9 +27,7 @@ static struct {
     trace_item_t items[MAX_TRACE_ITEMS];
     struct {
         bool scroll_to_end;
-        bool hovered;               // true if mouse is currently hovering a UI trace item
         bool selected;              // true if a trace item is currently selected in the UI
-        uint32_t hovered_cycle;     // mouse-hovered cycle number
         uint32_t selected_cycle;    // selected cycle number
     } ui;
 } trace;
@@ -330,26 +328,6 @@ void trace_ui_set_selected_cycle(uint32_t cycle) {
 uint32_t trace_ui_get_selected_cycle(void) {
     assert(trace.valid);
     return trace.ui.selected_cycle;
-}
-
-void trace_ui_set_hovered(bool hovered) {
-    assert(trace.valid);
-    trace.ui.hovered = hovered;
-}
-
-bool trace_ui_get_hovered(void) {
-    assert(trace.valid);
-    return trace.ui.hovered;
-}
-
-void trace_ui_set_hovered_cycle(uint32_t cycle) {
-    assert(trace.valid);
-    trace.ui.hovered_cycle = cycle;
-}
-
-uint32_t trace_ui_get_hovered_cycle(void) {
-    assert(trace.valid);
-    return trace.ui.hovered_cycle;
 }
 
 void trace_ui_set_scroll_to_end(bool b) {
