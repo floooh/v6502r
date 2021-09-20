@@ -187,12 +187,15 @@ uint8_t cpu_readL2(state_t* state) {
 uint8_t cpu_readI(state_t* state) {
     return readNodes(state, 8, nodes_reg_i);
 }
+
 uint8_t cpu_readR(state_t* state) {
     return readNodes(state, 8, nodes_reg_r);
 }
+
 uint8_t cpu_readW(state_t* state) {
     return readNodes(state, 8, nodes_reg_w);
 }
+
 uint8_t cpu_readZ(state_t* state) {
     return readNodes(state, 8, nodes_reg_z);
 }
@@ -200,14 +203,25 @@ uint8_t cpu_readZ(state_t* state) {
 uint16_t cpu_readIX(state_t* state) {
     return (readNodes(state, 8, nodes_reg_ixh) << 8) | readNodes(state, 8, nodes_reg_ixl);
 }
+
 uint16_t cpu_readIY(state_t* state) {
     return (readNodes(state, 8, nodes_reg_iyh) << 8) | readNodes(state, 8, nodes_reg_iyl);
 }
+
 uint16_t cpu_readSP(state_t* state) {
     return (readNodes(state, 8, nodes_reg_sph) << 8) | readNodes(state, 8, nodes_reg_spl);
 }
+
 uint16_t cpu_readPC(state_t* state) {
     return (readNodes(state, 8, nodes_reg_pch) << 8) | readNodes(state, 8, nodes_reg_pcl);
+}
+
+bool cpu_readM1(state_t* state) {
+    return isNodeHigh(state, _m1) != 0;
+}
+
+bool cpu_readCLK(state_t* state) {
+    return isNodeHigh(state, clk) != 0;
 }
 
 /************************************************************

@@ -16,6 +16,9 @@ extern uint16_t cpu_readAddressBus(state_t *state);
 extern void cpu_writeDataBus(state_t *state, uint8_t val);
 extern uint8_t cpu_readDataBus(state_t *state);
 
+extern bool cpu_readM1(state_t* state);
+extern bool cpu_readCLK(state_t* state);
+
 extern uint8_t cpu_readA(state_t* state);
 extern uint8_t cpu_readF(state_t* state);
 extern uint8_t cpu_readB(state_t* state);

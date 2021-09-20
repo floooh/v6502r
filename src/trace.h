@@ -33,7 +33,13 @@ bool trace_6502_get_nmi(uint32_t index);
 bool trace_6502_get_res(uint32_t index);
 bool trace_6502_get_rdy(uint32_t index);
 #else
-// FIXME
+bool trace_z80_get_clk(uint32_t index);
+bool trace_z80_get_m1(uint32_t index);
+bool trace_z80_get_mreq(uint32_t index);
+bool trace_z80_get_ioreq(uint32_t index);
+bool trace_z80_get_rfsh(uint32_t index);
+bool trace_z80_get_rd(uint32_t index);
+bool trace_z80_get_wr(uint32_t index);
 #endif
 
 void trace_ui_set_selected(bool selected);

@@ -12,7 +12,7 @@
 #define MAX_BINARY_SIZE ((1<<16)+2)
 #define MAX_LINKURL_SIZE (128)
 #define PICK_MAX_HITS (16)
-#define TRACE_FLIPBIT_CLK0 (1<<0)
+#define TRACE_FLIPBIT_CLK (1<<0)
 #define TRACE_FLIPBIT_OP (1<<1)
 
 #if defined(CHIP_6502)

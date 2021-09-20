@@ -565,10 +565,10 @@ static void ui_cpu_status_panel(void) {
 
 #if defined(CHIP_Z80)
 static void ui_cpu_status_panel(void) {
-    ImGui::Text("AF:%04X  BC:%04X  DE:%04X  HL:%04X", sim_get_af(), sim_get_bc(), sim_get_de(), sim_get_hl());
-    ImGui::Text("AF'%04X  BC'%04X  DE'%04X  HL'%04X", sim_get_af2(), sim_get_bc2(), sim_get_de2(), sim_get_hl2());
-    ImGui::Text("IX:%04X  IY:%04X  SP:%04X  PC:%04X", sim_get_ix(), sim_get_iy(), sim_get_sp(), sim_get_pc());
-    ImGui::Text("WZ:%04X  I:%02X  R:%02X", sim_get_wz(), sim_get_i(), sim_get_r());
+    ImGui::Text("AF:%04X  BC:%04X  DE:%04X  HL:%04X", sim_z80_get_af(), sim_z80_get_bc(), sim_z80_get_de(), sim_z80_get_hl());
+    ImGui::Text("AF'%04X  BC'%04X  DE'%04X  HL'%04X", sim_z80_get_af2(), sim_z80_get_bc2(), sim_z80_get_de2(), sim_z80_get_hl2());
+    ImGui::Text("IX:%04X  IY:%04X  SP:%04X  PC:%04X", sim_z80_get_ix(), sim_z80_get_iy(), sim_z80_get_sp(), sim_z80_get_pc());
+    ImGui::Text("WZ:%04X  I:%02X  R:%02X", sim_z80_get_wz(), sim_z80_get_i(), sim_z80_get_r());
 }
 #endif
 
@@ -683,6 +683,116 @@ static void ui_listing(void) {
     ImGui::End();
 }
 
+#if defined(CHIP_6502)
+static const int ui_tracelog_table_num_rows = 17;
+
+static void ui_tracelog_table_setup_columns(void) {
+    const float char_width = 8.0f;
+    ImGui::TableSetupColumn("Cycle/h", ImGuiTableColumnFlags_None, 6*char_width);
+    ImGui::TableSetupColumn("SYNC", ImGuiTableColumnFlags_None, 4*char_width);
+    ImGui::TableSetupColumn("RW", ImGuiTableColumnFlags_None, 2*char_width);
+    ImGui::TableSetupColumn("AB", ImGuiTableColumnFlags_None, 4*char_width);
+    ImGui::TableSetupColumn("DB", ImGuiTableColumnFlags_None, 2*char_width);
+    ImGui::TableSetupColumn("PC", ImGuiTableColumnFlags_None, 4*char_width);
+    ImGui::TableSetupColumn("A", ImGuiTableColumnFlags_None, 2*char_width);
+    ImGui::TableSetupColumn("X", ImGuiTableColumnFlags_None, 2*char_width);
+    ImGui::TableSetupColumn("Y", ImGuiTableColumnFlags_None, 2*char_width);
+    ImGui::TableSetupColumn("S", ImGuiTableColumnFlags_None, 2*char_width);
+    ImGui::TableSetupColumn("P", ImGuiTableColumnFlags_None, 8*char_width);
+    ImGui::TableSetupColumn("IR", ImGuiTableColumnFlags_None, 2*char_width);
+    ImGui::TableSetupColumn("Mnmemonic", ImGuiTableColumnFlags_None, 8*char_width);
+    ImGui::TableSetupColumn("IRQ", ImGuiTableColumnFlags_None, 3*char_width);
+    ImGui::TableSetupColumn("NMI", ImGuiTableColumnFlags_None, 3*char_width);
+    ImGui::TableSetupColumn("RES", ImGuiTableColumnFlags_None, 3*char_width);
+    ImGui::TableSetupColumn("RDY", ImGuiTableColumnFlags_None, 3*char_width);
+}
+
+static void ui_tracelog_table_row(int trace_index) {
+    // first column is special selectable
+    const uint32_t cur_cycle = trace_get_cycle(trace_index);
+    ImGui::TableSetColumnIndex(0);
+    const bool row_is_selected = trace_ui_get_selected() && (cur_cycle == trace_ui_get_selected_cycle());
+    char cycle_str[32];
+    snprintf(cycle_str, sizeof(cycle_str), "%5d/%c", cur_cycle>>1, trace_6502_get_clk0(trace_index)?'1':'0');
+    if (ImGui::Selectable(cycle_str, row_is_selected, ImGuiSelectableFlags_SpanAllColumns|ImGuiSelectableFlags_AllowItemOverlap)) {
+        trace_ui_set_selected(true);
+        trace_ui_set_selected_cycle(cur_cycle);
+    }
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_6502_get_sync(trace_index)?"SYNC":"    ");
+    ImGui::TableNextColumn();
+    ImGui::Text("%c", trace_6502_get_rw(trace_index)?'R':'W');
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_get_addr(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%02X", trace_get_data(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_get_pc(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%02X", trace_6502_get_a(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%02X", trace_6502_get_x(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%02X", trace_6502_get_y(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%02X", trace_6502_get_sp(trace_index));
+    ImGui::TableNextColumn();
+    char p_buf[9];
+    ImGui::Text("%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), p_buf, sizeof(p_buf)));
+    ImGui::TableNextColumn();
+    ImGui::Text("%02X", trace_6502_get_ir(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", util_opcode_to_str(trace_6502_get_ir(trace_index)));
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_6502_get_irq(trace_index)?"   ":"IRQ");
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_6502_get_nmi(trace_index)?"   ":"NMI");
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_6502_get_res(trace_index)?"   ":"RES");
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_6502_get_rdy(trace_index)?"   ":"RDY");
+}
+#elif defined(CHIP_Z80)
+static const int ui_tracelog_table_num_rows = 7;
+
+static void ui_tracelog_table_setup_columns(void) {
+    const float char_width = 8.0f;
+    ImGui::TableSetupColumn("Cycle/h", ImGuiTableColumnFlags_None, 6*char_width);
+    ImGui::TableSetupColumn("M1", ImGuiTableColumnFlags_None, 2*char_width);
+    ImGui::TableSetupColumn("MREQ", ImGuiTableColumnFlags_None, 4*char_width);
+    ImGui::TableSetupColumn("IORQ", ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("RFSH", ImGuiTableColumnFlags_None, 4*char_width);
+    ImGui::TableSetupColumn("RD", ImGuiTableColumnFlags_None, 2*char_width);
+    ImGui::TableSetupColumn("WR", ImGuiTableColumnFlags_None, 2*char_width);
+}
+
+static void ui_tracelog_table_row(int trace_index) {
+    // first column is special selectable
+    const uint32_t cur_cycle = trace_get_cycle(trace_index);
+    ImGui::TableSetColumnIndex(0);
+    const bool row_is_selected = trace_ui_get_selected() && (cur_cycle == trace_ui_get_selected_cycle());
+    char cycle_str[32];
+    snprintf(cycle_str, sizeof(cycle_str), "%5d/%c", cur_cycle>>1, trace_z80_get_clk(trace_index)?'1':'0');
+    if (ImGui::Selectable(cycle_str, row_is_selected, ImGuiSelectableFlags_SpanAllColumns|ImGuiSelectableFlags_AllowItemOverlap)) {
+        trace_ui_set_selected(true);
+        trace_ui_set_selected_cycle(cur_cycle);
+    }
+    ImGui::TableNextColumn();
+
+    ImGui::Text("%s", trace_z80_get_m1(trace_index)?"":"M1");
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_z80_get_mreq(trace_index)?"":"MREQ");
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_z80_get_ioreq(trace_index)?"":"IORQ");
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_z80_get_rfsh(trace_index)?"":"RFSH");
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_z80_get_rd(trace_index)?"":"RD");
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_z80_get_wr(trace_index)?"":"WR");
+}
+#endif
+
 static void ui_tracelog(void) {
     if (!ui.window_open.tracelog) {
         return;
@@ -710,26 +820,9 @@ static void ui_tracelog(void) {
             ImGuiTableFlags_BordersOuter |
             ImGuiTableFlags_BordersV |
             ImGuiTableFlags_SizingFixedFit;
-        if (ImGui::BeginTable("##trace_data", 17, table_flags, {0.0f, -footer_h})) {
-            const float char_width = 8.0f;
-            ImGui::TableSetupScrollFreeze(0, 1); // top row always visible
-            ImGui::TableSetupColumn("Cycle/h", ImGuiTableColumnFlags_None, 6*char_width);
-            ImGui::TableSetupColumn("RW", ImGuiTableColumnFlags_None, 2*char_width);
-            ImGui::TableSetupColumn("AB", ImGuiTableColumnFlags_None, 4*char_width);
-            ImGui::TableSetupColumn("DB", ImGuiTableColumnFlags_None, 2*char_width);
-            ImGui::TableSetupColumn("PC", ImGuiTableColumnFlags_None, 4*char_width);
-            ImGui::TableSetupColumn("A", ImGuiTableColumnFlags_None, 2*char_width);
-            ImGui::TableSetupColumn("X", ImGuiTableColumnFlags_None, 2*char_width);
-            ImGui::TableSetupColumn("Y", ImGuiTableColumnFlags_None, 2*char_width);
-            ImGui::TableSetupColumn("S", ImGuiTableColumnFlags_None, 2*char_width);
-            ImGui::TableSetupColumn("P", ImGuiTableColumnFlags_None, 8*char_width);
-            ImGui::TableSetupColumn("Sync", ImGuiTableColumnFlags_None, 4*char_width);
-            ImGui::TableSetupColumn("IR", ImGuiTableColumnFlags_None, 2*char_width);
-            ImGui::TableSetupColumn("Mnmemonic", ImGuiTableColumnFlags_None, 8*char_width);
-            ImGui::TableSetupColumn("IRQ", ImGuiTableColumnFlags_None, 3*char_width);
-            ImGui::TableSetupColumn("NMI", ImGuiTableColumnFlags_None, 3*char_width);
-            ImGui::TableSetupColumn("RES", ImGuiTableColumnFlags_None, 3*char_width);
-            ImGui::TableSetupColumn("RDY", ImGuiTableColumnFlags_None, 3*char_width);
+        if (ImGui::BeginTable("##trace_data", ui_tracelog_table_num_rows, table_flags, {0.0f, -footer_h})) {
+            ImGui::TableSetupScrollFreeze(1, 1); // top and left row always visible
+            ui_tracelog_table_setup_columns();
             ImGui::TableHeadersRow();
 
             ImGui::PushStyleColor(ImGuiCol_HeaderHovered, 0xFF3643F4);
@@ -742,7 +835,6 @@ static void ui_tracelog(void) {
 
                     const int trace_index = trace_num_items() - 1 - row_index;
                     assert(trace_index >= 0);
-                    const uint32_t cur_cycle = trace_get_cycle(trace_index);
                     uint32_t bg_color = 0;
                     const uint32_t flip_bits = trace_get_flipbits(trace_index);
                     switch (flip_bits) {
@@ -752,50 +844,7 @@ static void ui_tracelog(void) {
                         case 3: bg_color = 0xFFD17619; break;
                     }
                     ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, bg_color);
-
-                    #if defined(CHIP_6502)
-                    ImGui::TableSetColumnIndex(0);
-                    const bool row_is_selected = trace_ui_get_selected() && (cur_cycle == trace_ui_get_selected_cycle());
-                    char cycle_str[32];
-                    snprintf(cycle_str, sizeof(cycle_str), "%5d/%c", cur_cycle>>1, trace_6502_get_clk0(trace_index)?'1':'0');
-                    if (ImGui::Selectable(cycle_str, row_is_selected, ImGuiSelectableFlags_SpanAllColumns|ImGuiSelectableFlags_AllowItemOverlap)) {
-                        trace_ui_set_selected(true);
-                        trace_ui_set_selected_cycle(cur_cycle);
-                    }
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%c", trace_6502_get_rw(trace_index)?'R':'W');
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%04X", trace_get_addr(trace_index));
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%02X", trace_get_data(trace_index));
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%04X", trace_get_pc(trace_index));
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%02X", trace_6502_get_a(trace_index));
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%02X", trace_6502_get_x(trace_index));
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%02X", trace_6502_get_y(trace_index));
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%02X", trace_6502_get_sp(trace_index));
-                    ImGui::TableNextColumn();
-                    char p_buf[9];
-                    ImGui::Text("%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), p_buf, sizeof(p_buf)));
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%s", trace_6502_get_sync(trace_index)?"SYNC":"    ");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%02X", trace_6502_get_ir(trace_index));
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%s", util_opcode_to_str(trace_6502_get_ir(trace_index)));
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%s", trace_6502_get_irq(trace_index)?"   ":"IRQ");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%s", trace_6502_get_nmi(trace_index)?"   ":"NMI");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%s", trace_6502_get_res(trace_index)?"   ":"RES");
-                    ImGui::TableNextColumn();
-                    ImGui::Text("%s", trace_6502_get_rdy(trace_index)?"   ":"RDY");
-                    #endif
+                    ui_tracelog_table_row(trace_index);
                 }
             }
             ImGui::PopStyleColor(2);

@@ -14,8 +14,8 @@
 typedef struct {
     uint32_t cycle;
     uint32_t flip_bits;     // for grouping instruction and cycle ticks
-    uint32_t node_values[64];
-    uint32_t transistors_on[128];
+    uint32_t node_values[128];
+    uint32_t transistors_on[256];
     uint8_t mem[4096];      // only trace the first few KB of memory
 } trace_item_t;
 
@@ -140,125 +140,155 @@ static uint32_t nodes_ab[16] = { p6502_ab0, p6502_ab1, p6502_ab2, p6502_ab3, p65
 static uint32_t nodes_db[8]  = { p6502_db0, p6502_db1, p6502_db2, p6502_db3, p6502_db4, p6502_db5, p6502_db6, p6502_db7 };
 static uint32_t nodes_pcl[8] = { p6502_pcl0,p6502_pcl1,p6502_pcl2,p6502_pcl3,p6502_pcl4,p6502_pcl5,p6502_pcl6,p6502_pcl7 };
 static uint32_t nodes_pch[8] = { p6502_pch0,p6502_pch1,p6502_pch2,p6502_pch3,p6502_pch4,p6502_pch5,p6502_pch6,p6502_pch7 };
-static uint32_t nodes_flg[8] = { p6502_p0,p6502_p1,p6502_p2,p6502_p3,p6502_p4,0,p6502_p6,p6502_p7 }; // missing p6502_p5 is not a typo (there is no physical bit 5 in status reg)
+static uint32_t nodes_p[8]   = { p6502_p0,p6502_p1,p6502_p2,p6502_p3,p6502_p4,0,p6502_p6,p6502_p7 }; // missing p6502_p5 is not a typo (there is no physical bit 5 in status reg)
 static uint32_t nodes_a[8]   = { p6502_a0,p6502_a1,p6502_a2,p6502_a3,p6502_a4,p6502_a5,p6502_a6,p6502_a7 };
 static uint32_t nodes_x[8]   = { p6502_x0,p6502_x1,p6502_x2,p6502_x3,p6502_x4,p6502_x5,p6502_x6,p6502_x7 };
 static uint32_t nodes_y[8]   = { p6502_y0,p6502_y1,p6502_y2,p6502_y3,p6502_y4,p6502_y5,p6502_y6,p6502_y7 };
 static uint32_t nodes_sp[8]  = { p6502_s0,p6502_s1,p6502_s2,p6502_s3,p6502_s4,p6502_s5,p6502_s6,p6502_s7 };
 static uint32_t nodes_ir[8]  = { p6502_notir0,p6502_notir1,p6502_notir2,p6502_notir3,p6502_notir4,p6502_notir5,p6502_notir6,p6502_notir7 };
-#elif defiend(CHIP_Z80)
-static uint32_t nodes_ab[16] = { pz80_ab0, pz80_ab1, pz80_ab2, pz80_ab3, pz80_ab4, pz80_ab5, pz80_ab6, pz80_ab7, pz80_ab8, pz80_ab9, pz80_ab10, pz80_ab11, pz80_ab12, pz80_ab13, pz80_ab14, pz80_ab15 };
-static uint32_t nodes_db[8]  = { pz80_db0, pz80_db1, pz80_db2, pz80_db3, pz80_db4, pz80_db5, pz80_db6, pz80_db7 };
-static uint32_t nodes_pcl[8] = { pz80_pcl0,pc80_pcl1,pc80_pcl2,pc80_pcl3,pc80_pcl4,pc80_pcl5,pc80_pcl6,pc80_pcl7 };
-static uint32_t nodes_pch[8] = { pc80_pch0,pc80_pch1,pc80_pch2,pc80_pch3,pc80_pch4,pc80_pch5,pc80_pch6,pc80_pch7 };
-
+#elif defined(CHIP_Z80)
+static uint32_t nodes_ab[16] = { pz80_ab0,pz80_ab1,pz80_ab2,pz80_ab3,pz80_ab4,pz80_ab5,pz80_ab6,pz80_ab7,pz80_ab8,pz80_ab9,pz80_ab10,pz80_ab11,pz80_ab12,pz80_ab13,pz80_ab14,pz80_ab15 };
+static uint32_t nodes_db[8]  = { pz80_db0,pz80_db1,pz80_db2,pz80_db3,pz80_db4,pz80_db5,pz80_db6,pz80_db7 };
+static uint32_t nodes_pcl[8] = { pz80_reg_pcl0,pz80_reg_pcl1,pz80_reg_pcl2,pz80_reg_pcl3,pz80_reg_pcl4,pz80_reg_pcl5,pz80_reg_pcl6,pz80_reg_pcl7 };
+static uint32_t nodes_pch[8] = { pz80_reg_pch0,pz80_reg_pch1,pz80_reg_pch2,pz80_reg_pch3,pz80_reg_pch4,pz80_reg_pch5,pz80_reg_pch6,pz80_reg_pch7 };
+static uint32_t nodes_reg_f[8]  = { pz80_reg_f0, pz80_reg_f1, pz80_reg_f2, pz80_reg_f3, pz80_reg_f4, pz80_reg_f5, pz80_reg_f6, pz80_reg_f7 };
+static uint32_t nodes_reg_ff[8] = { pz80_reg_ff0, pz80_reg_ff1, pz80_reg_ff2, pz80_reg_ff3, pz80_reg_ff4, pz80_reg_ff5, pz80_reg_ff6, pz80_reg_ff7 };
 #endif
 
 uint16_t trace_get_addr(uint32_t index) {
-    assert(trace.valid);
     return read_nodes(index, 16, nodes_ab);
 }
 
 uint8_t trace_get_data(uint32_t index) {
-    assert(trace.valid);
     return read_nodes(index, 8, nodes_db);
 }
 
 uint16_t trace_get_pc(uint32_t index) {
-    assert(trace.valid);
     uint8_t pcl = read_nodes(index, 8, nodes_pcl);
     uint8_t pch = read_nodes(index, 8, nodes_pch);
     return (pch<<8)|pcl;
 }
 
 uint8_t trace_get_flags(uint32_t index) {
-    assert(trace.valid);
-    return read_nodes(index, 8, nodes_flg);
+    #if defined(CHIP_6502)
+    return read_nodes(index, 8, nodes_p);
+    #else
+    return read_nodes(index, 8, is_node_high(index, pz80_ex_af) ? nodes_reg_f : nodes_reg_ff);
+    #endif
 }
 
 #if defined(CHIP_6502)
 uint8_t trace_6502_get_a(uint32_t index) {
-    assert(trace.valid);
     return read_nodes(index, 8, nodes_a);
 }
 
 uint8_t trace_6502_get_x(uint32_t index) {
-    assert(trace.valid);
     return read_nodes(index, 8, nodes_x);
 }
 
 uint8_t trace_6502_get_y(uint32_t index) {
-    assert(trace.valid);
     return read_nodes(index, 8, nodes_y);
 }
 
 uint8_t trace_6502_get_sp(uint32_t index) {
-    assert(trace.valid);
     return read_nodes(index, 8, nodes_sp);
 }
 
 uint8_t trace_6502_get_ir(uint32_t index) {
-    assert(trace.valid);
     return ~read_nodes(index, 8, nodes_ir);
 }
 
 bool trace_6502_get_rw(uint32_t index) {
-    assert(trace.valid);
     return is_node_high(index, p6502_rw);
 }
 
 bool trace_6502_get_sync(uint32_t index) {
-    assert(trace.valid);
     return is_node_high(index, p6502_sync);
 }
 
 bool trace_6502_get_clk0(uint32_t index) {
-    assert(trace.valid);
     return is_node_high(index, p6502_clk0);
 }
 
 bool trace_6502_get_irq(uint32_t index) {
-    assert(trace.valid);
     return is_node_high(index, p6502_irq);
 }
 
 bool trace_6502_get_nmi(uint32_t index) {
-    assert(trace.valid);
     return is_node_high(index, p6502_nmi);
 }
 
 bool trace_6502_get_res(uint32_t index) {
-    assert(trace.valid);
     return is_node_high(index, p6502_res);
 }
 
 bool trace_6502_get_rdy(uint32_t index) {
-    assert(trace.valid);
     return is_node_high(index, p6502_rdy);
+}
+#endif
+
+#if defined(CHIP_Z80)
+bool trace_z80_get_m1(uint32_t index) {
+    return is_node_high(index, pz80__m1);
+}
+
+bool trace_z80_get_clk(uint32_t index) {
+    return is_node_high(index, pz80_clk);
+}
+
+bool trace_z80_get_mreq(uint32_t index) {
+    return is_node_high(index, pz80__mreq);
+}
+
+bool trace_z80_get_ioreq(uint32_t index) {
+    return is_node_high(index, pz80__iorq);
+}
+
+bool trace_z80_get_rfsh(uint32_t index) {
+    return is_node_high(index, pz80__rfsh);
+}
+
+bool trace_z80_get_rd(uint32_t index) {
+    return is_node_high(index, pz80__rd);
+}
+
+bool trace_z80_get_wr(uint32_t index) {
+    return is_node_high(index, pz80__wr);
 }
 #endif
 
 void trace_store(void) {
     assert(trace.valid);
+    int success = 0;
     uint32_t idx = ring_add();
     trace_item_t* item = &trace.items[idx];
     item->cycle = sim_get_cycle();
     memcpy(&item->mem, cpu_memory, sizeof(item->mem));
-    sim_get_node_values((range_t){ .ptr=item->node_values, .size=sizeof(item->node_values) });
-    sim_get_transistor_on((range_t){ .ptr=item->transistors_on, .size=sizeof(item->transistors_on) });
+    success = sim_get_node_values((range_t){ .ptr=item->node_values, .size=sizeof(item->node_values) });
+    assert(success == 1);
+    success = sim_get_transistor_on((range_t){ .ptr=item->transistors_on, .size=sizeof(item->transistors_on) });
+    assert(success == 1);
     // find start of instruction (first half tick after sync)
     #if defined(CHIP_6502)
         if (!sim_6502_get_sync() && (trace_num_items() > 1) && trace_6502_get_sync(1)) {
             trace.flip_bits ^= TRACE_FLIPBIT_OP;
         }
         if (sim_6502_get_clk0()) {
-            trace.flip_bits |= TRACE_FLIPBIT_CLK0;
+            trace.flip_bits |= TRACE_FLIPBIT_CLK;
         }
         else {
-            trace.flip_bits &= ~TRACE_FLIPBIT_CLK0;
+            trace.flip_bits &= ~TRACE_FLIPBIT_CLK;
         }
     #else
-        // FIXME
+        if (!sim_z80_get_m1() && (trace_num_items() > 1) && trace_z80_get_m1(1)) {
+            trace.flip_bits ^= TRACE_FLIPBIT_OP;
+        }
+        if (sim_z80_get_clk()) {
+            trace.flip_bits |= TRACE_FLIPBIT_CLK;
+        }
+        else {
+            trace.flip_bits &= ~TRACE_FLIPBIT_CLK;
+        }
     #endif
     item->flip_bits = trace.flip_bits;
     trace.ui.scroll_to_end = true;

@@ -309,4 +309,12 @@ uint8_t sim_z80_get_i(void) {
 uint8_t sim_z80_get_r(void) {
     return cpu_readR(sim.cpu_state);
 }
+
+bool sim_z80_get_m1(void) {
+    return cpu_readM1(sim.cpu_state);
+}
+
+bool sim_z80_get_clk(void) {
+    return cpu_readCLK(sim.cpu_state);
+}
 #endif
