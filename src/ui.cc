@@ -508,53 +508,57 @@ static void ui_input_uint16(const char* label, const char* id, uint16_t addr) {
     sim_w16(addr, ui_util_input_u16(id, sim_r16(addr)));
 }
 
+static const char* ui_cpu_flags_as_string(uint8_t flags, char* buf, size_t buf_size) {
+    assert(buf && (buf_size >= 9));
+    #if defined(CHIP_6502)
+    const char* chrs[2] = { "czidbxvn", "CZIDBXVN" };
+    #else
+    const char* chrs[2] = { "cnvxhyzf", "CNVXHYZF" };
+    #endif
+    for (int i = 0; i < 8; i++) {
+        buf[7 - i] = chrs[(flags>>i) & 1][i];
+    }
+    buf[8] = 0;
+    return buf;
+}
+
 #if defined(CHIP_6502)
 static void ui_cpu_status_panel(void) {
-    const uint8_t ir = sim_get_ir();
-    const uint8_t p = sim_get_p();
-    char p_str[9] = {
-        (p & (1<<7)) ? 'N':'n',
-        (p & (1<<6)) ? 'V':'v',
-        (p & (1<<5)) ? 'X':'x',
-        (p & (1<<4)) ? 'B':'b',
-        (p & (1<<3)) ? 'D':'d',
-        (p & (1<<2)) ? 'I':'i',
-        (p & (1<<1)) ? 'Z':'z',
-        (p & (1<<0)) ? 'C':'c',
-        0,
-    };
+    const uint8_t ir = sim_6502_get_ir();
+    const uint8_t p = sim_get_flags();
     ImGui::Text("A:%02X X:%02X Y:%02X SP:%02X PC:%04X",
-        sim_get_a(), sim_get_x(), sim_get_y(), sim_get_sp(), sim_get_pc());
-    ImGui::Text("P:%02X (%s) Cycle: %d", p, p_str, sim_get_cycle()>>1);
+        sim_6502_get_a(), sim_6502_get_x(), sim_6502_get_y(), sim_6502_get_sp(), sim_get_pc());
+    char p_buf[9];
+    ImGui::Text("P:%02X (%s) Cycle: %d", p, ui_cpu_flags_as_string(sim_get_flags(), p_buf, sizeof(p_buf)), sim_get_cycle()>>1);
     ImGui::Text("IR:%02X %s\n", ir, util_opcode_to_str(ir));
     ImGui::Text("Data:%02X Addr:%04X %s %s %s",
         sim_get_data(), sim_get_addr(),
-        sim_get_rw()?"R":"W",
-        sim_get_clk0()?"CLK0":"    ",
-        sim_get_sync()?"SYNC":"    ");
+        sim_6502_get_rw()?"R":"W",
+        sim_6502_get_clk0()?"CLK0":"    ",
+        sim_6502_get_sync()?"SYNC":"    ");
     ImGui::Separator();
     ui_input_uint16("NMI vector (FFFA): ", "##nmi_vec", 0xFFFA);
     ui_input_uint16("RES vector (FFFC): ", "##res_vec", 0xFFFC);
     ui_input_uint16("IRQ vector (FFFE): ", "##irq_vec", 0xFFFE);
     ImGui::Separator();
-    bool rdy_active = !sim_get_rdy();
+    bool rdy_active = !sim_6502_get_rdy();
     if (ImGui::Checkbox("RDY", &rdy_active)) {
-        sim_set_rdy(!rdy_active);
+        sim_6502_set_rdy(!rdy_active);
     }
     ImGui::SameLine();
-    bool irq_active = !sim_get_irq();
+    bool irq_active = !sim_6502_get_irq();
     if (ImGui::Checkbox("IRQ", &irq_active)) {
-        sim_set_irq(!irq_active);
+        sim_6502_set_irq(!irq_active);
     }
     ImGui::SameLine();
-    bool nmi_active = !sim_get_nmi();
+    bool nmi_active = !sim_6502_get_nmi();
     if (ImGui::Checkbox("NMI", &nmi_active)) {
-        sim_set_nmi(!nmi_active);
+        sim_6502_set_nmi(!nmi_active);
     }
     ImGui::SameLine();
-    bool res_active = !sim_get_res();
+    bool res_active = !sim_6502_get_res();
     if (ImGui::Checkbox("RES", &res_active)) {
-        sim_set_res(!res_active);
+        sim_6502_set_res(!res_active);
     }
 }
 #endif
@@ -753,13 +757,13 @@ static void ui_tracelog(void) {
                     ImGui::TableSetColumnIndex(0);
                     const bool row_is_selected = trace_ui_get_selected() && (cur_cycle == trace_ui_get_selected_cycle());
                     char cycle_str[32];
-                    snprintf(cycle_str, sizeof(cycle_str), "%5d/%c", cur_cycle>>1, trace_get_clk0(trace_index)?'1':'0');
+                    snprintf(cycle_str, sizeof(cycle_str), "%5d/%c", cur_cycle>>1, trace_6502_get_clk0(trace_index)?'1':'0');
                     if (ImGui::Selectable(cycle_str, row_is_selected, ImGuiSelectableFlags_SpanAllColumns|ImGuiSelectableFlags_AllowItemOverlap)) {
                         trace_ui_set_selected(true);
                         trace_ui_set_selected_cycle(cur_cycle);
                     }
                     ImGui::TableNextColumn();
-                    ImGui::Text("%c", trace_get_rw(trace_index)?'R':'W');
+                    ImGui::Text("%c", trace_6502_get_rw(trace_index)?'R':'W');
                     ImGui::TableNextColumn();
                     ImGui::Text("%04X", trace_get_addr(trace_index));
                     ImGui::TableNextColumn();
@@ -767,41 +771,30 @@ static void ui_tracelog(void) {
                     ImGui::TableNextColumn();
                     ImGui::Text("%04X", trace_get_pc(trace_index));
                     ImGui::TableNextColumn();
-                    ImGui::Text("%02X", trace_get_a(trace_index));
+                    ImGui::Text("%02X", trace_6502_get_a(trace_index));
                     ImGui::TableNextColumn();
-                    ImGui::Text("%02X", trace_get_x(trace_index));
+                    ImGui::Text("%02X", trace_6502_get_x(trace_index));
                     ImGui::TableNextColumn();
-                    ImGui::Text("%02X", trace_get_y(trace_index));
+                    ImGui::Text("%02X", trace_6502_get_y(trace_index));
                     ImGui::TableNextColumn();
-                    ImGui::Text("%02X", trace_get_sp(trace_index));
+                    ImGui::Text("%02X", trace_6502_get_sp(trace_index));
                     ImGui::TableNextColumn();
-                    const uint8_t p = trace_get_p(trace_index);
-                    char p_str[9] = {
-                        (p & (1<<7)) ? 'N':'n',
-                        (p & (1<<6)) ? 'V':'v',
-                        (p & (1<<5)) ? 'X':'x',
-                        (p & (1<<4)) ? 'B':'b',
-                        (p & (1<<3)) ? 'D':'d',
-                        (p & (1<<2)) ? 'I':'i',
-                        (p & (1<<1)) ? 'Z':'z',
-                        (p & (1<<0)) ? 'C':'c',
-                        0,
-                    };
-                    ImGui::Text("%s", p_str);
+                    char p_buf[9];
+                    ImGui::Text("%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), p_buf, sizeof(p_buf)));
                     ImGui::TableNextColumn();
-                    ImGui::Text("%s", trace_get_sync(trace_index)?"SYNC":"    ");
+                    ImGui::Text("%s", trace_6502_get_sync(trace_index)?"SYNC":"    ");
                     ImGui::TableNextColumn();
-                    ImGui::Text("%02X", trace_get_ir(trace_index));
+                    ImGui::Text("%02X", trace_6502_get_ir(trace_index));
                     ImGui::TableNextColumn();
-                    ImGui::Text("%s", util_opcode_to_str(trace_get_ir(trace_index)));
+                    ImGui::Text("%s", util_opcode_to_str(trace_6502_get_ir(trace_index)));
                     ImGui::TableNextColumn();
-                    ImGui::Text("%s", trace_get_irq(trace_index)?"   ":"IRQ");
+                    ImGui::Text("%s", trace_6502_get_irq(trace_index)?"   ":"IRQ");
                     ImGui::TableNextColumn();
-                    ImGui::Text("%s", trace_get_nmi(trace_index)?"   ":"NMI");
+                    ImGui::Text("%s", trace_6502_get_nmi(trace_index)?"   ":"NMI");
                     ImGui::TableNextColumn();
-                    ImGui::Text("%s", trace_get_res(trace_index)?"   ":"RES");
+                    ImGui::Text("%s", trace_6502_get_res(trace_index)?"   ":"RES");
                     ImGui::TableNextColumn();
-                    ImGui::Text("%s", trace_get_rdy(trace_index)?"   ":"RDY");
+                    ImGui::Text("%s", trace_6502_get_rdy(trace_index)?"   ":"RDY");
                     #endif
                 }
             }

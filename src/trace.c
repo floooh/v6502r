@@ -135,107 +135,104 @@ uint32_t trace_get_flipbits(uint32_t index) {
     return trace.items[idx].flip_bits;
 }
 
+#if defined(CHIP_6502)
+static uint32_t nodes_ab[16] = { p6502_ab0, p6502_ab1, p6502_ab2, p6502_ab3, p6502_ab4, p6502_ab5, p6502_ab6, p6502_ab7, p6502_ab8, p6502_ab9, p6502_ab10, p6502_ab11, p6502_ab12, p6502_ab13, p6502_ab14, p6502_ab15 };
+static uint32_t nodes_db[8]  = { p6502_db0, p6502_db1, p6502_db2, p6502_db3, p6502_db4, p6502_db5, p6502_db6, p6502_db7 };
+static uint32_t nodes_pcl[8] = { p6502_pcl0,p6502_pcl1,p6502_pcl2,p6502_pcl3,p6502_pcl4,p6502_pcl5,p6502_pcl6,p6502_pcl7 };
+static uint32_t nodes_pch[8] = { p6502_pch0,p6502_pch1,p6502_pch2,p6502_pch3,p6502_pch4,p6502_pch5,p6502_pch6,p6502_pch7 };
+static uint32_t nodes_flg[8] = { p6502_p0,p6502_p1,p6502_p2,p6502_p3,p6502_p4,0,p6502_p6,p6502_p7 }; // missing p6502_p5 is not a typo (there is no physical bit 5 in status reg)
+static uint32_t nodes_a[8]   = { p6502_a0,p6502_a1,p6502_a2,p6502_a3,p6502_a4,p6502_a5,p6502_a6,p6502_a7 };
+static uint32_t nodes_x[8]   = { p6502_x0,p6502_x1,p6502_x2,p6502_x3,p6502_x4,p6502_x5,p6502_x6,p6502_x7 };
+static uint32_t nodes_y[8]   = { p6502_y0,p6502_y1,p6502_y2,p6502_y3,p6502_y4,p6502_y5,p6502_y6,p6502_y7 };
+static uint32_t nodes_sp[8]  = { p6502_s0,p6502_s1,p6502_s2,p6502_s3,p6502_s4,p6502_s5,p6502_s6,p6502_s7 };
+static uint32_t nodes_ir[8]  = { p6502_notir0,p6502_notir1,p6502_notir2,p6502_notir3,p6502_notir4,p6502_notir5,p6502_notir6,p6502_notir7 };
+#elif defiend(CHIP_Z80)
+static uint32_t nodes_ab[16] = { pz80_ab0, pz80_ab1, pz80_ab2, pz80_ab3, pz80_ab4, pz80_ab5, pz80_ab6, pz80_ab7, pz80_ab8, pz80_ab9, pz80_ab10, pz80_ab11, pz80_ab12, pz80_ab13, pz80_ab14, pz80_ab15 };
+static uint32_t nodes_db[8]  = { pz80_db0, pz80_db1, pz80_db2, pz80_db3, pz80_db4, pz80_db5, pz80_db6, pz80_db7 };
+static uint32_t nodes_pcl[8] = { pz80_pcl0,pc80_pcl1,pc80_pcl2,pc80_pcl3,pc80_pcl4,pc80_pcl5,pc80_pcl6,pc80_pcl7 };
+static uint32_t nodes_pch[8] = { pc80_pch0,pc80_pch1,pc80_pch2,pc80_pch3,pc80_pch4,pc80_pch5,pc80_pch6,pc80_pch7 };
+
+#endif
+
 uint16_t trace_get_addr(uint32_t index) {
     assert(trace.valid);
-    #if defined(CHIP_6502)
-    return read_nodes(index, 16, (uint32_t[]){ p6502_ab0, p6502_ab1, p6502_ab2, p6502_ab3, p6502_ab4, p6502_ab5, p6502_ab6, p6502_ab7, p6502_ab8, p6502_ab9, p6502_ab10, p6502_ab11, p6502_ab12, p6502_ab13, p6502_ab14, p6502_ab15 });
-    #elif defined(CHIP_Z80)
-    return read_nodes(index, 16, (uint32_t[]){ pz80_ab0, pz80_ab1, pz80_ab2, pz80_ab3, pz80_ab4, pz80_ab5, pz80_ab6, pz80_ab7, pz80_ab8, pz80_ab9, pz80_ab10, pz80_ab11, pz80_ab12, pz80_ab13, pz80_ab14, pz80_ab15 });
-    #else
-    #error "Unknown chip define!"
-    #endif
+    return read_nodes(index, 16, nodes_ab);
 }
 
 uint8_t trace_get_data(uint32_t index) {
     assert(trace.valid);
-    #if defined(CHIP_6502)
-    return read_nodes(index, 8, (uint32_t[]){ p6502_db0, p6502_db1, p6502_db2, p6502_db3, p6502_db4, p6502_db5, p6502_db6, p6502_db7 });
-    #elif defined(CHIP_Z80)
-    return read_nodes(index, 8, (uint32_t[]){ pz80_db0, pz80_db1, pz80_db2, pz80_db3, pz80_db4, pz80_db5, pz80_db6, pz80_db7 });
-    #else
-    #error "Unknown chip define!"
-    #endif
-}
-
-
-#if defined(CHIP_6502)
-uint8_t trace_get_a(uint32_t index) {
-    assert(trace.valid);
-    return read_nodes(index, 8, (uint32_t[]){ p6502_a0,p6502_a1,p6502_a2,p6502_a3,p6502_a4,p6502_a5,p6502_a6,p6502_a7 });
-}
-
-uint8_t trace_get_x(uint32_t index) {
-    assert(trace.valid);
-    return read_nodes(index, 8, (uint32_t[]){ p6502_x0,p6502_x1,p6502_x2,p6502_x3,p6502_x4,p6502_x5,p6502_x6,p6502_x7 });
-}
-
-uint8_t trace_get_y(uint32_t index) {
-    assert(trace.valid);
-    return read_nodes(index, 8, (uint32_t[]){ p6502_y0,p6502_y1,p6502_y2,p6502_y3,p6502_y4,p6502_y5,p6502_y6,p6502_y7 });
-}
-
-uint8_t trace_get_sp(uint32_t index) {
-    assert(trace.valid);
-    return read_nodes(index, 8, (uint32_t[]){ p6502_s0,p6502_s1,p6502_s2,p6502_s3,p6502_s4,p6502_s5,p6502_s6,p6502_s7 });
-}
-
-static uint8_t trace_get_pcl(uint32_t index) {
-    assert(trace.valid);
-    return read_nodes(index, 8, (uint32_t[]){ p6502_pcl0,p6502_pcl1,p6502_pcl2,p6502_pcl3,p6502_pcl4,p6502_pcl5,p6502_pcl6,p6502_pcl7 });
-}
-
-static uint8_t trace_get_pch(uint32_t index) {
-    assert(trace.valid);
-    return read_nodes(index, 8, (uint32_t[]){ p6502_pch0,p6502_pch1,p6502_pch2,p6502_pch3,p6502_pch4,p6502_pch5,p6502_pch6,p6502_pch7 });
+    return read_nodes(index, 8, nodes_db);
 }
 
 uint16_t trace_get_pc(uint32_t index) {
     assert(trace.valid);
-    return (trace_get_pch(index)<<8)|trace_get_pcl(index);
+    uint8_t pcl = read_nodes(index, 8, nodes_pcl);
+    uint8_t pch = read_nodes(index, 8, nodes_pch);
+    return (pch<<8)|pcl;
 }
 
-uint8_t trace_get_ir(uint32_t index) {
+uint8_t trace_get_flags(uint32_t index) {
     assert(trace.valid);
-    return ~read_nodes(index, 8, (uint32_t[]){ p6502_notir0,p6502_notir1,p6502_notir2,p6502_notir3,p6502_notir4,p6502_notir5,p6502_notir6,p6502_notir7 });
+    return read_nodes(index, 8, nodes_flg);
 }
 
-uint8_t trace_get_p(uint32_t index) {
+#if defined(CHIP_6502)
+uint8_t trace_6502_get_a(uint32_t index) {
     assert(trace.valid);
-    // missing p6502_p5 is not a typo (there is no physical bit 5 in status reg)
-    return read_nodes(index, 8, (uint32_t[]){ p6502_p0,p6502_p1,p6502_p2,p6502_p3,p6502_p4,0,p6502_p6,p6502_p7 });
+    return read_nodes(index, 8, nodes_a);
 }
 
-bool trace_get_rw(uint32_t index) {
+uint8_t trace_6502_get_x(uint32_t index) {
+    assert(trace.valid);
+    return read_nodes(index, 8, nodes_x);
+}
+
+uint8_t trace_6502_get_y(uint32_t index) {
+    assert(trace.valid);
+    return read_nodes(index, 8, nodes_y);
+}
+
+uint8_t trace_6502_get_sp(uint32_t index) {
+    assert(trace.valid);
+    return read_nodes(index, 8, nodes_sp);
+}
+
+uint8_t trace_6502_get_ir(uint32_t index) {
+    assert(trace.valid);
+    return ~read_nodes(index, 8, nodes_ir);
+}
+
+bool trace_6502_get_rw(uint32_t index) {
     assert(trace.valid);
     return is_node_high(index, p6502_rw);
 }
 
-bool trace_get_sync(uint32_t index) {
+bool trace_6502_get_sync(uint32_t index) {
     assert(trace.valid);
     return is_node_high(index, p6502_sync);
 }
 
-bool trace_get_clk0(uint32_t index) {
+bool trace_6502_get_clk0(uint32_t index) {
     assert(trace.valid);
     return is_node_high(index, p6502_clk0);
 }
 
-bool trace_get_irq(uint32_t index) {
+bool trace_6502_get_irq(uint32_t index) {
     assert(trace.valid);
     return is_node_high(index, p6502_irq);
 }
 
-bool trace_get_nmi(uint32_t index) {
+bool trace_6502_get_nmi(uint32_t index) {
     assert(trace.valid);
     return is_node_high(index, p6502_nmi);
 }
 
-bool trace_get_res(uint32_t index) {
+bool trace_6502_get_res(uint32_t index) {
     assert(trace.valid);
     return is_node_high(index, p6502_res);
 }
 
-bool trace_get_rdy(uint32_t index) {
+bool trace_6502_get_rdy(uint32_t index) {
     assert(trace.valid);
     return is_node_high(index, p6502_rdy);
 }
@@ -251,10 +248,10 @@ void trace_store(void) {
     sim_get_transistor_on((range_t){ .ptr=item->transistors_on, .size=sizeof(item->transistors_on) });
     // find start of instruction (first half tick after sync)
     #if defined(CHIP_6502)
-        if (!sim_get_sync() && (trace_num_items() > 1) && trace_get_sync(1)) {
+        if (!sim_6502_get_sync() && (trace_num_items() > 1) && trace_6502_get_sync(1)) {
             trace.flip_bits ^= TRACE_FLIPBIT_OP;
         }
-        if (sim_get_clk0()) {
+        if (sim_6502_get_clk0()) {
             trace.flip_bits |= TRACE_FLIPBIT_CLK0;
         }
         else {

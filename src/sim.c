@@ -165,138 +165,148 @@ bool sim_is_ignore_picking_highlight_node(int node_num) {
     #endif
 }
 
-#if defined(CHIP_6502)
-uint8_t sim_get_a(void) {
-    return cpu_readA(sim.cpu_state);
-}
-
-uint8_t sim_get_x(void) {
-    return cpu_readX(sim.cpu_state);
-}
-
-uint8_t sim_get_y(void) {
-    return cpu_readY(sim.cpu_state);
-}
-
-uint8_t sim_get_sp(void) {
-    return cpu_readSP(sim.cpu_state);
-}
-
 uint16_t sim_get_pc(void) {
     return cpu_readPC(sim.cpu_state);
 }
 
-uint8_t sim_get_ir(void) {
+uint8_t sim_get_flags(void) {
+    #if defined(CHIP_6502)
+    return cpu_readP(sim.cpu_state);
+    #elif defined(CHIP_Z80)
+    return cpu_readF(sim.cpu_state);
+    #else
+    #error "Unknown CPU define!"
+    #endif
+}
+
+#if defined(CHIP_6502)
+uint8_t sim_6502_get_a(void) {
+    return cpu_readA(sim.cpu_state);
+}
+
+uint8_t sim_6502_get_x(void) {
+    return cpu_readX(sim.cpu_state);
+}
+
+uint8_t sim_6502_get_y(void) {
+    return cpu_readY(sim.cpu_state);
+}
+
+uint8_t sim_6502_get_sp(void) {
+    return cpu_readSP(sim.cpu_state);
+}
+
+uint8_t sim_6502_get_ir(void) {
     return cpu_readIR(sim.cpu_state);
 }
 
-uint8_t sim_get_p(void) {
+uint8_t sim_6502_get_p(void) {
     return cpu_readP(sim.cpu_state);
 }
 
-bool sim_get_clk0(void) {
+bool sim_6502_get_clk0(void) {
     return cpu_readCLK0(sim.cpu_state);
 }
 
-bool sim_get_rw(void) {
+bool sim_6502_get_rw(void) {
     return cpu_readRW(sim.cpu_state);
 }
 
-bool sim_get_sync(void) {
+bool sim_6502_get_sync(void) {
     return cpu_readSYNC(sim.cpu_state);
 }
 
-void sim_set_rdy(bool high) {
+void sim_6502_set_rdy(bool high) {
     cpu_writeRDY(sim.cpu_state, high);
 }
 
-bool sim_get_rdy(void) {
+bool sim_6502_get_rdy(void) {
     return cpu_readRDY(sim.cpu_state);
 }
 
-void sim_set_irq(bool high) {
+void sim_6502_set_irq(bool high) {
     cpu_writeIRQ(sim.cpu_state, high);
 }
 
-bool sim_get_irq(void) {
+bool sim_6502_get_irq(void) {
     return cpu_readIRQ(sim.cpu_state);
 }
 
-void sim_set_nmi(bool high) {
+void sim_6502_set_nmi(bool high) {
     cpu_writeNMI(sim.cpu_state, high);
 }
 
-bool sim_get_nmi(void) {
+bool sim_6502_get_nmi(void) {
     return cpu_readNMI(sim.cpu_state);
 }
 
-void sim_set_res(bool high) {
+void sim_6502_set_res(bool high) {
     cpu_writeRES(sim.cpu_state, high);
 }
 
-bool sim_get_res(void) {
+bool sim_6502_get_res(void) {
     return cpu_readRES(sim.cpu_state);
 }
 #endif
 
 #if defined(CHIP_Z80)
-uint16_t sim_get_af(void) {
+uint16_t sim_z80_get_af(void) {
     return (cpu_readA(sim.cpu_state) << 8) | cpu_readF(sim.cpu_state);
 }
 
-uint16_t sim_get_bc(void) {
+uint16_t sim_z80_get_bc(void) {
     return (cpu_readB(sim.cpu_state) << 8) | cpu_readC(sim.cpu_state);
 }
 
-uint16_t sim_get_de(void) {
+uint16_t sim_z80_get_de(void) {
     return (cpu_readD(sim.cpu_state) << 8) | cpu_readE(sim.cpu_state);
 }
 
-uint16_t sim_get_hl(void) {
+uint16_t sim_z80_get_hl(void) {
     return (cpu_readH(sim.cpu_state) << 8) | cpu_readL(sim.cpu_state);
 }
 
-uint16_t sim_get_af2(void) {
+uint16_t sim_z80_get_af2(void) {
     return (cpu_readA2(sim.cpu_state) << 8) | cpu_readF2(sim.cpu_state);
 }
 
-uint16_t sim_get_bc2(void) {
+uint16_t sim_z80_get_bc2(void) {
     return (cpu_readB2(sim.cpu_state) << 8) | cpu_readC2(sim.cpu_state);
 }
 
-uint16_t sim_get_de2(void) {
+uint16_t sim_z80_get_de2(void) {
     return (cpu_readD2(sim.cpu_state) << 8) | cpu_readE2(sim.cpu_state);
 }
 
-uint16_t sim_get_hl2(void) {
+uint16_t sim_z80_get_hl2(void) {
     return (cpu_readH2(sim.cpu_state) << 8) | cpu_readL2(sim.cpu_state);
 }
 
-uint16_t sim_get_ix(void) {
+uint16_t sim_z80_get_ix(void) {
     return cpu_readIX(sim.cpu_state);
 }
 
-uint16_t sim_get_iy(void) {
+uint16_t sim_z80_get_iy(void) {
     return cpu_readIY(sim.cpu_state);
 }
 
-uint16_t sim_get_sp(void) {
+uint16_t sim_z80_get_sp(void) {
     return cpu_readSP(sim.cpu_state);
 }
 
-uint16_t sim_get_pc(void) {
+uint16_t sim_z80_get_pc(void) {
     return cpu_readPC(sim.cpu_state);
 }
 
-uint16_t sim_get_wz(void) {
+uint16_t sim_z80_get_wz(void) {
     return (cpu_readW(sim.cpu_state) << 8) | cpu_readZ(sim.cpu_state);
 }
 
-uint8_t sim_get_i(void) {
+uint8_t sim_z80_get_i(void) {
     return cpu_readI(sim.cpu_state);
 }
 
-uint8_t sim_get_r(void) {
+uint8_t sim_z80_get_r(void) {
     return cpu_readR(sim.cpu_state);
 }
 #endif
