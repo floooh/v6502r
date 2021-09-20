@@ -66,10 +66,14 @@ uint16_t sim_z80_get_iy(void);
 uint16_t sim_z80_get_sp(void);
 uint16_t sim_z80_get_pc(void);
 uint16_t sim_z80_get_wz(void);
+uint8_t sim_z80_get_f(void);
 uint8_t sim_z80_get_i(void);
 uint8_t sim_z80_get_r(void);
 bool sim_z80_get_m1(void);
 bool sim_z80_get_clk(void);
+bool sim_z80_get_mreq(void);
+bool sim_z80_get_rd(void);
+bool sim_z80_get_wr(void);
 #endif
 
 #if defined(__cplusplus)

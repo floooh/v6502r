@@ -18,6 +18,10 @@ extern uint8_t cpu_readDataBus(state_t *state);
 
 extern bool cpu_readM1(state_t* state);
 extern bool cpu_readCLK(state_t* state);
+extern bool cpu_readMREQ(state_t* state);
+extern bool cpu_readIORQ(state_t* state);
+extern bool cpu_readRD(state_t* state);
+extern bool cpu_readWR(state_t* state);
 
 extern uint8_t cpu_readA(state_t* state);
 extern uint8_t cpu_readF(state_t* state);
@@ -41,6 +45,7 @@ extern uint8_t cpu_readI(state_t* state);
 extern uint8_t cpu_readR(state_t* state);
 extern uint8_t cpu_readW(state_t* state);
 extern uint8_t cpu_readZ(state_t* state);
+extern uint8_t cpu_readIM(state_t* state);
 
 extern uint16_t cpu_readIX(state_t* state);
 extern uint16_t cpu_readIY(state_t* state);

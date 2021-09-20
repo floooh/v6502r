@@ -224,6 +224,22 @@ bool cpu_readCLK(state_t* state) {
     return isNodeHigh(state, clk) != 0;
 }
 
+bool cpu_readMREQ(state_t* state) {
+    return isNodeHigh(state, _mreq) != 0;
+}
+
+bool cpu_readIORQ(state_t* state) {
+    return isNodeHigh(state, _iorq) != 0;
+}
+
+bool cpu_readRD(state_t* state) {
+    return isNodeHigh(state, _rd) != 0;
+}
+
+bool cpu_readWR(state_t* state) {
+    return isNodeHigh(state, _wr) != 0;
+}
+
 /************************************************************
  *
  * Address Bus and Data Bus Interface

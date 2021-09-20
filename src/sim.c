@@ -302,6 +302,10 @@ uint16_t sim_z80_get_wz(void) {
     return (cpu_readW(sim.cpu_state) << 8) | cpu_readZ(sim.cpu_state);
 }
 
+uint8_t sim_z80_get_f(void) {
+    return cpu_readF(sim.cpu_state);
+}
+
 uint8_t sim_z80_get_i(void) {
     return cpu_readI(sim.cpu_state);
 }
@@ -316,5 +320,17 @@ bool sim_z80_get_m1(void) {
 
 bool sim_z80_get_clk(void) {
     return cpu_readCLK(sim.cpu_state);
+}
+
+bool sim_z80_get_mreq(void) {
+    return cpu_readMREQ(sim.cpu_state);
+}
+
+bool sim_z80_get_rd(void) {
+    return cpu_readRD(sim.cpu_state);
+}
+
+bool sim_z80_get_wr(void) {
+    return cpu_readWR(sim.cpu_state);
 }
 #endif

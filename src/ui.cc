@@ -513,7 +513,7 @@ static const char* ui_cpu_flags_as_string(uint8_t flags, char* buf, size_t buf_s
     #if defined(CHIP_6502)
     const char* chrs[2] = { "czidbxvn", "CZIDBXVN" };
     #else
-    const char* chrs[2] = { "cnvxhyzf", "CNVXHYZF" };
+    const char* chrs[2] = { "cnvxhyzs", "CNVXHYZS" };
     #endif
     for (int i = 0; i < 8; i++) {
         buf[7 - i] = chrs[(flags>>i) & 1][i];
@@ -568,7 +568,14 @@ static void ui_cpu_status_panel(void) {
     ImGui::Text("AF:%04X  BC:%04X  DE:%04X  HL:%04X", sim_z80_get_af(), sim_z80_get_bc(), sim_z80_get_de(), sim_z80_get_hl());
     ImGui::Text("AF'%04X  BC'%04X  DE'%04X  HL'%04X", sim_z80_get_af2(), sim_z80_get_bc2(), sim_z80_get_de2(), sim_z80_get_hl2());
     ImGui::Text("IX:%04X  IY:%04X  SP:%04X  PC:%04X", sim_z80_get_ix(), sim_z80_get_iy(), sim_z80_get_sp(), sim_z80_get_pc());
-    ImGui::Text("WZ:%04X  I:%02X  R:%02X", sim_z80_get_wz(), sim_z80_get_i(), sim_z80_get_r());
+    char f_buf[9];
+    ImGui::Text("WZ:%04X  I:%02X  R:%02X F:%s", sim_z80_get_wz(), sim_z80_get_i(), sim_z80_get_r(), ui_cpu_flags_as_string(sim_z80_get_f(), f_buf, sizeof(f_buf)));
+    ImGui::Text("Data:%02X Addr:%04X %s %s %s %s",
+        sim_get_data(), sim_get_addr(),
+        sim_z80_get_m1() ? "  ":"M1",
+        sim_z80_get_mreq() ? "    ":"MREQ",
+        sim_z80_get_rd() ? "  ":"RD",
+        sim_z80_get_wr() ? "  ":"WR");
 }
 #endif
 
@@ -684,7 +691,7 @@ static void ui_listing(void) {
 }
 
 #if defined(CHIP_6502)
-static const int ui_tracelog_table_num_rows = 17;
+static const int ui_tracelog_table_num_rows = 18;
 
 static void ui_tracelog_table_setup_columns(void) {
     const float char_width = 8.0f;
@@ -694,17 +701,18 @@ static void ui_tracelog_table_setup_columns(void) {
     ImGui::TableSetupColumn("AB", ImGuiTableColumnFlags_None, 4*char_width);
     ImGui::TableSetupColumn("DB", ImGuiTableColumnFlags_None, 2*char_width);
     ImGui::TableSetupColumn("PC", ImGuiTableColumnFlags_None, 4*char_width);
+    ImGui::TableSetupColumn("IR", ImGuiTableColumnFlags_None, 2*char_width);
     ImGui::TableSetupColumn("A", ImGuiTableColumnFlags_None, 2*char_width);
     ImGui::TableSetupColumn("X", ImGuiTableColumnFlags_None, 2*char_width);
     ImGui::TableSetupColumn("Y", ImGuiTableColumnFlags_None, 2*char_width);
     ImGui::TableSetupColumn("S", ImGuiTableColumnFlags_None, 2*char_width);
-    ImGui::TableSetupColumn("P", ImGuiTableColumnFlags_None, 8*char_width);
-    ImGui::TableSetupColumn("IR", ImGuiTableColumnFlags_None, 2*char_width);
+    ImGui::TableSetupColumn("P", ImGuiTableColumnFlags_None, 2*char_width);
+    ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_None, 8*char_width);
     ImGui::TableSetupColumn("Mnmemonic", ImGuiTableColumnFlags_None, 8*char_width);
-    ImGui::TableSetupColumn("IRQ", ImGuiTableColumnFlags_None, 3*char_width);
-    ImGui::TableSetupColumn("NMI", ImGuiTableColumnFlags_None, 3*char_width);
-    ImGui::TableSetupColumn("RES", ImGuiTableColumnFlags_None, 3*char_width);
-    ImGui::TableSetupColumn("RDY", ImGuiTableColumnFlags_None, 3*char_width);
+    ImGui::TableSetupColumn("IRQ", ImGuiTableColumnFlags_DefaultHide, 3*char_width);
+    ImGui::TableSetupColumn("NMI", ImGuiTableColumnFlags_DefaultHide, 3*char_width);
+    ImGui::TableSetupColumn("RES", ImGuiTableColumnFlags_DefaultHide, 3*char_width);
+    ImGui::TableSetupColumn("RDY", ImGuiTableColumnFlags_DefaultHide, 3*char_width);
 }
 
 static void ui_tracelog_table_row(int trace_index) {
@@ -729,6 +737,8 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::TableNextColumn();
     ImGui::Text("%04X", trace_get_pc(trace_index));
     ImGui::TableNextColumn();
+    ImGui::Text("%02X", trace_6502_get_ir(trace_index));
+    ImGui::TableNextColumn();
     ImGui::Text("%02X", trace_6502_get_a(trace_index));
     ImGui::TableNextColumn();
     ImGui::Text("%02X", trace_6502_get_x(trace_index));
@@ -737,10 +747,10 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::TableNextColumn();
     ImGui::Text("%02X", trace_6502_get_sp(trace_index));
     ImGui::TableNextColumn();
+    ImGui::Text("%02X", trace_get_flags(trace_index));
+    ImGui::TableNextColumn();
     char p_buf[9];
     ImGui::Text("%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), p_buf, sizeof(p_buf)));
-    ImGui::TableNextColumn();
-    ImGui::Text("%02X", trace_6502_get_ir(trace_index));
     ImGui::TableNextColumn();
     ImGui::Text("%s", util_opcode_to_str(trace_6502_get_ir(trace_index)));
     ImGui::TableNextColumn();
@@ -753,7 +763,7 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::Text("%s", trace_6502_get_rdy(trace_index)?"   ":"RDY");
 }
 #elif defined(CHIP_Z80)
-static const int ui_tracelog_table_num_rows = 7;
+static const int ui_tracelog_table_num_rows = 26;
 
 static void ui_tracelog_table_setup_columns(void) {
     const float char_width = 8.0f;
@@ -764,6 +774,25 @@ static void ui_tracelog_table_setup_columns(void) {
     ImGui::TableSetupColumn("RFSH", ImGuiTableColumnFlags_None, 4*char_width);
     ImGui::TableSetupColumn("RD", ImGuiTableColumnFlags_None, 2*char_width);
     ImGui::TableSetupColumn("WR", ImGuiTableColumnFlags_None, 2*char_width);
+    ImGui::TableSetupColumn("AB", ImGuiTableColumnFlags_None, 4*char_width);
+    ImGui::TableSetupColumn("DB", ImGuiTableColumnFlags_None, 2*char_width);
+    ImGui::TableSetupColumn("PC", ImGuiTableColumnFlags_None, 4*char_width);
+    ImGui::TableSetupColumn("IR", ImGuiTableColumnFlags_None, 2*char_width);
+    ImGui::TableSetupColumn("AF", ImGuiTableColumnFlags_None, 4*char_width);
+    ImGui::TableSetupColumn("BC", ImGuiTableColumnFlags_None, 4*char_width);
+    ImGui::TableSetupColumn("DE", ImGuiTableColumnFlags_None, 4*char_width);
+    ImGui::TableSetupColumn("HL", ImGuiTableColumnFlags_None, 4*char_width);
+    ImGui::TableSetupColumn("AF'", ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("BC'", ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("DE'", ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("HL'", ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("IX", ImGuiTableColumnFlags_None, 4*char_width);
+    ImGui::TableSetupColumn("IY", ImGuiTableColumnFlags_None, 4*char_width);
+    ImGui::TableSetupColumn("SP", ImGuiTableColumnFlags_None, 4*char_width);
+    ImGui::TableSetupColumn("WZ", ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("I", ImGuiTableColumnFlags_DefaultHide, 2*char_width);
+    ImGui::TableSetupColumn("R", ImGuiTableColumnFlags_DefaultHide, 2*char_width);
+    ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_None, 8*char_width);
 }
 
 static void ui_tracelog_table_row(int trace_index) {
@@ -790,6 +819,45 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::Text("%s", trace_z80_get_rd(trace_index)?"":"RD");
     ImGui::TableNextColumn();
     ImGui::Text("%s", trace_z80_get_wr(trace_index)?"":"WR");
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_get_addr(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%02X", trace_get_data(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_get_pc(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%02X", trace_z80_get_ir(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_z80_get_af(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_z80_get_bc(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_z80_get_de(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_z80_get_hl(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_z80_get_af2(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_z80_get_bc2(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_z80_get_de2(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_z80_get_hl2(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_z80_get_ix(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_z80_get_iy(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_z80_get_sp(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%04X", trace_z80_get_wz(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%02X", trace_z80_get_i(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%02X", trace_z80_get_r(trace_index));
+    ImGui::TableNextColumn();
+    char f_buf[9];
+    ImGui::Text("%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), f_buf, sizeof(f_buf)));
 }
 #endif
 
