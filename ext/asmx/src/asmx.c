@@ -2972,7 +2972,7 @@ void InstrBBB(uint8_t b1, uint8_t b2, uint8_t b3)
     InstrAddB(b3);
 }
 
-static void InstrBBBB(uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4)
+void InstrBBBB(uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4)
 {
     InstrClear();
     InstrAddB(b1);
@@ -2982,7 +2982,7 @@ static void InstrBBBB(uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4)
 }
 
 
-static void InstrBBBBB(uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5)
+void InstrBBBBB(uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5)
 {
     InstrClear();
     InstrAddB(b1);
@@ -2999,7 +2999,7 @@ void InstrBW(uint8_t b1, uint16_t w1)
     InstrAddW(w1);
 }
 
-static void InstrBBW(uint8_t b1, uint8_t b2, uint16_t w1)
+void InstrBBW(uint8_t b1, uint8_t b2, uint16_t w1)
 {
     InstrClear();
     InstrAddB(b1);
@@ -3007,7 +3007,7 @@ static void InstrBBW(uint8_t b1, uint8_t b2, uint16_t w1)
     InstrAddW(w1);
 }
 
-static void InstrBBBW(uint8_t b1, uint8_t b2, uint8_t b3, uint16_t w1)
+void InstrBBBW(uint8_t b1, uint8_t b2, uint8_t b3, uint16_t w1)
 {
     InstrClear();
     InstrAddB(b1);
@@ -3041,7 +3041,7 @@ void InstrXBB(uint32_t op, uint8_t b1, uint8_t b2)
 }
 
 
-static void InstrXBBB(uint32_t op, uint8_t b1, uint8_t b2, uint8_t b3)
+void InstrXBBB(uint32_t op, uint8_t b1, uint8_t b2, uint8_t b3)
 {
     InstrClear();
     InstrAddX(op);
@@ -3051,7 +3051,7 @@ static void InstrXBBB(uint32_t op, uint8_t b1, uint8_t b2, uint8_t b3)
 }
 
 
-static void InstrXBBBB(uint32_t op, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4)
+void InstrXBBBB(uint32_t op, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4)
 {
     InstrClear();
     InstrAddX(op);
@@ -3070,7 +3070,7 @@ void InstrXW(uint32_t op, uint16_t w1)
 }
 
 
-static void InstrXBW(uint32_t op, uint8_t b1, uint16_t w1)
+void InstrXBW(uint32_t op, uint8_t b1, uint16_t w1)
 {
     InstrClear();
     InstrAddX(op);
@@ -3079,7 +3079,7 @@ static void InstrXBW(uint32_t op, uint8_t b1, uint16_t w1)
 }
 
 
-static void InstrXBWB(uint32_t op, uint8_t b1, uint16_t w1, uint8_t b2)
+void InstrXBWB(uint32_t op, uint8_t b1, uint16_t w1, uint8_t b2)
 {
     InstrClear();
     InstrAddX(op);
@@ -3089,7 +3089,7 @@ static void InstrXBWB(uint32_t op, uint8_t b1, uint16_t w1, uint8_t b2)
 }
 
 
-static void InstrXWW(uint32_t op, uint16_t w1, uint16_t w2)
+void InstrXWW(uint32_t op, uint16_t w1, uint16_t w2)
 {
     InstrClear();
     InstrAddX(op);
@@ -3098,7 +3098,7 @@ static void InstrXWW(uint32_t op, uint16_t w1, uint16_t w2)
 }
 
 
-static void InstrX3(uint32_t op, uint32_t l1)
+void InstrX3(uint32_t op, uint32_t l1)
 {
     InstrClear();
     InstrAddX(op);
@@ -3106,20 +3106,20 @@ static void InstrX3(uint32_t op, uint32_t l1)
 }
 
 
-static void InstrW(uint16_t w1)
+void InstrW(uint16_t w1)
 {
     InstrClear();
     InstrAddW(w1);
 }
 
-static void InstrWW(uint16_t w1, uint16_t w2)
+void InstrWW(uint16_t w1, uint16_t w2)
 {
     InstrClear();
     InstrAddW(w1);
     InstrAddW(w2);
 }
 
-static void InstrWL(uint16_t w1, uint32_t l1)
+void InstrWL(uint16_t w1, uint32_t l1)
 {
     InstrClear();
     InstrAddW(w1);
@@ -3127,14 +3127,14 @@ static void InstrWL(uint16_t w1, uint32_t l1)
 }
 
 
-static void InstrL(uint32_t l1)
+void InstrL(uint32_t l1)
 {
     InstrClear();
     InstrAddL(l1);
 }
 
 
-static void InstrLL(uint32_t l1, uint32_t l2)
+void InstrLL(uint32_t l1, uint32_t l2)
 {
     InstrClear();
     InstrAddL(l1);

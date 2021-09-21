@@ -509,7 +509,7 @@ static void ui_input_uint16(const char* label, const char* id, uint16_t addr) {
 }
 
 static const char* ui_cpu_flags_as_string(uint8_t flags, char* buf, size_t buf_size) {
-    assert(buf && (buf_size >= 9));
+    assert(buf && (buf_size >= 9)); (void)buf_size;
     #if defined(CHIP_6502)
     const char* chrs[2] = { "czidbxvn", "CZIDBXVN" };
     #else
@@ -589,7 +589,7 @@ static void ui_controls(void) {
     #if defined(CHIP_6502)
     const char* cpu_name = "MOS 6502";
     #else
-    const char* cpu_name = "Z80";
+    const char* cpu_name = "Zilog Z80";
     #endif
     if (ImGui::Begin(cpu_name, &ui.window_open.cpu_controls, ImGuiWindowFlags_None)) {
         /* cassette deck controls */
@@ -1154,21 +1154,28 @@ static ImVec2 draw_header(ImVec2 c_pos, float win_width) {
     ImDrawList* dl = ImGui::GetWindowDrawList();
     const float r = 1.0f;
     const float d = 3.0f;
-    c_pos.x += (win_width - 19.0f * d * 8.0f) * 0.5f;
-    c_pos.y += 10.0f;
-    ImVec2 p = c_pos;
-    draw_string_wobble(dl, "*** VISUAL 6502 ***", p, r, d, pal_0, hdr_time, 0.1f, 1.0f, 5.0f, 1.0f);
-    p = { c_pos.x, c_pos.y + 8.0f * d };
-    draw_string_wobble(dl, " ***   remix   ***", p, r, d, pal_1, hdr_time, 0.1f, 1.0f, 5.0f, 1.0f);
-    p = { c_pos.x, c_pos.y + 16.0f * d };
-    return p;
+    #if defined(CHIP_6502)
+        const char* title = "*** VISUAL 6502 ***";
+    #elif defined(CHIP_Z80)
+        const char* title = "*** VISUALZ80 ***";
+    #endif
+    const char* subtitle = "*** remix ***";
+    ImVec2 pos = { (c_pos.x + (win_width - ((float)strlen(title)) * d * 8.0f) * 0.5f), c_pos.y + 10.0f };
+    draw_string_wobble(dl, title, pos, r, d, pal_0, hdr_time, 0.1f, 1.0f, 5.0f, 1.0f);
+    pos = { (c_pos.x + (win_width - ((float)strlen(subtitle)) * d * 8.0f) * 0.5f), c_pos.y + 10.0f + 8.0f * d };
+    draw_string_wobble(dl, subtitle, pos, r, d, pal_1, hdr_time, 0.1f, 1.0f, 5.0f, 1.0f);
+    return { c_pos.x, c_pos.y + 16.0f * d };
 }
 
 #define NUM_FOOTERS (26)
 static const char* footers[NUM_FOOTERS] = {
     "SOWACO proudly presents",
     "a 2019 production",
+    #if defined(CHIP_6502)
     "VISUAL 6502 REMIX",
+    #elif defined(CHIP_Z80)
+    "VISUAL Z80 REMIX",
+    #endif
     "Built with:",
     "visual6502",
     "perfect6502",
@@ -1189,9 +1196,13 @@ static const char* footers[NUM_FOOTERS] = {
     "EMSCRIPTEN",
     "Special Kudos to:",
     "The visual6502.org Team",
-    "for reversing the 6502!",
+    "for reversing the 6502 and Z80!",
     "...and of course...",
+    #if defined(CHIP_6502)
     "6502 4EVER!!!",
+    #elif defined(CHIP_Z80)
+    "Z80 4EVER!!!",
+    #endif
 };
 
 static const uint32_t pal_2[32] = {

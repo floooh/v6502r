@@ -462,9 +462,9 @@ void trace_store(void) {
     item->cycle = sim_get_cycle();
     memcpy(&item->mem, cpu_memory, sizeof(item->mem));
     success = sim_get_node_values((range_t){ .ptr=item->node_values, .size=sizeof(item->node_values) });
-    assert(success == 1);
+    assert(success == 1); (void)success;
     success = sim_get_transistor_on((range_t){ .ptr=item->transistors_on, .size=sizeof(item->transistors_on) });
-    assert(success == 1);
+    assert(success == 1); (void)success;
     // find start of instruction (first half tick after sync)
     #if defined(CHIP_6502)
         if (!sim_6502_get_sync() && (trace_num_items() > 1) && trace_6502_get_sync(1)) {

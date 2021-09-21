@@ -27,8 +27,8 @@ const char* init_src =
     "\trts\n"
     "data:\tdb $40\n\n";
 #elif defined(CHIP_Z80)
-    "loop:\tld sp,stack\n"
-    "\tcall func\n"
+    "\tld sp,stack\n"
+    "loop:\tcall func\n"
     "\tjr loop\n"
     "func:\tld hl,data\n"
     "\tinc(hl)\n"
