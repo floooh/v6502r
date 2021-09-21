@@ -55,12 +55,21 @@ void ui_asm_init(void) {
     // language definition for 6502 asm
     static TextEditor::LanguageDefinition def;
     static const char* keywords[] = {
+        #if defined(CHIP_6502)
         "ADC", "AND", "ASL", "BCC", "BCS", "BEQ", "BIT", "BMI", "BNE", "BPL", "BRK",
         "BVC", "BVS", "CLC", "CLD", "CLI", "CLV", "CMP", "CPX", "CPY", "DEC", "DEX",
         "DEY", "EOR", "INC", "INX", "INY", "JMP", "JSR", "LDA", "LDX", "LDY", "LSR",
         "NOP", "ORA", "PHA", "PHP", "PLA", "PLP", "ROL", "ROR", "RTI", "RTS", "SBC",
         "SEC", "SED", "SEI", "STA", "STX", "STY", "TAX", "TAY", "TSX", "TXA", "TXS",
         "TYA"
+        #elif defined(CHIP_Z80)
+        "ADC", "ADD", "AND", "BIT", "CALL", "CCF", "CP", "CPD", "CPDR", "CPI", "CPIR",
+        "CPL", "DAA", "DEC", "DI", "DJNZ", "EI", "EX", "EXX", "HALT", "IM", "IN",
+        "INC", "IND", "INDR", "INI", "INIR", "JP", "JR", "LD", "LDD", "LDDR", "LDI", "LDIR",
+        "NEG", "NOP", "OR", "OTDR", "OTIR", "OUT", "OUTD", "OUTI", "POP", "PUSH", "RES",
+        "RET", "RETI", "RETN", "RL", "RLA", "RLC", "RLCA", "RLD", "RR", "RRA", "RRC", "RRCA",
+        "RRD", "RST", "SBC", "SCF", "SET", "SLA", "SLL", "SRA", "SRL", "SUB", "XOR"
+        #endif
     };
     for (const auto& k: keywords) {
         def.mKeywords.insert(k);
@@ -76,7 +85,7 @@ void ui_asm_init(void) {
     def.mSingleLineComment = ";";
     def.mCaseSensitive = false;
     def.mAutoIndentation = true;
-    def.mName = "6502 ASM";
+    def.mName = "ASM";
     state.editor->SetLanguageDefinition(def);
     state.valid = true;
 }
