@@ -24,6 +24,7 @@ static const int symTabCols = 3;    // number of columns for symbol table dump
 
 // --------------------------------------------------------------
 asmx_Shared_t asmx_Shared;
+
 #define errFlag asmx_Shared.errFlag
 #define pass asmx_Shared.pass
 #define linePtr asmx_Shared.linePtr
@@ -40,6 +41,31 @@ asmx_Shared_t asmx_Shared;
 #define curListWid asmx_Shared.curListWid
 #define cl_Binbase asmx_Shared.binBase
 #define cl_Binend asmx_Shared.binEnd
+
+#define DoLabelOp asmx_DoLabelOp
+#define DefSym asmx_DefSym
+#define Warning asmx_Warning
+#define InstrBB asmx_InstrBB
+#define InstrBBB asmx_InstrBBB
+#define InstrBW asmx_InstrBW
+#define InstrXW asmx_InstrXW
+#define InstrXB asmx_InstrXB
+#define InstrXBB asmx_InstrXBB
+#define AddCPU asmx_AddCPU
+#define Error asmx_Error
+#define FindReg asmx_FindReg
+#define InstrX asmx_InstrX
+#define GetReg asmx_GetReg
+#define IllegalOperand asmx_IllegalOperand
+#define GetWord asmx_GetWord
+#define Expect asmx_Expect
+#define Comma asmx_Comma
+#define RParen asmx_RParen
+#define BadMode asmx_BadMode
+#define Eval asmx_Eval
+#define EvalBranch asmx_EvalBranch
+#define EvalWBranch asmx_EvalWBranch
+#define AddAsm asmx_AddAsm
 
 struct SymRec
 {
@@ -375,7 +401,7 @@ static void PassInit(void)
 }
 
 
-static void *AddAsm(char *name,        // assembler name
+void *AddAsm(char *name,        // assembler name
     int (*DoCPUOpcode) (int typ, int parm),
     int (*DoCPULabelOp) (int typ, int parm, char *labl),
     void (*PassInit) (void) )
@@ -394,15 +420,8 @@ static void *AddAsm(char *name,        // assembler name
 
     return p;
 }
-void* asmx_AddAsm(char *name,        // assembler name
-    int (*DoCPUOpcode) (int typ, int parm),
-    int (*DoCPULabelOp) (int typ, int parm, char *labl),
-    void (*PassInit) (void) )
-{
-    return AddAsm(name, DoCPUOpcode, DoCPULabelOp, PassInit);
-}
 
-static void AddCPU(void *as,           // assembler for this CPU
+void AddCPU(void *as,           // assembler for this CPU
     char *name,         // uppercase name of this CPU
     int index,          // index number for this CPU
     int endian,         // assembler endian
@@ -428,18 +447,6 @@ static void AddCPU(void *as,           // assembler for this CPU
     p -> opcdTab  = opcdTab;
 
     cpuTab = p;
-}
-void asmx_AddCPU(void *as,           // assembler for this CPU
-    char *name,         // uppercase name of this CPU
-    int index,          // index number for this CPU
-    int endian,         // assembler endian
-    int addrWid,        // assembler 32-bit
-    int listWid,        // listing width
-    int wordSize,       // addressing word size in bits
-    int opts,           // option flags
-    struct asmx_OpcdRec opcdTab[])  // assembler opcode table
-{
-    AddCPU(as, name, index, endian, addrWid, listWid, wordSize, opts, opcdTab);
 }
 
 static CpuPtr FindCPU(char *cpuName)
@@ -505,8 +512,15 @@ static void AsmInit(void)
 
     p = AddAsm("None", 0, 0, 0);
     AddCPU(p, "NONE",  0, ASMX_UNKNOWN_END, ASMX_ADDR_32, ASMX_LIST_24, 8, 0, 0);
-    ASSEMBLER(6502);
-    asmx_strcpy(defCPU,"6502");
+    #if defined(ASMX_6502)
+        ASSEMBLER(6502);
+        asmx_strcpy(defCPU,"6502");
+    #elif defined(ASMX_Z80)
+        ASSEMBLER(Z80);
+        asmx_strcpy(defCPU, "Z80");
+    #else
+    #error "ASMX: NO CPU DEFINED!"
+    #endif
 }
 
 
@@ -518,7 +532,7 @@ static void AsmInit(void)
  *  Error
  */
 
-static void Error(char *message)
+void Error(char *message)
 {
     char *name;
     int line_;
@@ -541,16 +555,13 @@ static void Error(char *message)
         if (cl_Err)     asmx_fprintf(asmx_stderr,  "%s:%d: *** Error:  %s ***\n",name,line_,message);
     }
 }
-void asmx_Error(char* message) {
-    Error(message);
-}
 
 
 /*
  *  Warning
  */
 
-static void Warning(char *message)
+void Warning(char *message)
 {
     char *name;
     int line_;
@@ -1069,7 +1080,7 @@ static void ConvertZSCII(void)
 
 // returns 0 for end-of-line, -1 for alpha-numeric, else char value for non-alphanumeric
 // converts the word to uppercase, too
-static int GetWord(char *word)
+int GetWord(char *word)
 {
     uint8_t  c;
 
@@ -1127,9 +1138,6 @@ static int GetWord(char *word)
     }
 
     return 0;
-}
-int asmx_GetWord(char *word) {
-    return GetWord(word);
 }
 
 // same as GetWord, except it allows '.' chars in alphanumerics and ":=" as a token
@@ -1223,7 +1231,7 @@ static void GetFName(char *word)
 }
 
 
-static bool Expect(char *expected)
+bool Expect(char *expected)
 {
     asmx_Str255 s;
     GetWord(s);
@@ -1235,26 +1243,17 @@ static bool Expect(char *expected)
     }
     return 0;
 }
-bool asmx_Expect(char* expected) {
-    return Expect(expected);
-}
 
 
-static bool Comma()
+bool Comma()
 {
     return Expect(",");
 }
-bool asmx_Comma() {
-    return Comma();
-}
 
 
-static bool RParen()
+bool RParen()
 {
     return Expect(")");
-}
-bool asmx_RParen() {
-    return RParen();
 }
 
 static void EatIt()
@@ -1268,7 +1267,7 @@ static void EatIt()
  *  IllegalOperand
  */
 
-static void IllegalOperand()
+void IllegalOperand()
 {
     Error("Illegal operand");
     EatIt();
@@ -1289,13 +1288,10 @@ static void MissingOperand()
 /*
  *  BadMode
  */
-static void BadMode()
+void BadMode()
 {
     Error("Illegal addressing mode");
     EatIt();
-}
-void asmx_BadMode() {
-    BadMode();
 }
 
 
@@ -1307,8 +1303,7 @@ void asmx_BadMode() {
 //      0 if regName is the first register in regList
 //      1 if regName is the second register in regList
 //      etc.
-/*
-static int FindReg(const char *regName, const char *regList)
+int FindReg(const char *regName, const char *regList)
 {
     const char *p;
     int i;
@@ -1342,7 +1337,6 @@ static int FindReg(const char *regName, const char *regList)
 
     return asmx_reg_None;
 }
-*/
 
 
 // get a word and find a register name
@@ -1353,8 +1347,7 @@ static int FindReg(const char *regName, const char *regList)
 //      0 if regName is the first register in regList
 //      1 if regName is the second register in regList
 //      etc.
-/*
-static int GetReg(const char *regList)
+int GetReg(const char *regList)
 {
     asmx_Str255  word;
 
@@ -1366,7 +1359,6 @@ static int GetReg(const char *regList)
 
     return FindReg(word,regList);
 }
-*/
 
 
 // check if a register from FindReg/GetReg is valid
@@ -1992,7 +1984,7 @@ static int RefSym(char *symName, bool *known)
  *  DefSym
  */
 
-static void DefSym(char *symName, uint32_t val, bool setSym, bool equSym)
+void DefSym(char *symName, uint32_t val, bool setSym, bool equSym)
 {
     SymPtr p;
     asmx_Str255 s;
@@ -2527,14 +2519,11 @@ static int Eval0(void)
 }
 
 
-static int Eval(void)
+int Eval(void)
 {
     evalKnown = TRUE;
 
     return Eval0();
-}
-int asmx_Eval(void) {
-    return Eval();
 }
 
 
@@ -2578,7 +2567,7 @@ static int EvalByte(void)
 }
 
 
-static int EvalBranch(int iLen)
+int EvalBranch(int iLen)
 {
     long val;
 
@@ -2589,12 +2578,9 @@ static int EvalBranch(int iLen)
 
     return val & 0xFF;
 }
-int asmx_EvalBranch(int iLen) {
-    return EvalBranch(iLen);
-}
 
 
-static int EvalWBranch(int iLen)
+int EvalWBranch(int iLen)
 {
     long val;
 
@@ -2603,9 +2589,6 @@ static int EvalWBranch(int iLen)
     if (!errFlag && (val < -32768 || val > 32767))
         Error("Word branch out of range");
     return val;
-}
-int asmx_EvalWBranch(int iLen) {
-    return EvalWBranch(iLen);
 }
 
 /*
@@ -2892,7 +2875,6 @@ void asmx_InstrAddB(uint8_t b) {
 // add a byte/word opcode to the instruction
 // a big-endian word is added if the opcode is > 255
 // this is for opcodes with pre-bytes
-/*
 static void InstrAddX(uint32_t op)
 {
 //  if ((op & 0xFFFFFF00) == 0) hexSpaces |= 1; // to indent single-byte instructions
@@ -2902,7 +2884,6 @@ static void InstrAddX(uint32_t op)
     bytStr[instrLen++] = op & 255;
     hexSpaces |= 1<<instrLen;
 }
-*/
 
 // add a word to the instruction in the CPU's endianness
 static void InstrAddW(uint16_t w)
@@ -2946,7 +2927,6 @@ void asmx_InstrAdd3(uint32_t l) {
 
 
 // add a longword to the instruction in the CPU's endianness
-/*
 static void InstrAddL(uint32_t l)
 {
     if (curEndian == ASMX_LITTLE_END)
@@ -2966,8 +2946,6 @@ static void InstrAddL(uint32_t l)
     else Error("CPU endian not defined");
     hexSpaces |= 1<<instrLen;
 }
-*/
-
 
 static void InstrB(uint8_t b1)
 {
@@ -2979,29 +2957,21 @@ void asmx_InstrB(uint8_t b1) {
 }
 
 
-static void InstrBB(uint8_t b1, uint8_t b2)
+void InstrBB(uint8_t b1, uint8_t b2)
 {
     InstrClear();
     InstrAddB(b1);
     InstrAddB(b2);
 }
-void asmx_InstrBB(uint8_t b1, uint8_t b2) {
-    InstrBB(b1, b2);
-}
 
-
-static void InstrBBB(uint8_t b1, uint8_t b2, uint8_t b3)
+void InstrBBB(uint8_t b1, uint8_t b2, uint8_t b3)
 {
     InstrClear();
     InstrAddB(b1);
     InstrAddB(b2);
     InstrAddB(b3);
 }
-void asmx_InstrBBB(uint8_t b1, uint8_t b2, uint8_t b3) {
-    InstrBBB(b1, b2, b3);
-}
 
-/*
 static void InstrBBBB(uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4)
 {
     InstrClear();
@@ -3021,19 +2991,14 @@ static void InstrBBBBB(uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b
     InstrAddB(b4);
     InstrAddB(b5);
 }
-*/
 
-static void InstrBW(uint8_t b1, uint16_t w1)
+void InstrBW(uint8_t b1, uint16_t w1)
 {
     InstrClear();
     InstrAddB(b1);
     InstrAddW(w1);
 }
-void asmx_InstrBW(uint8_t b1, uint16_t w1) {
-    InstrBW(b1, w1);
-}
 
-/*
 static void InstrBBW(uint8_t b1, uint8_t b2, uint16_t w1)
 {
     InstrClear();
@@ -3052,14 +3017,14 @@ static void InstrBBBW(uint8_t b1, uint8_t b2, uint8_t b3, uint16_t w1)
 }
 
 
-static void InstrX(uint32_t op)
+void InstrX(uint32_t op)
 {
     InstrClear();
     InstrAddX(op);
 }
 
 
-static void InstrXB(uint32_t op, uint8_t b1)
+void InstrXB(uint32_t op, uint8_t b1)
 {
     InstrClear();
     InstrAddX(op);
@@ -3067,7 +3032,7 @@ static void InstrXB(uint32_t op, uint8_t b1)
 }
 
 
-static void InstrXBB(uint32_t op, uint8_t b1, uint8_t b2)
+void InstrXBB(uint32_t op, uint8_t b1, uint8_t b2)
 {
     InstrClear();
     InstrAddX(op);
@@ -3097,7 +3062,7 @@ static void InstrXBBBB(uint32_t op, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t 
 }
 
 
-static void InstrXW(uint32_t op, uint16_t w1)
+void InstrXW(uint32_t op, uint16_t w1)
 {
     InstrClear();
     InstrAddX(op);
@@ -3175,7 +3140,6 @@ static void InstrLL(uint32_t l1, uint32_t l2)
     InstrAddL(l1);
     InstrAddL(l2);
 }
-*/
 
 // --------------------------------------------------------------
 // segment handling
@@ -4018,7 +3982,7 @@ static void DoOpcode(int typ, int parm)
 }
 
 
-static void DoLabelOp(int typ, int parm, char *labl)
+void DoLabelOp(int typ, int parm, char *labl)
 {
     int         val;
     int         i,n;

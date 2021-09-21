@@ -98,7 +98,13 @@ enum
 #define o_LabelOp 0x1000
 #define o_EQU (o_LabelOp + 0x100)
 
+#if defined(ASMX_6502)
 void asmx_Asm6502Init(void);
+#elif defined(ASMX_Z80)
+void asmx_AsmZ80Init(void);
+#else
+#error "ASMX: NO CPU DEFINED!"
+#endif
 
 void asmx_Error(char *message);
 void asmx_Warning(char *message);
