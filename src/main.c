@@ -8,60 +8,33 @@
 #include "gfx.h"
 #include "input.h"
 #include "ui.h"
+#include "ui_asm.h"
 #include "pick.h"
 #include "trace.h"
 #include "sim.h"
 #include "segdefs.h"
 
+const char* init_src =
 #if defined(CHIP_6502)
-/* example program from visual6502.org:
-                   * = 0000
- 0000   A9 00      LDA #$00
- 0002   20 10 00   JSR $0010
- 0005   4C 02 00   JMP $0002
- 0008   00         BRK
- 0009   00         BRK
- 000A   00         BRK
- 000B   00         BRK
- 000C   00         BRK
- 000D   00         BRK
- 000E   00         BRK
- 000F   43         ???
- 0010   E8         INX
- 0011   88         DEY
- 0012   E6 0F      INC $0F
- 0014   38         SEC
- 0015   69 02      ADC #$02
- 0017   60         RTS
- 0018              .END
-*/
-static uint8_t test_prog[] = {
-    0xa9, 0x00, 0x20, 0x10, 0x00, 0x4c, 0x02, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x43,
-    0xe8, 0x88, 0xe6, 0x0f, 0x38, 0x69, 0x02, 0x60
-};
+    "\tlda #0\n"
+    "loop:\tjsr func\n"
+    "\tjmp loop\n"
+    "func:\tinx\n"
+    "\tdey\n"
+    "\tinc data\n"
+    "\tsec\n"
+    "\tadc #2\n"
+    "\trts\n"
+    "data:\tdb $40\n\n";
 #elif defined(CHIP_Z80)
-
-/*
-0000                LOOP:
-0000   31 00 01               LD   sp,$0100
-0003   CD 09 00               CALL   sub
-0006   C3 00 00               JP   loop
-0009                SUB:
-0009   21 0E 00               LD   hl,data
-000C   34                     INC   (hl)
-000D   C9                     RET
-000E                DATA:
-000E   00                     DB   0
-*/
-static uint8_t test_prog[] = {
-    0x31, 0x00, 0x01,
-    0xCD, 0x09, 0x00,
-    0xC3, 0x00, 0x00,
-    0x21, 0x0E, 0x00,
-    0x34,
-    0xC9,
-};
+    "loop:\tld sp,stack\n"
+    "\tcall func\n"
+    "\tjr loop\n"
+    "func:\tld hl,data\n"
+    "\tinc(hl)\n"
+    "\tret\n"
+    "data:\tdb 40h\n"
+    "stack:\torg 30h\n";
 #endif
 
 static void app_init(void) {
@@ -126,7 +99,8 @@ static void app_init(void) {
     });
     trace_init();
     sim_init();
-    sim_write(0x0000, sizeof(test_prog), test_prog);
+    ui_asm_put_source("start", (range_t){ .ptr = (void*)init_src, strlen(init_src) });
+    ui_asm_assemble();
     sim_start();
 }
 

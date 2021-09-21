@@ -317,6 +317,11 @@ void* cpu_initAndResetChip(void) {
     setNode(state, _reset, 1);
     recalcNodeList(state);
 
+    // 4 half cycles before M1 toggles
+    for (int i = 0; i < 4; i++) {
+        cpu_step(state);
+    }
+
     cpu_cycle = 0;
     return state;
 }
