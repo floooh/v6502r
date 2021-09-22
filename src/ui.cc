@@ -721,7 +721,7 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::TableSetColumnIndex(0);
     const bool row_is_selected = trace_ui_get_selected() && (cur_cycle == trace_ui_get_selected_cycle());
     char cycle_str[32];
-    snprintf(cycle_str, sizeof(cycle_str), "%5d/%c", cur_cycle>>1, trace_6502_get_clk0(trace_index)?'1':'0');
+    snprintf(cycle_str, sizeof(cycle_str), "%5d/%d", cur_cycle >> 1, cur_cycle & 1);
     if (ImGui::Selectable(cycle_str, row_is_selected, ImGuiSelectableFlags_SpanAllColumns|ImGuiSelectableFlags_AllowItemOverlap)) {
         trace_ui_set_selected(true);
         trace_ui_set_selected_cycle(cur_cycle);
@@ -801,7 +801,7 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::TableSetColumnIndex(0);
     const bool row_is_selected = trace_ui_get_selected() && (cur_cycle == trace_ui_get_selected_cycle());
     char cycle_str[32];
-    snprintf(cycle_str, sizeof(cycle_str), "%5d/%c", cur_cycle>>1, trace_z80_get_clk(trace_index)?'1':'0');
+    snprintf(cycle_str, sizeof(cycle_str), "%5d/%d", cur_cycle >> 1, cur_cycle & 1);
     if (ImGui::Selectable(cycle_str, row_is_selected, ImGuiSelectableFlags_SpanAllColumns|ImGuiSelectableFlags_AllowItemOverlap)) {
         trace_ui_set_selected(true);
         trace_ui_set_selected_cycle(cur_cycle);
