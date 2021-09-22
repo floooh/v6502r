@@ -14,6 +14,7 @@ typedef struct {
 
 typedef struct {
     bool errors;
+    bool warnings;
     uint16_t addr;
     uint16_t len;
     const uint8_t* bytes;

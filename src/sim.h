@@ -14,12 +14,18 @@ void sim_step_op(void);
 void sim_set_paused(bool paused);
 bool sim_get_paused(void);
 void sim_set_nodestate(range_t from_buffer);
-void sim_w8(uint16_t addr, uint8_t val);
-uint8_t sim_r8(uint16_t addr);
-void sim_w16(uint16_t addr, uint16_t val);
-uint16_t sim_r16(uint16_t addr);
-void sim_clear(uint16_t addr, uint16_t num_bytes);
-void sim_write(uint16_t addr, uint16_t num_bytes, const uint8_t* ptr);
+void sim_mem_w8(uint16_t addr, uint8_t val);
+uint8_t sim_mem_r8(uint16_t addr);
+void sim_mem_w16(uint16_t addr, uint16_t val);
+uint16_t sim_mem_r16(uint16_t addr);
+void sim_mem_clear(uint16_t addr, uint16_t num_bytes);
+void sim_mem_write(uint16_t addr, uint16_t num_bytes, const uint8_t* ptr);
+#if defined(CHIP_Z80)
+void sim_io_w8(uint16_t addr, uint8_t val);
+uint8_t sim_io_r8(uint16_t addr);
+void sim_io_w16(uint16_t addr, uint16_t val);
+uint16_t sim_io_r16(uint16_t addr);
+#endif
 uint32_t sim_get_cycle(void);
 void sim_set_cycle(uint32_t c);
 uint16_t sim_get_addr(void);

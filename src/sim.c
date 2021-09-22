@@ -89,34 +89,44 @@ void sim_step_op(void) {
     #endif
 }
 
-void sim_w8(uint16_t addr, uint8_t val) {
+void sim_mem_w8(uint16_t addr, uint8_t val) {
     cpu_memory[addr] = val;
 }
 
-uint8_t sim_r8(uint16_t addr) {
+uint8_t sim_mem_r8(uint16_t addr) {
     return cpu_memory[addr];
 }
 
-void sim_w16(uint16_t addr, uint16_t val) {
+void sim_mem_w16(uint16_t addr, uint16_t val) {
     cpu_memory[addr] = (uint8_t) val;
     cpu_memory[(addr+1)&0xFFFF] = val>>8;
 }
 
-uint16_t sim_r16(uint16_t addr) {
+uint16_t sim_mem_r16(uint16_t addr) {
     return (cpu_memory[(addr+1) & 0xFFFF]<<8) | cpu_memory[addr];
 }
 
-void sim_write(uint16_t addr, uint16_t num_bytes, const uint8_t* ptr) {
+void sim_mem_write(uint16_t addr, uint16_t num_bytes, const uint8_t* ptr) {
     for (uint16_t i = 0; i < num_bytes; i++) {
         cpu_memory[(addr+i)&0xFFFF] = ptr[i];
     }
 }
 
-void sim_clear(uint16_t addr, uint16_t num_bytes) {
+void sim_mem_clear(uint16_t addr, uint16_t num_bytes) {
     for (uint16_t i = 0; i < num_bytes; i++) {
         cpu_memory[(addr+i)&0xFFFF] = 0;
     }
 }
+
+#if defined(CHIP_Z80)
+void sim_io_w8(uint16_t addr, uint8_t val) {
+    cpu_io[addr] = val;
+}
+
+uint8_t sim_io_r8(uint16_t addr) {
+    return cpu_io[addr];
+}
+#endif
 
 uint16_t sim_get_addr(void) {
     assert(sim.valid);

@@ -389,6 +389,24 @@ const asm_error_t* asm_error(int index) {
     return &state.errors[index];
 }
 
+static bool asm_has_errors(void) {
+    for (int i = 0; i < state.num_errors; i++) {
+        if (!state.errors[i].warning) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool asm_has_warnings(void) {
+    for (int i = 0; i < state.num_errors; i++) {
+        if (state.errors[i].warning) {
+            return true;
+        }
+    }
+    return false;
+}
+
 asm_result_t asm_assemble(void) {
     assert(0 == state.alloc_pos);
     #if defined(CHIP_6502)
@@ -406,7 +424,8 @@ asm_result_t asm_assemble(void) {
     });
     asm_parse_errors();
     return (asm_result_t) {
-        .errors = 0 != asm_num_errors(),
+        .errors = asm_has_errors(),
+        .warnings = asm_has_warnings(),
         .addr = (uint16_t) asmx_Shared.binBase,
         .len = (uint16_t) (asmx_Shared.binEnd - asmx_Shared.binBase),
         .bytes = state.io[IOSTREAM_OBJ].buf,

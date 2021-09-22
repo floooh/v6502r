@@ -5,7 +5,8 @@
 #define state_t void
 #endif
 
-extern uint8_t cpu_memory[65536];
+extern uint8_t cpu_memory[0x10000];
+extern uint8_t cpu_io[0x10000];
 extern uint32_t cpu_cycle;
 
 extern state_t* cpu_initAndResetChip(void);
