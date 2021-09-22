@@ -1,6 +1,7 @@
 #include "types.h"
 #include "netlist_sim.h"
 #include "netlist_z80.h"
+#include <string.h> // memset
 
 // v6502r additions
 bool cpu_read_node_state_as_bytes(void* state, uint8_t* ptr, size_t max_nodes) {
@@ -246,28 +247,45 @@ bool cpu_readWR(state_t* state) {
  *
  ************************************************************/
 
-uint8_t cpu_memory[65536];
+uint8_t cpu_memory[0x10000];
+uint8_t cpu_io[0x10000];
 
-static uint8_t mRead(uint16_t a)
+static uint8_t memRead(uint16_t a)
 {
     return cpu_memory[a];
 }
 
-static void mWrite(uint16_t a, uint8_t d)
+static void memWrite(uint16_t a, uint8_t d)
 {
     cpu_memory[a] = d;
+}
+
+static uint8_t ioRead(uint16_t a) {
+    return cpu_io[a];
+}
+
+static void ioWrite(uint16_t a, uint8_t d) {
+    cpu_io[a] = d;
 }
 
 static inline void handleBus(void *state) {
     if (!isNodeHigh(state, _mreq)) {
         if (!isNodeHigh(state, _rd)) {
-            cpu_writeDataBus(state, mRead(cpu_readAddressBus(state)));
+            cpu_writeDataBus(state, memRead(cpu_readAddressBus(state)));
         }
         if (!isNodeHigh(state, _wr)) {
-            mWrite(cpu_readAddressBus(state), cpu_readDataBus(state));
+            memWrite(cpu_readAddressBus(state), cpu_readDataBus(state));
         }
     }
-    // FIXME: IO?
+    if (!isNodeHigh(state, _iorq)) {
+        if (!isNodeHigh(state, _rd)) {
+            cpu_writeDataBus(state, ioRead(cpu_readAddressBus(state)));
+        }
+        if (!isNodeHigh(state, _wr)) {
+            ioWrite(cpu_readAddressBus(state), cpu_readDataBus(state));
+        }
+    }
+    // FIXME: integer request cycle (put interrupt vector on data bus)
 }
 
 /************************************************************
@@ -293,6 +311,8 @@ void cpu_step(void *state) {
 }
 
 void* cpu_initAndResetChip(void) {
+    memset(cpu_io, 0xFF, sizeof(cpu_io));
+
     nodenum_t nodes = sizeof(netlist_z80_node_is_pullup)/sizeof(*netlist_z80_node_is_pullup);
     nodenum_t transistors = sizeof(netlist_z80_transdefs)/sizeof(*netlist_z80_transdefs);
     void *state = setupNodesAndTransistors(netlist_z80_transdefs,

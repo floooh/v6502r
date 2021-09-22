@@ -39,6 +39,10 @@ static struct {
     bool valid;
     ui_memedit_t memedit;
     ui_memedit_t memedit_integrated;
+    #if defined(CHIP_Z80)
+    ui_memedit_t ioedit;
+    ui_memedit_t ioedit_integrated;
+    #endif
     ui_dasm_t dasm;
     struct {
         bool cpu_controls;
@@ -72,14 +76,24 @@ static void markdown_link_callback(ImGui::MarkdownLinkCallbackData data);
 
 static ImGui::MarkdownConfig md_conf;
 
-// read and write callback for memory editor windows
+// read and write callback for memory/io editor windows
 static uint8_t ui_mem_read(int /*layer*/, uint16_t addr, void* /*user_data*/) {
-    return sim_r8(addr);
+    return sim_mem_r8(addr);
 }
 
 static void ui_mem_write(int /*layer*/, uint16_t addr, uint8_t data, void* /*user_data*/) {
-    sim_w8(addr, data);
+    sim_mem_w8(addr, data);
 }
+
+#if defined(CHIP_Z80)
+static uint8_t ui_io_read(int /*layer*/, uint16_t addr, void* /*user_data*/) {
+    return sim_io_r8(addr);
+}
+
+static void ui_io_write(int /*layer*/, uint16_t addr, uint8_t data, void* /*user_data*/) {
+    sim_io_w8(addr, data);
+}
+#endif
 
 void ui_init() {
     assert(!ui.valid);
@@ -97,7 +111,7 @@ void ui_init() {
     style.WindowRounding = 0.0f;
     style.WindowBorderSize = 1.0f;
     style.Alpha = 1.0f;
-    style.TabRounding = 0.0f;
+    //style.TabRounding = 0.0f;
 
     // setup ImGui font with custom icons
     auto& io = ImGui::GetIO();
@@ -149,6 +163,25 @@ void ui_init() {
         desc.hide_addr_input = true;
         ui_memedit_init(&ui.memedit_integrated, &desc);
     }
+    #if defined(CHIP_Z80)
+    {
+        ui_memedit_desc_t desc = { };
+        desc.title = "IO Editor";
+        desc.open = false;
+        desc.num_rows = 8;
+        desc.h = 300;
+        desc.x = 60;
+        desc.y = 60;
+        desc.hide_ascii = true;
+        desc.read_cb = ui_io_read;
+        desc.write_cb = ui_io_write;
+        ui_memedit_init(&ui.ioedit, &desc);
+        desc.title = "Integrated IO Editor";
+        desc.hide_options = true;
+        desc.hide_addr_input = true;
+        ui_memedit_init(&ui.ioedit_integrated, &desc);
+    }
+    #endif
     {
         ui_dasm_desc_t desc = { };
         desc.title = "Disassembler";
@@ -179,6 +212,10 @@ void ui_shutdown() {
     ui_dasm_discard(&ui.dasm);
     ui_memedit_discard(&ui.memedit);
     ui_memedit_discard(&ui.memedit_integrated);
+    #if defined(CHIP_Z80)
+    ui_memedit_discard(&ui.ioedit);
+    ui_memedit_discard(&ui.ioedit_integrated);
+    #endif
     simgui_shutdown();
 }
 
@@ -337,6 +374,9 @@ void ui_frame() {
     ui_menu();
     ui_picking();
     ui_memedit_draw(&ui.memedit);
+    #if defined(CHIP_Z80)
+    ui_memedit_draw(&ui.ioedit);
+    #endif
     ui_dasm_draw(&ui.dasm);
     ui_tracelog();
     ui_controls();
@@ -407,6 +447,9 @@ static void ui_menu(void) {
             ImGui::MenuItem("Trace Log", "Alt+T", &ui.window_open.tracelog);
             ImGui::MenuItem("Listing", "Alt+L", &ui.window_open.listing);
             ImGui::MenuItem("Memory Editor", "Alt+M", &ui.memedit.open);
+            #if defined(CHIP_Z80)
+            ImGui::MenuItem("IO Editor", nullptr, &ui.ioedit.open);
+            #endif
             ImGui::MenuItem("Disassembler", "Alt+D", &ui.dasm.open);
             if (ImGui::MenuItem("Assembler", "Alt+A", ui_asm_get_window_open())) {
                 ui_asm_toggle_window_open();
@@ -505,7 +548,7 @@ static void ui_menu(void) {
 static void ui_input_uint16(const char* label, const char* id, uint16_t addr) {
     ImGui::AlignTextToFramePadding();
     ImGui::Text("%s", label); ImGui::SameLine();
-    sim_w16(addr, ui_util_input_u16(id, sim_r16(addr)));
+    sim_mem_w16(addr, ui_util_input_u16(id, sim_mem_r16(addr)));
 }
 
 static const char* ui_cpu_flags_as_string(uint8_t flags, char* buf, size_t buf_size) {
@@ -674,10 +717,19 @@ static void ui_controls(void) {
         ImGui::Separator();
 
         /* memory dump */
-        ImGui::Text("Memory:");
-        ImGui::BeginChild("##memedit");
-        ui_memedit_draw_content(&ui.memedit_integrated);
-        ImGui::EndChild();
+        if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None)) {
+            if (ImGui::BeginTabItem("Memory")) {
+                ui_memedit_draw_content(&ui.memedit_integrated);
+                ImGui::EndTabItem();
+            }
+            #if defined(CHIP_Z80)
+            if (ImGui::BeginTabItem("IO")) {
+                ui_memedit_draw_content(&ui.ioedit_integrated);
+                ImGui::EndTabItem();
+            }
+            #endif
+            ImGui::EndTabBar();
+        }
     }
     ImGui::End();
 }

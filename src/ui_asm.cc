@@ -105,11 +105,11 @@ void ui_asm_draw(void) {
     auto cpos = state.editor->GetCursorPosition();
     const float footer_h = ImGui::GetFrameHeightWithSpacing();
     ImGui::SetNextWindowSize({480, 260}, ImGuiCond_Once);
-    const char* cur_error_msg = 0;
+    const asm_error_t* cur_error = 0;
     for (int i = 0; i < asm_num_errors(); i++) {
         const asm_error_t* err = asm_error(i);
         if (err->line_nr == (cpos.mLine+1)) {
-            cur_error_msg = err->msg;
+            cur_error = err;
         }
     }
     if (ImGui::Begin("Assembler", &state.window_open, ImGuiWindowFlags_None)) {
@@ -123,9 +123,9 @@ void ui_asm_draw(void) {
         }
         ImGui::EndChild();
         ImGui::PopStyleColor();
-        if (cur_error_msg) {
-            ImGui::PushStyleColor(ImGuiCol_Text, 0xFF4444FF);
-            ImGui::Text("%s", cur_error_msg);
+        if (cur_error) {
+            ImGui::PushStyleColor(ImGuiCol_Text, cur_error->warning ? 0xFF44FFFF : 0xFF4444FF);
+            ImGui::Text("%s", cur_error->msg);
             ImGui::PopStyleColor();
         }
     }
@@ -148,8 +148,8 @@ void ui_asm_assemble(void) {
     asm_source_close();
     asm_result_t asm_res = asm_assemble();
     if (!asm_res.errors && (asm_res.len > 0)) {
-        sim_clear(state.prev_addr, state.prev_len);
-        sim_write(asm_res.addr, asm_res.len, asm_res.bytes);
+        sim_mem_clear(state.prev_addr, state.prev_len);
+        sim_mem_write(asm_res.addr, asm_res.len, asm_res.bytes);
         state.prev_addr = asm_res.addr;
         state.prev_len = asm_res.len;
         // store in app.binary as PRG/BIN format (start address in first two bytes)
@@ -161,7 +161,9 @@ void ui_asm_assemble(void) {
     TextEditor::ErrorMarkers err_markers;
     for (int err_index = 0; err_index < asm_num_errors(); err_index++) {
         const asm_error_t* err = asm_error(err_index);
-        err_markers[err->line_nr] = err->msg;
+        if (!err->warning) {
+            err_markers[err->line_nr] = err->msg;
+        }
     }
     state.editor->SetErrorMarkers(err_markers);
 }
