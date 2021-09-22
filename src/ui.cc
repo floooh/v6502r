@@ -579,6 +579,79 @@ static void ui_cpu_status_panel(void) {
 }
 #endif
 
+static void ui_cassette_deck_controls(void) {
+    const char* tooltip = 0;
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 10.0f, 10.0f } );
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 7.0f, 7.0f } );
+    ImGui::PushStyleColor(ImGuiCol_Button, 0xFFFFFFFF);
+    ImGui::PushStyleColor(ImGuiCol_Text, 0xFF000000);
+    if (ImGui::Button(ICON_FA_STEP_BACKWARD, { 28, 25 })) {
+        sim_set_paused(true);
+        trace_revert_to_previous();
+    }
+    if (ImGui::IsItemHovered()) {
+        tooltip = "Step back one half-cycle";
+    }
+    ImGui::SameLine();
+    if (sim_get_paused()) {
+        if (ImGui::Button(ICON_FA_PLAY, { 28, 25 })) {
+            sim_set_paused(false);
+        }
+        if (ImGui::IsItemHovered()) {
+            tooltip = "Run (one half-cycle per frame)";
+        }
+    }
+    else {
+        if (ImGui::Button(ICON_FA_PAUSE, { 28, 25 })) {
+            sim_set_paused(true);
+        }
+        if (ImGui::IsItemHovered()) {
+            tooltip = "Pause";
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FA_STEP_FORWARD, { 28, 25 })) {
+        sim_set_paused(true);
+        sim_step(1);
+    }
+    if (ImGui::IsItemHovered()) {
+        tooltip = "Step one half-cycle";
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FA_FAST_FORWARD, { 28, 25 })) {
+        sim_set_paused(true);
+        sim_step(2);
+    }
+    if (ImGui::IsItemHovered()) {
+        tooltip = "Step two half-cycles";
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FA_ARROW_RIGHT, { 28, 25 })) {
+        sim_set_paused(true);
+        sim_step_op();
+    }
+    if (ImGui::IsItemHovered()) {
+        tooltip = "Step to next instruction";
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FA_EJECT, { 28, 25 })) {
+        trace_clear();
+        sim_shutdown();
+        sim_init();
+        sim_start();
+    }
+    if (ImGui::IsItemHovered()) {
+        tooltip = "Reset";
+    }
+    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(3);
+    if (!tooltip) {
+        tooltip = sim_get_paused() ? "Paused" : "Running";
+    }
+    ImGui::Text("%s", tooltip);
+}
+
 static void ui_controls(void) {
     if (!ui.window_open.cpu_controls) {
         return;
@@ -593,76 +666,7 @@ static void ui_controls(void) {
     #endif
     if (ImGui::Begin(cpu_name, &ui.window_open.cpu_controls, ImGuiWindowFlags_None)) {
         /* cassette deck controls */
-        const char* tooltip = 0;
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 10.0f, 10.0f } );
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 7.0f, 7.0f } );
-        ImGui::PushStyleColor(ImGuiCol_Button, 0xFFFFFFFF);
-        ImGui::PushStyleColor(ImGuiCol_Text, 0xFF000000);
-        if (ImGui::Button(ICON_FA_STEP_BACKWARD, { 28, 25 })) {
-            sim_set_paused(true);
-            trace_revert_to_previous();
-        }
-        if (ImGui::IsItemHovered()) {
-            tooltip = "Step back one half-cycle";
-        }
-        ImGui::SameLine();
-        if (sim_get_paused()) {
-            if (ImGui::Button(ICON_FA_PLAY, { 28, 25 })) {
-                sim_set_paused(false);
-            }
-            if (ImGui::IsItemHovered()) {
-                tooltip = "Run (one half-cycle per frame)";
-            }
-        }
-        else {
-            if (ImGui::Button(ICON_FA_PAUSE, { 28, 25 })) {
-                sim_set_paused(true);
-            }
-            if (ImGui::IsItemHovered()) {
-                tooltip = "Pause";
-            }
-        }
-        ImGui::SameLine();
-        if (ImGui::Button(ICON_FA_STEP_FORWARD, { 28, 25 })) {
-            sim_set_paused(true);
-            sim_step(1);
-        }
-        if (ImGui::IsItemHovered()) {
-            tooltip = "Step one half-cycle";
-        }
-        ImGui::SameLine();
-        if (ImGui::Button(ICON_FA_FAST_FORWARD, { 28, 25 })) {
-            sim_set_paused(true);
-            sim_step(2);
-        }
-        if (ImGui::IsItemHovered()) {
-            tooltip = "Step two half-cycles";
-        }
-        ImGui::SameLine();
-        if (ImGui::Button(ICON_FA_ARROW_RIGHT, { 28, 25 })) {
-            sim_set_paused(true);
-            sim_step_op();
-        }
-        if (ImGui::IsItemHovered()) {
-            tooltip = "Step to next instruction";
-        }
-        ImGui::SameLine();
-        if (ImGui::Button(ICON_FA_EJECT, { 28, 25 })) {
-            trace_clear();
-            sim_shutdown();
-            sim_init();
-            sim_start();
-        }
-        if (ImGui::IsItemHovered()) {
-            tooltip = "Reset";
-        }
-        ImGui::PopStyleColor(2);
-        ImGui::PopStyleVar(3);
-        if (!tooltip) {
-            tooltip = sim_get_paused() ? "Paused" : "Running";
-        }
-        ImGui::Text("%s", tooltip);
+        ui_cassette_deck_controls();
         ImGui::Separator();
 
         /* CPU state */

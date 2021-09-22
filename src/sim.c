@@ -80,7 +80,12 @@ void sim_step_op(void) {
         }
         while (num_sync != 2);
     #elif defined(CHIP_Z80)
-    // FIXME
+        bool prev_m1, cur_m1;
+        do {
+            prev_m1 = cpu_readM1(sim.cpu_state);
+            sim_step(1);
+            cur_m1 = cpu_readM1(sim.cpu_state);
+        } while (!(prev_m1 && !cur_m1));   // M1 pin is active-low!
     #endif
 }
 
