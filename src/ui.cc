@@ -927,6 +927,14 @@ static void ui_tracelog_table_row(int trace_index) {
 }
 #endif
 
+static uint32_t ui_trace_bgcolor(uint32_t flipbits) {
+    static const uint32_t colors[4] = { 0xFF327D2E, 0xFF3C8E38, 0xFFC06515, 0xFFD17619 };
+    return colors[flipbits & 3];
+}
+
+static const uint32_t ui_trace_hovered_color = 0xFF3643F4;
+static const uint32_t ui_trace_selected_color = 0xFF0000D5;
+
 static void ui_tracelog(void) {
     if (!ui.window_open.tracelog) {
         return;
@@ -959,24 +967,16 @@ static void ui_tracelog(void) {
             ui_tracelog_table_setup_columns();
             ImGui::TableHeadersRow();
 
-            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, 0xFF3643F4);
-            ImGui::PushStyleColor(ImGuiCol_Header, 0xFF0000D5);
+            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ui_trace_hovered_color);
+            ImGui::PushStyleColor(ImGuiCol_Header, ui_trace_selected_color);
             ImGuiListClipper clipper;
             clipper.Begin(trace_num_items());
             while (clipper.Step()) {
                 for (int row_index = clipper.DisplayStart; row_index < clipper.DisplayEnd; row_index++) {
                     ImGui::TableNextRow();
-
                     const int trace_index = trace_num_items() - 1 - row_index;
                     assert(trace_index >= 0);
-                    uint32_t bg_color = 0;
-                    const uint32_t flip_bits = trace_get_flipbits(trace_index);
-                    switch (flip_bits) {
-                        case 0: bg_color = 0xFF327D2E; break;
-                        case 1: bg_color = 0xFF3C8E38; break;
-                        case 2: bg_color = 0xFFC06515; break;
-                        case 3: bg_color = 0xFFD17619; break;
-                    }
+                    uint32_t bg_color = ui_trace_bgcolor(trace_get_flipbits(trace_index));
                     ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, bg_color);
                     ui_tracelog_table_row(trace_index);
                 }
@@ -1040,22 +1040,44 @@ static void ui_timediagram(void) {
     const float cell_padding = 5.0f;
     const float cell_height = 2 * cell_padding + ImGui::GetTextLineHeight();
     const float cell_width  = cell_height * 0.5f;
-    const float diag_height = num_time_diagram_nodes * cell_height;
-    const float diag_width  = trace_num_items() * cell_width;
+    const int num_cols = (int)trace_num_items();
+    const float graph_height = num_time_diagram_nodes * cell_height;
+    const float graph_width  = num_cols * cell_width;
     ImGui::SetNextWindowPos({60, 60}, ImGuiCond_Once);
     ImGui::SetNextWindowSize({300, 400}, ImGuiCond_Once);
-    ImGui::SetNextWindowContentSize({diag_width, diag_height});
+    ImGui::SetNextWindowContentSize({graph_width, graph_height});
     if (ImGui::Begin("Time Diagram", &ui.window_open.timediagram, ImGuiWindowFlags_HorizontalScrollbar)) {
         ImDrawList* dl = ImGui::GetWindowDrawList();
         const ImVec2 dl_orig = ImGui::GetCursorScreenPos();
         const ImVec2 w_orig = ImGui::GetCursorPos();
-        int first_cycle = ImGui::GetScrollX() / cell_width;
-        int num_cycles = ImGui::GetWindowWidth() / cell_width;
+
+        // draw vertical background stripes
+        const int right_col = num_cols - 1 - ((ImGui::GetScrollX() + ImGui::GetWindowWidth()) / cell_width);
+        const int left_col = num_cols - 1 - ((ImGui::GetScrollX() - cell_width) / cell_width);
+        assert(left_col >= right_col);
+        for (int col_index = right_col; col_index <= left_col; col_index++) {
+            if ((col_index < 0) || (col_index >= num_cols)) {
+                continue;
+            }
+            const int trace_index = num_cols - 1 - col_index;
+            const float x0 = dl_orig.x + trace_index * cell_width;
+            const float x1 = x0 + cell_width;
+            const float y0 = dl_orig.y;
+            const float y1 = y0 + graph_height;
+            uint32_t bg_color = ui_trace_bgcolor(trace_get_flipbits(trace_index));
+            if (trace_ui_get_selected_cycle() == trace_get_cycle(trace_index)) {
+                bg_color = ui_trace_selected_color;
+            }
+            dl->AddRectFilled({x0,y0}, {x1,y1}, bg_color);
+        }
         for (int line = 0; line < num_time_diagram_nodes; line++) {
             float last_y = 0.0f;
-            for (int col_index = 0; col_index < (int)trace_num_items(); col_index++) {
-                int trace_index = trace_num_items() - 1 - col_index;
-                float x = trace_index * cell_width + dl_orig.x;
+            for (int col_index = right_col; col_index <= left_col; col_index++) {
+                if ((col_index < 0) || (col_index >= num_cols)) {
+                    continue;
+                }
+                int trace_index = num_cols - 1 - col_index;
+                float x = dl_orig.x + trace_index * cell_width;
                 float y = line * cell_height + cell_height * 0.5f + dl_orig.y;
                 bool clk = trace_is_node_high(trace_index, time_diagram_nodes[line].node);
                 if (clk) {
@@ -1066,7 +1088,7 @@ static void ui_timediagram(void) {
                 }
                 dl->AddLine({x,y}, {x+cell_width,y}, 0xFFFFFFFF);
                 if (last_y != 0.0f) {
-                    dl->AddLine({x+cell_width,y},{x+cell_width,last_y}, 0xFFFFFFFF);
+                    dl->AddLine({x+cell_width,y}, {x+cell_width,last_y}, 0xFFFFFFFF);
                 }
                 last_y = y;
             }
