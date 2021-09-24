@@ -14,6 +14,7 @@ bool trace_revert_to_selected(void);
 uint32_t trace_num_items(void);
 bool trace_empty(void);
 uint32_t trace_get_cycle(uint32_t index);
+bool trace_is_node_high(uint32_t index, uint32_t node_index);
 uint32_t trace_get_flipbits(uint32_t index);
 uint16_t trace_get_addr(uint32_t index);
 uint8_t trace_get_data(uint32_t index);

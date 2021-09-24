@@ -1004,7 +1004,7 @@ static void ui_tracelog(void) {
 
 #if defined(CHIP_6502)
 static const int num_time_diagram_nodes = 7;
-static struct { int node; const char* name; } time_diagram_nodes[num_time_diagram_nodes] = {
+static struct { uint32_t node; const char* name; } time_diagram_nodes[num_time_diagram_nodes] = {
     { p6502_clk0, "CLK0" },
     { p6502_sync, "SYNC" },
     { p6502_rw, "RW" },
@@ -1015,7 +1015,7 @@ static struct { int node; const char* name; } time_diagram_nodes[num_time_diagra
 };
 #elif defined(CHIP_Z80)
 static const int num_time_diagram_nodes = 14;
-static struct { int node; const char* name; } time_diagram_nodes[num_time_diagram_nodes] = {
+static struct { uint32_t node; const char* name; } time_diagram_nodes[num_time_diagram_nodes] = {
     { pz80_clk, "CLK" },
     { pz80__m1, "M1" },
     { pz80__mreq, "MREQ" },
@@ -1034,32 +1034,48 @@ static struct { int node; const char* name; } time_diagram_nodes[num_time_diagra
 #endif
 
 static void ui_timediagram(void) {
-     if (!ui.window_open.timediagram) {
-         return;
-     }
-     ImGui::SetNextWindowPos({60, 60}, ImGuiCond_Once);
-     ImGui::SetNextWindowSize({300, 400}, ImGuiCond_Once);
-     if (ImGui::Begin("Time Diagram", &ui.window_open.timediagram, ImGuiWindowFlags_None)) {
-         const ImGuiTableFlags table_flags =
-            ImGuiTableFlags_ScrollY |
-            ImGuiTableFlags_ScrollX |
-            ImGuiTableFlags_BordersV |
-            ImGuiTableFlags_BordersH |
-            ImGuiTableFlags_PreciseWidths;
-        if (ImGui::BeginTable("##timingdiagram", 2, table_flags)) {
-            ImGui::TableSetupColumn("##node", ImGuiTableColumnFlags_None);
-            ImGui::TableSetupColumn("##graph", ImGuiTableColumnFlags_None);
-            ImGui::TableSetupScrollFreeze(1, 0);
-            for (int i = 0; i < num_time_diagram_nodes; i++) {
-                const char* node_name = time_diagram_nodes[i].name;
-                ImGui::TableNextRow(ImGuiTableRowFlags_None);
-                ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%s", node_name);
+    if (!ui.window_open.timediagram) {
+        return;
+    }
+    const float cell_padding = 5.0f;
+    const float cell_height = 2 * cell_padding + ImGui::GetTextLineHeight();
+    const float cell_width  = cell_height * 0.5f;
+    const float diag_height = num_time_diagram_nodes * cell_height;
+    const float diag_width  = trace_num_items() * cell_width;
+    ImGui::SetNextWindowPos({60, 60}, ImGuiCond_Once);
+    ImGui::SetNextWindowSize({300, 400}, ImGuiCond_Once);
+    ImGui::SetNextWindowContentSize({diag_width, diag_height});
+    if (ImGui::Begin("Time Diagram", &ui.window_open.timediagram, ImGuiWindowFlags_HorizontalScrollbar)) {
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        const ImVec2 dl_orig = ImGui::GetCursorScreenPos();
+        const ImVec2 w_orig = ImGui::GetCursorPos();
+        int first_cycle = ImGui::GetScrollX() / cell_width;
+        int num_cycles = ImGui::GetWindowWidth() / cell_width;
+        for (int line = 0; line < num_time_diagram_nodes; line++) {
+            float last_y = 0.0f;
+            for (int col_index = 0; col_index < (int)trace_num_items(); col_index++) {
+                int trace_index = trace_num_items() - 1 - col_index;
+                float x = trace_index * cell_width + dl_orig.x;
+                float y = line * cell_height + cell_height * 0.5f + dl_orig.y;
+                bool clk = trace_is_node_high(trace_index, time_diagram_nodes[line].node);
+                if (clk) {
+                    y += cell_height * 0.25f;
+                }
+                else {
+                    y -= cell_height * 0.25f;
+                }
+                dl->AddLine({x,y}, {x+cell_width,y}, 0xFFFFFFFF);
+                if (last_y != 0.0f) {
+                    dl->AddLine({x+cell_width,y},{x+cell_width,last_y}, 0xFFFFFFFF);
+                }
+                last_y = y;
             }
-            ImGui::EndTable();
+            const char* node_name = time_diagram_nodes[line].name;
+            ImGui::SetCursorPos({ImGui::GetScrollX() + w_orig.x, line * cell_height + cell_padding + w_orig.y });
+            ImGui::Text("%s", node_name);
         }
-     }
-     ImGui::End();
+    }
+    ImGui::End();
  }
 
 static void ui_picking(void) {

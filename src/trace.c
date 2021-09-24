@@ -123,6 +123,10 @@ static uint32_t read_nodes(uint32_t trace_index, uint32_t count, uint32_t* node_
     return result;
 }
 
+bool trace_is_node_high(uint32_t trace_index, uint32_t node_index) {
+    return is_node_high(trace_index, node_index);
+}
+
 uint32_t trace_get_cycle(uint32_t index) {
     assert(trace.valid);
     uint32_t idx = trace_to_ring_index(index);
