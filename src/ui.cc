@@ -47,6 +47,7 @@ static struct {
     struct {
         bool cpu_controls;
         bool tracelog;
+        bool timediagram;
         bool listing;
         bool help_asm;
         bool help_opcodes;
@@ -67,6 +68,7 @@ static struct {
 static void ui_menu(void);
 static void ui_picking(void);
 static void ui_tracelog(void);
+static void ui_timediagram(void);
 static void ui_controls(void);
 static void ui_listing(void);
 static void ui_help_assembler(void);
@@ -101,6 +103,7 @@ void ui_init() {
     // default window open state
     ui.window_open.cpu_controls = true;
     ui.window_open.tracelog = true;
+    ui.window_open.timediagram = true;
 
     // setup sokol-imgui
     simgui_desc_t simgui_desc = { };
@@ -186,11 +189,16 @@ void ui_init() {
         ui_dasm_desc_t desc = { };
         desc.title = "Disassembler";
         desc.open = false;
+        #if defined(CHIP_6502)
         desc.cpu_type = UI_DASM_CPUTYPE_M6502;
+        #elif defined(CHIP_Z80)
+        desc.cpu_type = UI_DASM_CPUTYPE_Z80;
+        #endif
         desc.start_addr = 0;
         desc.read_cb = ui_mem_read;
         desc.x = 50;
         desc.y = 50;
+        desc.w = 450;
         ui_dasm_init(&ui.dasm, &desc);
     }
     ui_asm_init();
@@ -379,6 +387,7 @@ void ui_frame() {
     #endif
     ui_dasm_draw(&ui.dasm);
     ui_tracelog();
+    ui_timediagram();
     ui_controls();
     ui_asm_draw();
     ui_listing();
@@ -445,6 +454,7 @@ static void ui_menu(void) {
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("Controls", "Alt+C", &ui.window_open.cpu_controls);
             ImGui::MenuItem("Trace Log", "Alt+T", &ui.window_open.tracelog);
+            ImGui::MenuItem("Time Diagram", nullptr, &ui.window_open.timediagram);
             ImGui::MenuItem("Listing", "Alt+L", &ui.window_open.listing);
             ImGui::MenuItem("Memory Editor", "Alt+M", &ui.memedit.open);
             #if defined(CHIP_Z80)
@@ -747,28 +757,28 @@ static void ui_listing(void) {
 }
 
 #if defined(CHIP_6502)
-static const int ui_tracelog_table_num_rows = 18;
+static const int ui_tracelog_table_num_columns = 18;
 
 static void ui_tracelog_table_setup_columns(void) {
     const float char_width = 8.0f;
     ImGui::TableSetupColumn("Cycle/h", ImGuiTableColumnFlags_None, 6*char_width);
-    ImGui::TableSetupColumn("SYNC", ImGuiTableColumnFlags_None, 4*char_width);
-    ImGui::TableSetupColumn("RW", ImGuiTableColumnFlags_None, 2*char_width);
-    ImGui::TableSetupColumn("AB", ImGuiTableColumnFlags_None, 4*char_width);
-    ImGui::TableSetupColumn("DB", ImGuiTableColumnFlags_None, 2*char_width);
-    ImGui::TableSetupColumn("PC", ImGuiTableColumnFlags_None, 4*char_width);
-    ImGui::TableSetupColumn("IR", ImGuiTableColumnFlags_None, 2*char_width);
-    ImGui::TableSetupColumn("A", ImGuiTableColumnFlags_None, 2*char_width);
-    ImGui::TableSetupColumn("X", ImGuiTableColumnFlags_None, 2*char_width);
-    ImGui::TableSetupColumn("Y", ImGuiTableColumnFlags_None, 2*char_width);
-    ImGui::TableSetupColumn("S", ImGuiTableColumnFlags_None, 2*char_width);
-    ImGui::TableSetupColumn("P", ImGuiTableColumnFlags_None, 2*char_width);
-    ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_None, 8*char_width);
-    ImGui::TableSetupColumn("Mnmemonic", ImGuiTableColumnFlags_None, 8*char_width);
-    ImGui::TableSetupColumn("IRQ", ImGuiTableColumnFlags_DefaultHide, 3*char_width);
-    ImGui::TableSetupColumn("NMI", ImGuiTableColumnFlags_DefaultHide, 3*char_width);
-    ImGui::TableSetupColumn("RES", ImGuiTableColumnFlags_DefaultHide, 3*char_width);
-    ImGui::TableSetupColumn("RDY", ImGuiTableColumnFlags_DefaultHide, 3*char_width);
+    ImGui::TableSetupColumn("SYNC", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("RW", ImGuiTableColumnFlags_NoClip, 2*char_width);
+    ImGui::TableSetupColumn("AB", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("DB", ImGuiTableColumnFlags_NoClip, 2*char_width);
+    ImGui::TableSetupColumn("PC", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("IR", ImGuiTableColumnFlags_NoClip, 2*char_width);
+    ImGui::TableSetupColumn("A", ImGuiTableColumnFlags_NoClip, 2*char_width);
+    ImGui::TableSetupColumn("X", ImGuiTableColumnFlags_NoClip, 2*char_width);
+    ImGui::TableSetupColumn("Y", ImGuiTableColumnFlags_NoClip, 2*char_width);
+    ImGui::TableSetupColumn("S", ImGuiTableColumnFlags_NoClip, 2*char_width);
+    ImGui::TableSetupColumn("P", ImGuiTableColumnFlags_NoClip, 2*char_width);
+    ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_NoClip, 8*char_width);
+    ImGui::TableSetupColumn("Asm", ImGuiTableColumnFlags_NoClip, 8*char_width);
+    ImGui::TableSetupColumn("IRQ", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3*char_width);
+    ImGui::TableSetupColumn("NMI", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3*char_width);
+    ImGui::TableSetupColumn("RES", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3*char_width);
+    ImGui::TableSetupColumn("RDY", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3*char_width);
 }
 
 static void ui_tracelog_table_row(int trace_index) {
@@ -819,36 +829,36 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::Text("%s", trace_6502_get_rdy(trace_index)?"   ":"RDY");
 }
 #elif defined(CHIP_Z80)
-static const int ui_tracelog_table_num_rows = 26;
+static const int ui_tracelog_table_num_columns = 26;
 
 static void ui_tracelog_table_setup_columns(void) {
     const float char_width = 8.0f;
     ImGui::TableSetupColumn("Cycle/h", ImGuiTableColumnFlags_None, 6*char_width);
-    ImGui::TableSetupColumn("M1", ImGuiTableColumnFlags_None, 2*char_width);
-    ImGui::TableSetupColumn("MREQ", ImGuiTableColumnFlags_None, 4*char_width);
-    ImGui::TableSetupColumn("IORQ", ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("RFSH", ImGuiTableColumnFlags_None, 4*char_width);
-    ImGui::TableSetupColumn("RD", ImGuiTableColumnFlags_None, 2*char_width);
-    ImGui::TableSetupColumn("WR", ImGuiTableColumnFlags_None, 2*char_width);
-    ImGui::TableSetupColumn("AB", ImGuiTableColumnFlags_None, 4*char_width);
-    ImGui::TableSetupColumn("DB", ImGuiTableColumnFlags_None, 2*char_width);
-    ImGui::TableSetupColumn("PC", ImGuiTableColumnFlags_None, 4*char_width);
-    ImGui::TableSetupColumn("IR", ImGuiTableColumnFlags_None, 2*char_width);
-    ImGui::TableSetupColumn("AF", ImGuiTableColumnFlags_None, 4*char_width);
-    ImGui::TableSetupColumn("BC", ImGuiTableColumnFlags_None, 4*char_width);
-    ImGui::TableSetupColumn("DE", ImGuiTableColumnFlags_None, 4*char_width);
-    ImGui::TableSetupColumn("HL", ImGuiTableColumnFlags_None, 4*char_width);
-    ImGui::TableSetupColumn("AF'", ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("BC'", ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("DE'", ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("HL'", ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("IX", ImGuiTableColumnFlags_None, 4*char_width);
-    ImGui::TableSetupColumn("IY", ImGuiTableColumnFlags_None, 4*char_width);
-    ImGui::TableSetupColumn("SP", ImGuiTableColumnFlags_None, 4*char_width);
-    ImGui::TableSetupColumn("WZ", ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("I", ImGuiTableColumnFlags_DefaultHide, 2*char_width);
-    ImGui::TableSetupColumn("R", ImGuiTableColumnFlags_DefaultHide, 2*char_width);
-    ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_None, 8*char_width);
+    ImGui::TableSetupColumn("M1", ImGuiTableColumnFlags_NoClip, 2*char_width);
+    ImGui::TableSetupColumn("MREQ", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("IORQ", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("RFSH", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("RD", ImGuiTableColumnFlags_NoClip, 2*char_width);
+    ImGui::TableSetupColumn("WR", ImGuiTableColumnFlags_NoClip, 2*char_width);
+    ImGui::TableSetupColumn("AB", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("DB", ImGuiTableColumnFlags_NoClip, 2*char_width);
+    ImGui::TableSetupColumn("PC", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("IR", ImGuiTableColumnFlags_NoClip, 2*char_width);
+    ImGui::TableSetupColumn("AF", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("BC", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("DE", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("HL", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("AF'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("BC'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("DE'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("HL'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("IX", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("IY", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("SP", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("WZ", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("I", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2*char_width);
+    ImGui::TableSetupColumn("R", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2*char_width);
+    ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_None, 8*char_width);
 }
 
 static void ui_tracelog_table_row(int trace_index) {
@@ -944,7 +954,7 @@ static void ui_tracelog(void) {
             ImGuiTableFlags_BordersOuter |
             ImGuiTableFlags_BordersV |
             ImGuiTableFlags_SizingFixedFit;
-        if (ImGui::BeginTable("##trace_data", ui_tracelog_table_num_rows, table_flags, {0.0f, -footer_h})) {
+        if (ImGui::BeginTable("##trace_data", ui_tracelog_table_num_columns, table_flags, {0.0f, -footer_h})) {
             ImGui::TableSetupScrollFreeze(1, 1); // top and left row always visible
             ui_tracelog_table_setup_columns();
             ImGui::TableHeadersRow();
@@ -991,6 +1001,66 @@ static void ui_tracelog(void) {
     }
     ImGui::End();
 }
+
+#if defined(CHIP_6502)
+static const int num_time_diagram_nodes = 7;
+static struct { int node; const char* name; } time_diagram_nodes[num_time_diagram_nodes] = {
+    { p6502_clk0, "CLK0" },
+    { p6502_sync, "SYNC" },
+    { p6502_rw, "RW" },
+    { p6502_irq, "IRQ" },
+    { p6502_nmi, "NMI" },
+    { p6502_res, "RES" },
+    { p6502_rdy, "RDY" },
+};
+#elif defined(CHIP_Z80)
+static const int num_time_diagram_nodes = 14;
+static struct { int node; const char* name; } time_diagram_nodes[num_time_diagram_nodes] = {
+    { pz80_clk, "CLK" },
+    { pz80__m1, "M1" },
+    { pz80__mreq, "MREQ" },
+    { pz80__iorq, "IORQ" },
+    { pz80__rd, "RD" },
+    { pz80__wr, "WR" },
+    { pz80__rfsh, "RFSH" },
+    { pz80__halt, "HALT" },
+    { pz80__wait, "WAIT" },
+    { pz80__int, "INT" },
+    { pz80__nmi, "NMI" },
+    { pz80__reset, "RESET" },
+    { pz80__busrq, "BUSRQ" },
+    { pz80__busak, "BUSAK" },
+};
+#endif
+
+static void ui_timediagram(void) {
+     if (!ui.window_open.timediagram) {
+         return;
+     }
+     ImGui::SetNextWindowPos({60, 60}, ImGuiCond_Once);
+     ImGui::SetNextWindowSize({300, 400}, ImGuiCond_Once);
+     if (ImGui::Begin("Time Diagram", &ui.window_open.timediagram, ImGuiWindowFlags_None)) {
+         const ImGuiTableFlags table_flags =
+            ImGuiTableFlags_ScrollY |
+            ImGuiTableFlags_ScrollX |
+            ImGuiTableFlags_BordersV |
+            ImGuiTableFlags_BordersH |
+            ImGuiTableFlags_PreciseWidths;
+        if (ImGui::BeginTable("##timingdiagram", 2, table_flags)) {
+            ImGui::TableSetupColumn("##node", ImGuiTableColumnFlags_None);
+            ImGui::TableSetupColumn("##graph", ImGuiTableColumnFlags_None);
+            ImGui::TableSetupScrollFreeze(1, 0);
+            for (int i = 0; i < num_time_diagram_nodes; i++) {
+                const char* node_name = time_diagram_nodes[i].name;
+                ImGui::TableNextRow(ImGuiTableRowFlags_None);
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%s", node_name);
+            }
+            ImGui::EndTable();
+        }
+     }
+     ImGui::End();
+ }
 
 static void ui_picking(void) {
     const pick_result_t pick_result = pick_get_last_result();
