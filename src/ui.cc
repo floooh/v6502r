@@ -35,6 +35,11 @@
 
 #include <math.h>
 
+enum {
+    TRACELOG_HOVERED = (1<<0),
+    TIMINGDIAGRAM_HOVERED = (1<<1),
+};
+
 static struct {
     bool valid;
     ui_memedit_t memedit;
@@ -47,7 +52,7 @@ static struct {
     struct {
         bool cpu_controls;
         bool tracelog;
-        bool timediagram;
+        bool timingdiagram;
         bool listing;
         bool help_asm;
         bool help_opcodes;
@@ -62,7 +67,7 @@ static struct {
         bool copy_hovered;
     } menu;
     struct {
-        bool is_hovered;
+        int hovered_flags;
         bool is_selected;
         uint32_t hovered_cycle;
         uint32_t selected_cycle;
@@ -73,8 +78,9 @@ static struct {
 
 static void ui_menu(void);
 static void ui_picking(void);
+static void ui_tracelog_timingdiagram_new_frame();
 static void ui_tracelog(void);
-static void ui_timediagram(void);
+static void ui_timingdiagram(void);
 static void ui_controls(void);
 static void ui_listing(void);
 static void ui_help_assembler(void);
@@ -109,7 +115,7 @@ void ui_init() {
     // default window open state
     ui.window_open.cpu_controls = true;
     ui.window_open.tracelog = true;
-    ui.window_open.timediagram = true;
+    ui.window_open.timingdiagram = true;
 
     // setup sokol-imgui
     simgui_desc_t simgui_desc = { };
@@ -384,14 +390,7 @@ bool ui_handle_input(const sapp_event* ev) {
 void ui_frame() {
     assert(ui.valid);
     ui.link_hovered = false;
-    // check if currently selected trace item needs to be reset
-    if (ui.trace.is_selected && !trace_empty()) {
-        if ((ui.trace.selected_cycle < trace_get_cycle(trace_num_items()-1)) ||
-            (ui.trace.selected_cycle > trace_get_cycle(0)))
-        {
-            ui.trace.is_selected = false;
-        }
-    }
+    ui_tracelog_timingdiagram_new_frame();
     simgui_new_frame(sapp_width(), sapp_height(), 1.0/60.0);
     ui_menu();
     ui_picking();
@@ -401,7 +400,7 @@ void ui_frame() {
     #endif
     ui_dasm_draw(&ui.dasm);
     ui_tracelog();
-    ui_timediagram();
+    ui_timingdiagram();
     ui_controls();
     ui_asm_draw();
     ui_listing();
@@ -468,7 +467,7 @@ static void ui_menu(void) {
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("Controls", "Alt+C", &ui.window_open.cpu_controls);
             ImGui::MenuItem("Trace Log", "Alt+T", &ui.window_open.tracelog);
-            ImGui::MenuItem("Time Diagram", nullptr, &ui.window_open.timediagram);
+            ImGui::MenuItem("Timing Diagram", nullptr, &ui.window_open.timingdiagram);
             ImGui::MenuItem("Listing", "Alt+L", &ui.window_open.listing);
             ImGui::MenuItem("Memory Editor", "Alt+M", &ui.memedit.open);
             #if defined(CHIP_Z80)
@@ -770,6 +769,16 @@ static void ui_listing(void) {
     ImGui::End();
 }
 
+static void ui_tracelog_timingdiagram_new_frame() {
+    if (ui.trace.is_selected && !trace_empty()) {
+        if ((ui.trace.selected_cycle < trace_get_cycle(trace_num_items()-1)) ||
+            (ui.trace.selected_cycle > trace_get_cycle(0)))
+        {
+            ui.trace.is_selected = false;
+        }
+    }
+}
+
 #if defined(CHIP_6502)
 static const int ui_tracelog_table_num_columns = 18;
 
@@ -938,7 +947,6 @@ static void ui_tracelog(void) {
     if (!ui.window_open.tracelog) {
         return;
     }
-
     const float disp_w = (float) sapp_width();
     const float disp_h = (float) sapp_height();
     const float footer_h = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
@@ -969,7 +977,7 @@ static void ui_tracelog(void) {
                     assert(trace_index >= 0);
                     const uint32_t cur_cycle = trace_get_cycle(trace_index);
                     uint32_t bg_color = ui_trace_bgcolor(trace_get_flipbits(trace_index));
-                    if (ui.trace.is_hovered && (ui.trace.hovered_cycle == cur_cycle)) {
+                    if ((0 != ui.trace.hovered_flags) && (ui.trace.hovered_cycle == cur_cycle)) {
                         bg_color = ui_trace_hovered_color;
                     }
                     if (ui.trace.is_selected && (ui.trace.selected_cycle == cur_cycle)) {
@@ -982,7 +990,8 @@ static void ui_tracelog(void) {
                     max_p.x = min_p.x + ImGui::GetWindowContentRegionWidth();
                     const bool hovered = ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(min_p, max_p, false);
                     if (hovered) {
-                        ui.trace.is_hovered = true;
+                        any_hovered = true;
+                        ui.trace.hovered_flags |= TRACELOG_HOVERED;
                         ui.trace.hovered_cycle = cur_cycle;
                         any_hovered = true;
                         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
@@ -1011,7 +1020,7 @@ static void ui_tracelog(void) {
     }
     ImGui::End();
     if (!any_hovered) {
-        ui.trace.is_hovered = false;
+        ui.trace.hovered_flags &= ~TRACELOG_HOVERED;
     }
 }
 
@@ -1046,8 +1055,8 @@ static struct { uint32_t node; const char* name; } time_diagram_nodes[num_time_d
 };
 #endif
 
-static void ui_timediagram(void) {
-    if (!ui.window_open.timediagram) {
+static void ui_timingdiagram(void) {
+    if (!ui.window_open.timingdiagram) {
         return;
     }
     const float cell_padding = 5.0f;
@@ -1059,7 +1068,8 @@ static void ui_timediagram(void) {
     ImGui::SetNextWindowPos({60, 60}, ImGuiCond_Once);
     ImGui::SetNextWindowSize({300, 400}, ImGuiCond_Once);
     ImGui::SetNextWindowContentSize({graph_width, graph_height});
-    if (ImGui::Begin("Time Diagram", &ui.window_open.timediagram, ImGuiWindowFlags_HorizontalScrollbar)) {
+    bool any_hovered = false;
+    if (ImGui::Begin("Timing Diagram", &ui.window_open.timingdiagram, ImGuiWindowFlags_HorizontalScrollbar)) {
         ImDrawList* dl = ImGui::GetWindowDrawList();
         const ImVec2 dl_orig = ImGui::GetCursorScreenPos();
         const ImVec2 w_orig = ImGui::GetCursorPos();
@@ -1079,13 +1089,22 @@ static void ui_timediagram(void) {
             const float y0 = dl_orig.y;
             const float y1 = y0 + graph_height;
             uint32_t bg_color = ui_trace_bgcolor(trace_get_flipbits(trace_index));
-            if (ui.trace.is_hovered && (ui.trace.hovered_cycle == cur_cycle)) {
+            if ((0 != ui.trace.hovered_flags) && (ui.trace.hovered_cycle == cur_cycle)) {
                 bg_color = ui_trace_hovered_color;
             }
             if (ui.trace.is_selected && (ui.trace.selected_cycle == cur_cycle)) {
                 bg_color = ui_trace_selected_color;
             }
             dl->AddRectFilled({x0,y0}, {x1,y1}, bg_color);
+            if (ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect({x0,y0}, {x1,y1}, false)) {
+                any_hovered = true;
+                ui.trace.hovered_flags |= TIMINGDIAGRAM_HOVERED;
+                ui.trace.hovered_cycle = cur_cycle;
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    ui.trace.is_selected = true;
+                    ui.trace.selected_cycle = cur_cycle;
+                }
+            }
         }
         for (int line = 0; line < num_time_diagram_nodes; line++) {
             float last_y = 0.0f;
@@ -1115,6 +1134,9 @@ static void ui_timediagram(void) {
         }
     }
     ImGui::End();
+    if (!any_hovered) {
+        ui.trace.hovered_flags &= ~TIMINGDIAGRAM_HOVERED;
+    }
  }
 
 static void ui_picking(void) {
