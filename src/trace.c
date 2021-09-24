@@ -27,8 +27,6 @@ static struct {
     trace_item_t items[MAX_TRACE_ITEMS];
     struct {
         bool scroll_to_end;
-        bool selected;              // true if a trace item is currently selected in the UI
-        uint32_t selected_cycle;    // selected cycle number
     } ui;
 } trace;
 
@@ -516,16 +514,13 @@ bool trace_revert_to_previous(void) {
     return true;
 }
 
-// load the selected trace item into the simulator, and drop following trace items
-bool trace_revert_to_selected(void) {
+// load the selected cycle item into the simulator, and drop following trace items
+bool trace_revert_to_cycle(uint32_t cycle) {
     assert(trace.valid);
-    if (!trace.ui.selected) {
-        return false;
-    }
     // find the selected item by cycle
     uint32_t idx;
     for (idx = trace.tail; idx != trace.head; idx = ring_idx(idx+1)) {
-        if (trace.ui.selected_cycle == trace.items[idx].cycle) {
+        if (cycle == trace.items[idx].cycle) {
             break;
         }
     }
@@ -536,26 +531,6 @@ bool trace_revert_to_selected(void) {
     load_item(item);
     trace.head = ring_idx(idx+1);
     return true;
-}
-
-void trace_ui_set_selected(bool selected) {
-    assert(trace.valid);
-    trace.ui.selected = selected;
-}
-
-bool trace_ui_get_selected(void) {
-    assert(trace.valid);
-    return trace.ui.selected;
-}
-
-void trace_ui_set_selected_cycle(uint32_t cycle) {
-    assert(trace.valid);
-    trace.ui.selected_cycle = cycle;
-}
-
-uint32_t trace_ui_get_selected_cycle(void) {
-    assert(trace.valid);
-    return trace.ui.selected_cycle;
 }
 
 void trace_ui_set_scroll_to_end(bool b) {

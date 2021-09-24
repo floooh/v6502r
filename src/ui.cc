@@ -61,6 +61,12 @@ static struct {
         bool cut_hovered;
         bool copy_hovered;
     } menu;
+    struct {
+        bool is_hovered;
+        bool is_selected;
+        uint32_t hovered_cycle;
+        uint32_t selected_cycle;
+    } trace;
     bool link_hovered;
     char link_url[MAX_LINKURL_SIZE];
 } ui;
@@ -378,6 +384,14 @@ bool ui_handle_input(const sapp_event* ev) {
 void ui_frame() {
     assert(ui.valid);
     ui.link_hovered = false;
+    // check if currently selected trace item needs to be reset
+    if (ui.trace.is_selected && !trace_empty()) {
+        if ((ui.trace.selected_cycle < trace_get_cycle(trace_num_items()-1)) ||
+            (ui.trace.selected_cycle > trace_get_cycle(0)))
+        {
+            ui.trace.is_selected = false;
+        }
+    }
     simgui_new_frame(sapp_width(), sapp_height(), 1.0/60.0);
     ui_menu();
     ui_picking();
@@ -782,16 +796,9 @@ static void ui_tracelog_table_setup_columns(void) {
 }
 
 static void ui_tracelog_table_row(int trace_index) {
-    // first column is special selectable
     const uint32_t cur_cycle = trace_get_cycle(trace_index);
     ImGui::TableSetColumnIndex(0);
-    const bool row_is_selected = trace_ui_get_selected() && (cur_cycle == trace_ui_get_selected_cycle());
-    char cycle_str[32];
-    snprintf(cycle_str, sizeof(cycle_str), "%5d/%d", cur_cycle >> 1, cur_cycle & 1);
-    if (ImGui::Selectable(cycle_str, row_is_selected, ImGuiSelectableFlags_SpanAllColumns|ImGuiSelectableFlags_AllowItemOverlap)) {
-        trace_ui_set_selected(true);
-        trace_ui_set_selected_cycle(cur_cycle);
-    }
+    ImGui::Text("%5d/%d", cur_cycle >> 1, cur_cycle & 1);
     ImGui::TableNextColumn();
     ImGui::Text("%s", trace_6502_get_sync(trace_index)?"SYNC":"    ");
     ImGui::TableNextColumn();
@@ -862,18 +869,10 @@ static void ui_tracelog_table_setup_columns(void) {
 }
 
 static void ui_tracelog_table_row(int trace_index) {
-    // first column is special selectable
     const uint32_t cur_cycle = trace_get_cycle(trace_index);
     ImGui::TableSetColumnIndex(0);
-    const bool row_is_selected = trace_ui_get_selected() && (cur_cycle == trace_ui_get_selected_cycle());
-    char cycle_str[32];
-    snprintf(cycle_str, sizeof(cycle_str), "%5d/%d", cur_cycle >> 1, cur_cycle & 1);
-    if (ImGui::Selectable(cycle_str, row_is_selected, ImGuiSelectableFlags_SpanAllColumns|ImGuiSelectableFlags_AllowItemOverlap)) {
-        trace_ui_set_selected(true);
-        trace_ui_set_selected_cycle(cur_cycle);
-    }
+    ImGui::Text("%5d/%d", cur_cycle >> 1, cur_cycle & 1);
     ImGui::TableNextColumn();
-
     ImGui::Text("%s", trace_z80_get_m1(trace_index)?"":"M1");
     ImGui::TableNextColumn();
     ImGui::Text("%s", trace_z80_get_mreq(trace_index)?"":"MREQ");
@@ -939,20 +938,13 @@ static void ui_tracelog(void) {
     if (!ui.window_open.tracelog) {
         return;
     }
-    // clear the selected item if it is outside the trace log
-    if (!trace_empty()) {
-        if ((trace_ui_get_selected_cycle() < trace_get_cycle(trace_num_items()-1)) ||
-            (trace_ui_get_selected_cycle() > trace_get_cycle(0)))
-        {
-            trace_ui_set_selected(false);
-        }
-    }
 
     const float disp_w = (float) sapp_width();
     const float disp_h = (float) sapp_height();
     const float footer_h = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
     ImGui::SetNextWindowPos({ disp_w / 2, disp_h - 150 }, ImGuiCond_Once, { 0.5f, 0.0f });
     ImGui::SetNextWindowSize({ 600, 128 }, ImGuiCond_Once);
+    bool any_hovered = false;
     if (ImGui::Begin("Trace Log", &ui.window_open.tracelog, ImGuiWindowFlags_None)) {
         const ImGuiTableFlags table_flags =
             ImGuiTableFlags_ScrollY |
@@ -967,21 +959,39 @@ static void ui_tracelog(void) {
             ui_tracelog_table_setup_columns();
             ImGui::TableHeadersRow();
 
-            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ui_trace_hovered_color);
-            ImGui::PushStyleColor(ImGuiCol_Header, ui_trace_selected_color);
             ImGuiListClipper clipper;
             clipper.Begin(trace_num_items());
             while (clipper.Step()) {
                 for (int row_index = clipper.DisplayStart; row_index < clipper.DisplayEnd; row_index++) {
                     ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
                     const int trace_index = trace_num_items() - 1 - row_index;
                     assert(trace_index >= 0);
+                    const uint32_t cur_cycle = trace_get_cycle(trace_index);
                     uint32_t bg_color = ui_trace_bgcolor(trace_get_flipbits(trace_index));
+                    if (ui.trace.is_hovered && (ui.trace.hovered_cycle == cur_cycle)) {
+                        bg_color = ui_trace_hovered_color;
+                    }
+                    if (ui.trace.is_selected && (ui.trace.selected_cycle == cur_cycle)) {
+                        bg_color = ui_trace_selected_color;
+                    }
                     ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, bg_color);
+                    const ImVec2 min_p = ImGui::GetCursorScreenPos();
                     ui_tracelog_table_row(trace_index);
+                    ImVec2 max_p = ImGui::GetCursorScreenPos();
+                    max_p.x = min_p.x + ImGui::GetWindowContentRegionWidth();
+                    const bool hovered = ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(min_p, max_p, false);
+                    if (hovered) {
+                        ui.trace.is_hovered = true;
+                        ui.trace.hovered_cycle = cur_cycle;
+                        any_hovered = true;
+                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                            ui.trace.is_selected = true;
+                            ui.trace.selected_cycle = cur_cycle;
+                        }
+                    }
                 }
             }
-            ImGui::PopStyleColor(2);
             if (trace_ui_get_scroll_to_end()) {
                 trace_ui_set_scroll_to_end(false);
                 ImGui::SetScrollHereY();
@@ -991,15 +1001,18 @@ static void ui_tracelog(void) {
             if (ImGui::Button("Clear Log")) {
                 trace_clear();
             }
-            if (trace_ui_get_selected()) {
+            if (ui.trace.is_selected) {
                 ImGui::SameLine();
                 if (ImGui::Button("Revert to Selected")) {
-                    trace_revert_to_selected();
+                    trace_revert_to_cycle(ui.trace.selected_cycle);
                 }
             }
         }
     }
     ImGui::End();
+    if (!any_hovered) {
+        ui.trace.is_hovered = false;
+    }
 }
 
 #if defined(CHIP_6502)
@@ -1060,12 +1073,16 @@ static void ui_timediagram(void) {
                 continue;
             }
             const int trace_index = num_cols - 1 - col_index;
+            const uint32_t cur_cycle = trace_get_cycle(trace_index);
             const float x0 = dl_orig.x + trace_index * cell_width;
             const float x1 = x0 + cell_width;
             const float y0 = dl_orig.y;
             const float y1 = y0 + graph_height;
             uint32_t bg_color = ui_trace_bgcolor(trace_get_flipbits(trace_index));
-            if (trace_ui_get_selected_cycle() == trace_get_cycle(trace_index)) {
+            if (ui.trace.is_hovered && (ui.trace.hovered_cycle == cur_cycle)) {
+                bg_color = ui_trace_hovered_color;
+            }
+            if (ui.trace.is_selected && (ui.trace.selected_cycle == cur_cycle)) {
                 bg_color = ui_trace_selected_color;
             }
             dl->AddRectFilled({x0,y0}, {x1,y1}, bg_color);
