@@ -1064,7 +1064,7 @@ static void ui_timingdiagram(void) {
     }
     const float cell_padding = 5.0f;
     const float cell_height = 2 * cell_padding + ImGui::GetTextLineHeight();
-    const float cell_width  = cell_height * 0.5f;
+    const float cell_width  = cell_height;
     const int num_cols = (int)trace_num_items();
     const float graph_height = num_time_diagram_nodes * cell_height;
     const float graph_width  = num_cols * cell_width;
@@ -1107,6 +1107,9 @@ static void ui_timingdiagram(void) {
                     ui.trace.is_selected = true;
                     ui.trace.selected_cycle = cur_cycle;
                 }
+            }
+            if ((trace_index == 0) || ((trace_index >= 1) && (0 != strcmp(trace_get_disasm(trace_index), trace_get_disasm(trace_index - 1))))) {
+                dl->AddText({x0,y0}, 0xFFFFFFFF, trace_get_disasm(trace_index));
             }
         }
         for (int line = 0; line < num_time_diagram_nodes; line++) {
