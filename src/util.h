@@ -7,7 +7,6 @@ extern "C" {
 
 void util_init(void);
 void util_shutdown(void);
-const char* util_opcode_to_str(uint8_t op);
 void util_html5_download_string(const char* filename, const char* content);
 void util_html5_download_binary(const char* filename, range_t bytes);
 void util_html5_load(void);

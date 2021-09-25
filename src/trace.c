@@ -4,18 +4,27 @@
 //------------------------------------------------------------------------------
 #if defined(CHIP_6502)
 #include "perfect6502.h"
+#include "chips/m6502dasm.h"
 #elif defined(CHIP_Z80)
 #include "perfectz80.h"
+#include "chips/z80dasm.h"
 #endif
 #include "nodenames.h"
 #include "trace.h"
 #include "sim.h"
+
+#define MAX_DASM_STRING_LENGTH (32)
 
 typedef struct {
     uint32_t cycle;
     uint32_t flip_bits;     // for grouping instruction and cycle ticks
     uint32_t node_values[128];
     uint32_t transistors_on[256];
+    struct {
+        uint16_t op_addr;
+        bool op_prefixed;   // Z80 only
+        char str[MAX_DASM_STRING_LENGTH];
+    } dasm;
     uint8_t mem[4096];      // only trace the first few KB of memory
 } trace_item_t;
 
@@ -28,6 +37,13 @@ static struct {
     struct {
         bool scroll_to_end;
     } ui;
+    struct {
+        uint16_t op_addr;
+        uint16_t cur_addr;      // incremented by disassembler input callback
+        bool op_prefixed;       // Z80 only, true if current instruction is prefixed
+        int out_str_index;
+        char out_str[MAX_DASM_STRING_LENGTH];
+    } dasm;
 } trace;
 
 void trace_init(void) {
@@ -202,6 +218,11 @@ uint8_t trace_get_flags(uint32_t index) {
     #else
     return read_nodes(index, 8, is_node_high(index, pz80_ex_af) ? nodes_reg_f : nodes_reg_ff);
     #endif
+}
+
+const char* trace_get_disasm(uint32_t index) {
+    uint32_t idx = trace_to_ring_index(index);
+    return trace.items[idx].dasm.str;
 }
 
 #if defined(CHIP_6502)
@@ -456,6 +477,43 @@ uint16_t trace_z80_get_wz(uint32_t index) {
 }
 #endif
 
+// disassembler callbacks
+static uint8_t dasm_inp_cb(void* user_data) {
+    (void)user_data;
+    return sim_mem_r8(trace.dasm.cur_addr++);
+}
+
+static void dasm_outp_cb(char c, void* user_data) {
+    (void)user_data;
+    if (trace.dasm.out_str_index < MAX_DASM_STRING_LENGTH) {
+        trace.dasm.out_str[trace.dasm.out_str_index++] = c;
+    }
+    trace.dasm.out_str[MAX_DASM_STRING_LENGTH-1] = 0;
+}
+
+static void ui_trace_disassemble(void) {
+    trace.dasm.cur_addr = trace.dasm.op_addr;
+    trace.dasm.out_str_index = 0;
+    #if defined(CHIP_6502)
+        memset(&trace.dasm.out_str, 0, sizeof(trace.dasm.out_str));
+        m6502dasm_op(trace.dasm.op_addr, dasm_inp_cb, dasm_outp_cb, 0);
+    #elif defined(CHIP_Z80)
+        // skip disassembly if last byte was a prefix
+        if (!trace.dasm.op_prefixed) {
+            memset(&trace.dasm.out_str, 0, sizeof(trace.dasm.out_str));
+            z80dasm_op(trace.dasm.op_addr, dasm_inp_cb, dasm_outp_cb, 0);
+        }
+        switch (sim_mem_r8(trace.dasm.op_addr)) {
+            case 0xCB: case 0xDD: case 0xED: case 0xFD:
+                trace.dasm.op_prefixed = true;
+                break;
+            default:
+                trace.dasm.op_prefixed = false;
+                break;
+        }
+    #endif
+}
+
 void trace_store(void) {
     assert(trace.valid);
     int success = 0;
@@ -467,10 +525,13 @@ void trace_store(void) {
     assert(success == 1); (void)success;
     success = sim_get_transistor_on((range_t){ .ptr=item->transistors_on, .size=sizeof(item->transistors_on) });
     assert(success == 1); (void)success;
+
     // find start of instruction (first half tick after sync)
+    bool disasm = false;
     #if defined(CHIP_6502)
         if (!sim_6502_get_sync() && (trace_num_items() > 1) && trace_6502_get_sync(1)) {
             trace.flip_bits ^= TRACE_FLIPBIT_OP;
+            disasm = true;
         }
         if (sim_6502_get_clk0()) {
             trace.flip_bits |= TRACE_FLIPBIT_CLK;
@@ -478,9 +539,17 @@ void trace_store(void) {
         else {
             trace.flip_bits &= ~TRACE_FLIPBIT_CLK;
         }
+        // we need to catch the next instruction address while sync is active
+        // (at the end of the current instruction)
+        if (sim_6502_get_sync()) {
+            trace.dasm.op_addr = sim_get_addr();
+        }
     #else
-        if (!sim_z80_get_m1() && (trace_num_items() > 1) && trace_z80_get_m1(1)) {
+        if ((trace_num_items() <= 1) || (!sim_z80_get_m1() && (trace_num_items() > 1) && trace_z80_get_m1(1))) {
             trace.flip_bits ^= TRACE_FLIPBIT_OP;
+            disasm = true;
+            // important, need to catch address bus for proper instruction start, not read PC register!
+            trace.dasm.op_addr = sim_get_addr();
         }
         if (sim_z80_get_clk()) {
             trace.flip_bits |= TRACE_FLIPBIT_CLK;
@@ -490,11 +559,24 @@ void trace_store(void) {
         }
     #endif
     item->flip_bits = trace.flip_bits;
+
+    // disassemble current instruction
+    if (disasm) {
+        ui_trace_disassemble();
+    }
+    assert(sizeof(item->dasm.str) == sizeof(trace.dasm.out_str));
+    memcpy(&item->dasm.str, &trace.dasm.out_str, sizeof(trace.dasm.out_str));
+    item->dasm.op_prefixed = trace.dasm.op_prefixed;
+    item->dasm.op_addr = trace.dasm.op_addr;
     trace.ui.scroll_to_end = true;
 }
 
 static void load_item(trace_item_t* item) {
     trace.flip_bits = item->flip_bits;
+    trace.dasm.op_prefixed = item->dasm.op_prefixed;
+    trace.dasm.op_addr = item->dasm.op_addr;
+    assert(sizeof(item->dasm.str) == sizeof(trace.dasm.out_str));
+    memcpy(&trace.dasm.out_str, &item->dasm.str, sizeof(trace.dasm.out_str));
     sim_set_cycle(item->cycle);
     memcpy(cpu_memory, &item->mem, sizeof(item->mem));
     sim_set_node_values((range_t){ item->node_values, sizeof(item->node_values) });

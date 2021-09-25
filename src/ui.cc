@@ -596,7 +596,7 @@ static void ui_cpu_status_panel(void) {
         sim_6502_get_a(), sim_6502_get_x(), sim_6502_get_y(), sim_6502_get_sp(), sim_get_pc());
     char p_buf[9];
     ImGui::Text("P:%02X (%s) Cycle: %d", p, ui_cpu_flags_as_string(sim_get_flags(), p_buf, sizeof(p_buf)), sim_get_cycle()>>1);
-    ImGui::Text("IR:%02X %s\n", ir, util_opcode_to_str(ir));
+    ImGui::Text("IR:%02X\n", ir);
     ImGui::Text("Data:%02X Addr:%04X %s %s %s",
         sim_get_data(), sim_get_addr(),
         sim_6502_get_rw()?"R":"W",
@@ -797,11 +797,11 @@ static void ui_tracelog_table_setup_columns(void) {
     ImGui::TableSetupColumn("S", ImGuiTableColumnFlags_NoClip, 2*char_width);
     ImGui::TableSetupColumn("P", ImGuiTableColumnFlags_NoClip, 2*char_width);
     ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_NoClip, 8*char_width);
-    ImGui::TableSetupColumn("Asm", ImGuiTableColumnFlags_NoClip, 8*char_width);
     ImGui::TableSetupColumn("IRQ", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3*char_width);
     ImGui::TableSetupColumn("NMI", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3*char_width);
     ImGui::TableSetupColumn("RES", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3*char_width);
     ImGui::TableSetupColumn("RDY", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3*char_width);
+    ImGui::TableSetupColumn("Asm", ImGuiTableColumnFlags_NoClip, 8*char_width);
 }
 
 static void ui_tracelog_table_row(int trace_index) {
@@ -834,8 +834,6 @@ static void ui_tracelog_table_row(int trace_index) {
     char p_buf[9];
     ImGui::Text("%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), p_buf, sizeof(p_buf)));
     ImGui::TableNextColumn();
-    ImGui::Text("%s", util_opcode_to_str(trace_6502_get_ir(trace_index)));
-    ImGui::TableNextColumn();
     ImGui::Text("%s", trace_6502_get_irq(trace_index)?"   ":"IRQ");
     ImGui::TableNextColumn();
     ImGui::Text("%s", trace_6502_get_nmi(trace_index)?"   ":"NMI");
@@ -843,9 +841,11 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::Text("%s", trace_6502_get_res(trace_index)?"   ":"RES");
     ImGui::TableNextColumn();
     ImGui::Text("%s", trace_6502_get_rdy(trace_index)?"   ":"RDY");
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_get_disasm(trace_index));
 }
 #elif defined(CHIP_Z80)
-static const int ui_tracelog_table_num_columns = 26;
+static const int ui_tracelog_table_num_columns = 27;
 
 static void ui_tracelog_table_setup_columns(void) {
     const float char_width = 8.0f;
@@ -875,6 +875,7 @@ static void ui_tracelog_table_setup_columns(void) {
     ImGui::TableSetupColumn("I", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2*char_width);
     ImGui::TableSetupColumn("R", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2*char_width);
     ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_None, 8*char_width);
+    ImGui::TableSetupColumn("Asm", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_None, 12*char_width);
 }
 
 static void ui_tracelog_table_row(int trace_index) {
@@ -932,6 +933,8 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::TableNextColumn();
     char f_buf[9];
     ImGui::Text("%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), f_buf, sizeof(f_buf)));
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_get_disasm(trace_index));
 }
 #endif
 
