@@ -1041,7 +1041,6 @@ static void ui_tracelog(void) {
                         any_hovered = true;
                         ui.trace.hovered_flags |= TRACELOG_HOVERED;
                         ui.trace.hovered_cycle = cur_cycle;
-                        any_hovered = true;
                         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                             ui.trace.is_selected = true;
                             ui.trace.selected_cycle = cur_cycle;
