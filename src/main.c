@@ -31,7 +31,7 @@ const char* init_src =
     "loop:\tcall func\n"
     "\tjr loop\n"
     "func:\tld hl,data\n"
-    "\tinc(hl)\n"
+    "\tinc (hl)\n"
     "\tret\n"
     "data:\tdb 40h\n"
     "stack:\torg 30h\n";
