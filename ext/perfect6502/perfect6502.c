@@ -120,7 +120,7 @@ uint16_t cpu_readPC(void *state) {
 }
 
 void cpu_writeRDY(void* state, bool high) {
-    setNode(state, rdy, high != 0);
+    setNode(state, rdy, high);
 }
 
 bool cpu_readRDY(void* state) {
@@ -128,7 +128,7 @@ bool cpu_readRDY(void* state) {
 }
 
 void cpu_writeIRQ(void* state, bool high) {
-    setNode(state, irq, high != 0);
+    setNode(state, irq, high);
 }
 
 bool cpu_readIRQ(void* state) {
@@ -136,7 +136,7 @@ bool cpu_readIRQ(void* state) {
 }
 
 void cpu_writeNMI(void* state, bool high) {
-    setNode(state, nmi, high != 0);
+    setNode(state, nmi, high);
 }
 
 bool cpu_readNMI(void* state) {
@@ -144,7 +144,7 @@ bool cpu_readNMI(void* state) {
 }
 
 void cpu_writeRES(void* state, bool high) {
-    setNode(state, res, high != 0);
+    setNode(state, res, high);
 }
 
 bool cpu_readRES(void* state) {

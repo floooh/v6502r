@@ -24,6 +24,20 @@ extern bool cpu_readIORQ(state_t* state);
 extern bool cpu_readRD(state_t* state);
 extern bool cpu_readWR(state_t* state);
 
+extern bool cpu_readHALT(state_t* state);
+extern bool cpu_readWAIT(state_t* state);
+extern bool cpu_readINT(state_t* state);
+extern bool cpu_readNMI(state_t* state);
+extern bool cpu_readRESET(state_t* state);
+extern bool cpu_readBUSRQ(state_t* state);
+extern bool cpu_readBUSAK(state_t* state);
+
+extern void cpu_writeWAIT(state_t* state, bool high);
+extern void cpu_writeINT(state_t* state, bool high);
+extern void cpu_writeNMI(state_t* state, bool high);
+extern void cpu_writeRESET(state_t* state, bool high);
+extern void cpu_writeBUSRQ(state_t* state, bool high);
+
 extern uint8_t cpu_readA(state_t* state);
 extern uint8_t cpu_readF(state_t* state);
 extern uint8_t cpu_readB(state_t* state);
@@ -46,12 +60,15 @@ extern uint8_t cpu_readI(state_t* state);
 extern uint8_t cpu_readR(state_t* state);
 extern uint8_t cpu_readW(state_t* state);
 extern uint8_t cpu_readZ(state_t* state);
-extern uint8_t cpu_readIM(state_t* state);
+extern uint8_t cpu_readIR(state_t* state);
 
 extern uint16_t cpu_readIX(state_t* state);
 extern uint16_t cpu_readIY(state_t* state);
 extern uint16_t cpu_readSP(state_t* state);
 extern uint16_t cpu_readPC(state_t* state);
+
+extern void cpu_setIntVec(uint8_t val);
+extern uint8_t cpu_getIntVec(void);
 
 // v6502r additions
 extern bool cpu_read_node_state_as_bytes(state_t* state, uint8_t* ptr, size_t max_nodes);

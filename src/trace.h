@@ -11,7 +11,7 @@ void trace_clear(void);
 void trace_store(void);
 bool trace_revert_to_previous(void);
 bool trace_revert_to_cycle(uint32_t cycle);
-uint32_t trace_num_items(void);
+int trace_num_items(void);
 bool trace_empty(void);
 uint32_t trace_get_cycle(uint32_t index);
 bool trace_is_node_high(uint32_t index, uint32_t node_index);

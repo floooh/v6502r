@@ -78,9 +78,10 @@ static struct {
 
 static void ui_menu(void);
 static void ui_picking(void);
-static void ui_tracelog_timingdiagram_new_frame();
+static void ui_tracelog_timingdiagram_begin();
 static void ui_tracelog(void);
 static void ui_timingdiagram(void);
+static void ui_tracelog_timingdiagram_end();
 static void ui_controls(void);
 static void ui_listing(void);
 static void ui_help_assembler(void);
@@ -390,7 +391,6 @@ bool ui_handle_input(const sapp_event* ev) {
 void ui_frame() {
     assert(ui.valid);
     ui.link_hovered = false;
-    ui_tracelog_timingdiagram_new_frame();
     simgui_new_frame(sapp_width(), sapp_height(), 1.0/60.0);
     ui_menu();
     ui_picking();
@@ -399,8 +399,10 @@ void ui_frame() {
     ui_memedit_draw(&ui.ioedit);
     #endif
     ui_dasm_draw(&ui.dasm);
+    ui_tracelog_timingdiagram_begin();
     ui_tracelog();
     ui_timingdiagram();
+    ui_tracelog_timingdiagram_end();
     ui_controls();
     ui_asm_draw();
     ui_listing();
@@ -568,11 +570,21 @@ static void ui_menu(void) {
     }
 }
 
-static void ui_input_uint16(const char* label, const char* id, uint16_t addr) {
+#if defined(CHIP_6502)
+static void ui_input_6502_vec(const char* label, const char* id, uint16_t addr) {
     ImGui::AlignTextToFramePadding();
     ImGui::Text("%s", label); ImGui::SameLine();
     sim_mem_w16(addr, ui_util_input_u16(id, sim_mem_r16(addr)));
 }
+#endif
+
+#if defined(CHIP_Z80)
+static void ui_input_z80_intvec(const char* label, const char* id) {
+    ImGui::AlignTextToFramePadding();
+    ImGui::Text("%s", label); ImGui::SameLine();
+    sim_z80_set_intvec(ui_util_input_u8(id, sim_z80_get_intvec()));
+}
+#endif
 
 static const char* ui_cpu_flags_as_string(uint8_t flags, char* buf, size_t buf_size) {
     assert(buf && (buf_size >= 9)); (void)buf_size;
@@ -596,16 +608,16 @@ static void ui_cpu_status_panel(void) {
         sim_6502_get_a(), sim_6502_get_x(), sim_6502_get_y(), sim_6502_get_sp(), sim_get_pc());
     char p_buf[9];
     ImGui::Text("P:%02X (%s) Cycle: %d", p, ui_cpu_flags_as_string(sim_get_flags(), p_buf, sizeof(p_buf)), sim_get_cycle()>>1);
-    ImGui::Text("IR:%02X\n", ir);
+    ImGui::Text("IR:%02X [%s]\n", ir, trace_get_disasm(0));
     ImGui::Text("Data:%02X Addr:%04X %s %s %s",
         sim_get_data(), sim_get_addr(),
         sim_6502_get_rw()?"R":"W",
         sim_6502_get_clk0()?"CLK0":"    ",
         sim_6502_get_sync()?"SYNC":"    ");
     ImGui::Separator();
-    ui_input_uint16("NMI vector (FFFA): ", "##nmi_vec", 0xFFFA);
-    ui_input_uint16("RES vector (FFFC): ", "##res_vec", 0xFFFC);
-    ui_input_uint16("IRQ vector (FFFE): ", "##irq_vec", 0xFFFE);
+    ui_input_6502_vec("NMI vector (FFFA): ", "##nmi_vec", 0xFFFA);
+    ui_input_6502_vec("RES vector (FFFC): ", "##res_vec", 0xFFFC);
+    ui_input_6502_vec("IRQ vector (FFFE): ", "##irq_vec", 0xFFFE);
     ImGui::Separator();
     bool rdy_active = !sim_6502_get_rdy();
     if (ImGui::Checkbox("RDY", &rdy_active)) {
@@ -636,12 +648,39 @@ static void ui_cpu_status_panel(void) {
     ImGui::Text("IX:%04X  IY:%04X  SP:%04X  PC:%04X", sim_z80_get_ix(), sim_z80_get_iy(), sim_z80_get_sp(), sim_z80_get_pc());
     char f_buf[9];
     ImGui::Text("WZ:%04X  I:%02X  R:%02X F:%s", sim_z80_get_wz(), sim_z80_get_i(), sim_z80_get_r(), ui_cpu_flags_as_string(sim_z80_get_f(), f_buf, sizeof(f_buf)));
+    ImGui::Text("IR:%02X [%s]", sim_z80_get_ir(), trace_get_disasm(0));
     ImGui::Text("Data:%02X Addr:%04X %s %s %s %s",
         sim_get_data(), sim_get_addr(),
         sim_z80_get_m1() ? "  ":"M1",
         sim_z80_get_mreq() ? "    ":"MREQ",
         sim_z80_get_rd() ? "  ":"RD",
         sim_z80_get_wr() ? "  ":"WR");
+    ImGui::Separator();
+    ui_input_z80_intvec("INT vector: ", "##int_vec");
+    ImGui::Separator();
+    bool wait_active = !sim_z80_get_wait();
+    if (ImGui::Checkbox("WAIT", &wait_active)) {
+        sim_z80_set_wait(!wait_active);
+    }
+    ImGui::SameLine();
+    bool int_active = !sim_z80_get_int();
+    if (ImGui::Checkbox("INT", &int_active)) {
+        sim_z80_set_int(!int_active);
+    }
+    ImGui::SameLine();
+    bool nmi_active = !sim_z80_get_nmi();
+    if (ImGui::Checkbox("NMI", &nmi_active)) {
+        sim_z80_set_nmi(!nmi_active);
+    }
+    ImGui::SameLine();
+    bool res_active = !sim_z80_get_reset();
+    if (ImGui::Checkbox("RESET", &res_active)) {
+        sim_z80_set_reset(!res_active);
+    }
+    bool busrq_active = !sim_z80_get_busrq();
+    if (ImGui::Checkbox("BUSRQ", &busrq_active)) {
+        sim_z80_set_busrq(!busrq_active);
+    }
 }
 #endif
 
@@ -769,13 +808,19 @@ static void ui_listing(void) {
     ImGui::End();
 }
 
-static void ui_tracelog_timingdiagram_new_frame() {
+static void ui_tracelog_timingdiagram_begin() {
     if (ui.trace.is_selected && !trace_empty()) {
         if ((ui.trace.selected_cycle < trace_get_cycle(trace_num_items()-1)) ||
             (ui.trace.selected_cycle > trace_get_cycle(0)))
         {
             ui.trace.is_selected = false;
         }
+    }
+}
+
+static void ui_tracelog_timingdiagram_end() {
+    if (trace_ui_get_scroll_to_end()) {
+        trace_ui_set_scroll_to_end(false);
     }
 }
 
@@ -1005,14 +1050,10 @@ static void ui_tracelog(void) {
                 }
             }
             if (trace_ui_get_scroll_to_end()) {
-                trace_ui_set_scroll_to_end(false);
                 ImGui::SetScrollHereY();
             }
             ImGui::EndTable();
             ImGui::Separator();
-            if (ImGui::Button("Clear Log")) {
-                trace_clear();
-            }
             if (ui.trace.is_selected) {
                 ImGui::SameLine();
                 if (ImGui::Button("Revert to Selected")) {
@@ -1029,32 +1070,32 @@ static void ui_tracelog(void) {
 
 #if defined(CHIP_6502)
 static const int num_time_diagram_nodes = 7;
-static struct { uint32_t node; const char* name; } time_diagram_nodes[num_time_diagram_nodes] = {
-    { p6502_clk0, "CLK0" },
-    { p6502_sync, "SYNC" },
-    { p6502_rw, "RW" },
-    { p6502_irq, "IRQ" },
-    { p6502_nmi, "NMI" },
-    { p6502_res, "RES" },
-    { p6502_rdy, "RDY" },
+static struct { uint32_t node; const char* name; bool active_low; } time_diagram_nodes[num_time_diagram_nodes] = {
+    { p6502_clk0, "CLK0", false },
+    { p6502_sync, "SYNC", false },
+    { p6502_rw, "RW", false },
+    { p6502_irq, "IRQ", true },
+    { p6502_nmi, "NMI", true },
+    { p6502_res, "RES", true },
+    { p6502_rdy, "RDY", false },
 };
 #elif defined(CHIP_Z80)
 static const int num_time_diagram_nodes = 14;
-static struct { uint32_t node; const char* name; } time_diagram_nodes[num_time_diagram_nodes] = {
-    { pz80_clk, "CLK" },
-    { pz80__m1, "M1" },
-    { pz80__mreq, "MREQ" },
-    { pz80__iorq, "IORQ" },
-    { pz80__rd, "RD" },
-    { pz80__wr, "WR" },
-    { pz80__rfsh, "RFSH" },
-    { pz80__halt, "HALT" },
-    { pz80__wait, "WAIT" },
-    { pz80__int, "INT" },
-    { pz80__nmi, "NMI" },
-    { pz80__reset, "RESET" },
-    { pz80__busrq, "BUSRQ" },
-    { pz80__busak, "BUSAK" },
+static struct { uint32_t node; const char* name; bool active_low; } time_diagram_nodes[num_time_diagram_nodes] = {
+    { pz80_clk, "CLK", false },
+    { pz80__m1, "M1", true },
+    { pz80__mreq, "MREQ", true },
+    { pz80__iorq, "IORQ", true },
+    { pz80__rd, "RD", true },
+    { pz80__wr, "WR", true },
+    { pz80__rfsh, "RFSH", true },
+    { pz80__halt, "HALT", true },
+    { pz80__wait, "WAIT", true },
+    { pz80__int, "INT", true },
+    { pz80__nmi, "NMI", true },
+    { pz80__reset, "RESET", true },
+    { pz80__busrq, "BUSRQ", true },
+    { pz80__busak, "BUSAK", true },
 };
 #endif
 
@@ -1062,35 +1103,42 @@ static void ui_timingdiagram(void) {
     if (!ui.window_open.timingdiagram) {
         return;
     }
-    const float cell_padding = 5.0f;
+    const float top_padding = ImGui::GetTextLineHeightWithSpacing();
+    const float cell_padding = 8.0f;
     const float cell_height = 2 * cell_padding + ImGui::GetTextLineHeight();
-    const float cell_width  = cell_height;
-    const int num_cols = (int)trace_num_items();
-    const float graph_height = num_time_diagram_nodes * cell_height;
+    const float cell_width  = cell_height * 0.75f;
+    const int num_cols = trace_num_items();
+    const float graph_height = num_time_diagram_nodes * cell_height + top_padding;
     const float graph_width  = num_cols * cell_width;
     ImGui::SetNextWindowPos({60, 60}, ImGuiCond_Once);
-    ImGui::SetNextWindowSize({300, 400}, ImGuiCond_Once);
+    ImGui::SetNextWindowSize({600, top_padding + graph_height + 20.0f}, ImGuiCond_Once);
     ImGui::SetNextWindowContentSize({graph_width, graph_height});
     bool any_hovered = false;
     if (ImGui::Begin("Timing Diagram", &ui.window_open.timingdiagram, ImGuiWindowFlags_HorizontalScrollbar)) {
         ImDrawList* dl = ImGui::GetWindowDrawList();
         const ImVec2 dl_orig = ImGui::GetCursorScreenPos();
-        const ImVec2 w_orig = ImGui::GetCursorPos();
+        const ImU32 line_color = 0xFFEEEEEE;
+        const ImU32 text_color = 0xFFFFFFFF;
+        const ImU32 text_bg    = 0x88000000;
+
+        if (trace_ui_get_scroll_to_end()) {
+            ImGui::SetScrollX(ImGui::GetScrollMaxX());
+        }
 
         // draw vertical background stripes
-        const int right_col = num_cols - 1 - ((ImGui::GetScrollX() + ImGui::GetWindowWidth()) / cell_width);
-        const int left_col = num_cols - 1 - ((ImGui::GetScrollX() - cell_width) / cell_width);
-        assert(left_col >= right_col);
-        for (int col_index = right_col; col_index <= left_col; col_index++) {
+        const int left_col = (ImGui::GetScrollX() / cell_width); // don't clip instruction string
+        const int right_col = (ImGui::GetScrollX() + ImGui::GetWindowWidth() + cell_width) / cell_width;
+        assert(left_col <= right_col);
+        for (int col_index = left_col; col_index < right_col; col_index++) {
             if ((col_index < 0) || (col_index >= num_cols)) {
                 continue;
             }
             const int trace_index = num_cols - 1 - col_index;
             const uint32_t cur_cycle = trace_get_cycle(trace_index);
-            const float x0 = dl_orig.x + trace_index * cell_width;
+            const float x0 = dl_orig.x + col_index * cell_width;
             const float x1 = x0 + cell_width;
-            const float y0 = dl_orig.y;
-            const float y1 = y0 + graph_height;
+            const float y0 = dl_orig.y + top_padding;
+            const float y1 = y0 + graph_height - top_padding;
             uint32_t bg_color = ui_trace_bgcolor(trace_get_flipbits(trace_index));
             if ((0 != ui.trace.hovered_flags) && (ui.trace.hovered_cycle == cur_cycle)) {
                 bg_color = ui_trace_hovered_color;
@@ -1108,35 +1156,48 @@ static void ui_timingdiagram(void) {
                     ui.trace.selected_cycle = cur_cycle;
                 }
             }
-            if ((trace_index == 0) || ((trace_index >= 1) && (0 != strcmp(trace_get_disasm(trace_index), trace_get_disasm(trace_index - 1))))) {
-                dl->AddText({x0,y0}, 0xFFFFFFFF, trace_get_disasm(trace_index));
+            if ((col_index == left_col) || ((trace_index < (trace_num_items() - 1)) && (0 != strcmp(trace_get_disasm(trace_index), trace_get_disasm(trace_index + 1))))) {
+                float tx = x0;
+                if (tx < (dl_orig.x + ImGui::GetScrollX())) {
+                    tx = dl_orig.x + ImGui::GetScrollX();
+                }
+                float ty = y0 - top_padding;
+                dl->AddRectFilled({ tx - 3.0f, ty }, { tx + 64.0f, ty + ImGui::GetTextLineHeight() }, ImColor(ImGui::GetStyle().Colors[ImGuiCol_WindowBg]));
+                dl->AddText({ tx, ty }, text_color, trace_get_disasm(trace_index));
             }
         }
         for (int line = 0; line < num_time_diagram_nodes; line++) {
             float last_y = 0.0f;
-            for (int col_index = right_col; col_index <= left_col; col_index++) {
+            for (int col_index = left_col; col_index < right_col; col_index++) {
                 if ((col_index < 0) || (col_index >= num_cols)) {
                     continue;
                 }
                 int trace_index = num_cols - 1 - col_index;
-                float x = dl_orig.x + trace_index * cell_width;
-                float y = line * cell_height + cell_height * 0.5f + dl_orig.y;
-                bool clk = trace_is_node_high(trace_index, time_diagram_nodes[line].node);
-                if (clk) {
-                    y += cell_height * 0.25f;
+                float x = dl_orig.x + col_index * cell_width;
+                float y = line * cell_height + cell_height * 0.5f + dl_orig.y + top_padding;
+                bool high = trace_is_node_high(trace_index, time_diagram_nodes[line].node);
+                if (high) {
+                    y -= cell_height * 0.3f;
                 }
                 else {
-                    y -= cell_height * 0.25f;
+                    y += cell_height * 0.3f;
                 }
-                dl->AddLine({x,y}, {x+cell_width,y}, 0xFFFFFFFF);
+                dl->AddLine({x,y}, {x+cell_width,y}, line_color);
                 if (last_y != 0.0f) {
-                    dl->AddLine({x+cell_width,y}, {x+cell_width,last_y}, 0xFFFFFFFF);
+                    dl->AddLine({x,y}, {x,last_y}, line_color);
                 }
                 last_y = y;
             }
             const char* node_name = time_diagram_nodes[line].name;
-            ImGui::SetCursorPos({ImGui::GetScrollX() + w_orig.x, line * cell_height + cell_padding + w_orig.y });
-            ImGui::Text("%s", node_name);
+            const bool active_low = time_diagram_nodes[line].active_low;
+            const float tx = dl_orig.x + ImGui::GetScrollX();
+            const float ty = dl_orig.y + top_padding + line * cell_height + cell_padding;
+            const ImVec2 ts = ImGui::CalcTextSize(node_name);
+            dl->AddRectFilled({ tx - 3.0f, ty - 1.0f }, { tx + ts.x + 3.0f, ty + ts.y + 2.0f }, text_bg);
+            if (active_low) {
+                dl->AddLine({ tx, ty + 1.0f }, { tx + ts.x, ty + 1.0f }, text_color);
+            }
+            dl->AddText({ tx, ty }, text_color, node_name);
         }
     }
     ImGui::End();

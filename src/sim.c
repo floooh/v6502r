@@ -325,6 +325,10 @@ uint8_t sim_z80_get_i(void) {
     return cpu_readI(sim.cpu_state);
 }
 
+uint8_t sim_z80_get_ir(void) {
+    return cpu_readIR(sim.cpu_state);
+}
+
 uint8_t sim_z80_get_r(void) {
     return cpu_readR(sim.cpu_state);
 }
@@ -347,5 +351,61 @@ bool sim_z80_get_rd(void) {
 
 bool sim_z80_get_wr(void) {
     return cpu_readWR(sim.cpu_state);
+}
+
+void sim_z80_set_intvec(uint8_t val) {
+    cpu_setIntVec(val);
+}
+
+uint8_t sim_z80_get_intvec(void) {
+    return cpu_getIntVec();
+}
+
+void sim_z80_set_wait(bool high) {
+    cpu_writeWAIT(sim.cpu_state, high);
+}
+
+void sim_z80_set_int(bool high) {
+    cpu_writeINT(sim.cpu_state, high);
+}
+
+void sim_z80_set_nmi(bool high) {
+    cpu_writeNMI(sim.cpu_state, high);
+}
+
+void sim_z80_set_reset(bool high) {
+    cpu_writeRESET(sim.cpu_state, high);
+}
+
+void sim_z80_set_busrq(bool high) {
+    cpu_writeBUSRQ(sim.cpu_state, high);
+}
+
+bool sim_z80_get_halt(void) {
+    return cpu_readHALT(sim.cpu_state);
+}
+
+bool sim_z80_get_wait(void) {
+    return cpu_readWAIT(sim.cpu_state);
+}
+
+bool sim_z80_get_int(void) {
+    return cpu_readINT(sim.cpu_state);
+}
+
+bool sim_z80_get_nmi(void) {
+    return cpu_readNMI(sim.cpu_state);
+}
+
+bool sim_z80_get_reset(void) {
+    return cpu_readRESET(sim.cpu_state);
+}
+
+bool sim_z80_get_busrq(void) {
+    return cpu_readBUSRQ(sim.cpu_state);
+}
+
+bool sim_z80_get_busak(void) {
+    return cpu_readBUSAK(sim.cpu_state);
 }
 #endif

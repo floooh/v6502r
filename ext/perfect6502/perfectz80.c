@@ -39,6 +39,7 @@ bool cpu_write_transistor_on(void* state, const uint8_t* ptr, size_t max_bytes) 
 
 static nodenum_t nodes_ab[16] = { ab0, ab1, ab2, ab3, ab4, ab5, ab6, ab7, ab8, ab9, ab10, ab11, ab12, ab13, ab14, ab15, };
 static nodenum_t nodes_db[8] = { db0, db1, db2, db3, db4, db5, db6, db7 };
+static nodenum_t nodes_ir[8] = { instr0, instr1, instr2, instr3, instr4, instr5, instr6, instr7 };
 static nodenum_t nodes_reg_aa[8] = { reg_aa0, reg_aa1, reg_aa2, reg_aa3, reg_aa4, reg_aa5, reg_aa6, reg_aa7 };
 static nodenum_t nodes_reg_ff[8] = { reg_ff0, reg_ff1, reg_ff2, reg_ff3, reg_ff4, reg_ff5, reg_ff6, reg_ff7 };
 static nodenum_t nodes_reg_bb[8] = { reg_bb0, reg_bb1, reg_bb2, reg_bb3, reg_bb4, reg_bb5, reg_bb6, reg_bb7 };
@@ -201,6 +202,10 @@ uint8_t cpu_readZ(state_t* state) {
     return readNodes(state, 8, nodes_reg_z);
 }
 
+uint8_t cpu_readIR(state_t* state) {
+    return readNodes(state, 8, nodes_ir);
+}
+
 uint16_t cpu_readIX(state_t* state) {
     return (readNodes(state, 8, nodes_reg_ixh) << 8) | readNodes(state, 8, nodes_reg_ixl);
 }
@@ -241,6 +246,54 @@ bool cpu_readWR(state_t* state) {
     return isNodeHigh(state, _wr) != 0;
 }
 
+bool cpu_readHALT(state_t* state) {
+    return isNodeHigh(state, _halt) != 0;
+}
+
+bool cpu_readWAIT(state_t* state) {
+    return isNodeHigh(state, _wait) != 0;
+}
+
+bool cpu_readINT(state_t* state) {
+    return isNodeHigh(state, _int) != 0;
+}
+
+bool cpu_readNMI(state_t* state) {
+    return isNodeHigh(state, _nmi) != 0;
+}
+
+bool cpu_readRESET(state_t* state) {
+    return isNodeHigh(state, _reset) != 0;
+}
+
+bool cpu_readBUSRQ(state_t* state) {
+    return isNodeHigh(state, _busrq) != 0;
+}
+
+bool cpu_readBUSAK(state_t* state) {
+    return isNodeHigh(state, _busak) != 0;
+}
+
+void cpu_writeWAIT(state_t* state, bool high) {
+    setNode(state, _wait, high);
+}
+
+void cpu_writeINT(state_t* state, bool high) {
+    setNode(state, _int, high);
+}
+
+void cpu_writeNMI(state_t* state, bool high) {
+    setNode(state, _nmi, high);
+}
+
+void cpu_writeRESET(state_t* state, bool high) {
+    setNode(state, _reset, high);
+}
+
+void cpu_writeBUSRQ(state_t* state, bool high) {
+    setNode(state, _busrq, high);
+}
+
 /************************************************************
  *
  * Address Bus and Data Bus Interface
@@ -249,6 +302,15 @@ bool cpu_readWR(state_t* state) {
 
 uint8_t cpu_memory[0x10000];
 uint8_t cpu_io[0x10000];
+uint8_t int_vector = 0xE0;
+
+void cpu_setIntVec(uint8_t val) {
+    int_vector = val;
+}
+
+uint8_t cpu_getIntVec(void) {
+    return int_vector;
+}
 
 static uint8_t memRead(uint16_t a)
 {
@@ -278,6 +340,10 @@ static inline void handleBus(void *state) {
         }
     }
     if (!isNodeHigh(state, _iorq)) {
+        if (!isNodeHigh(state, _m1)) {
+            // interrupt acknowledge cycle, put interrupt vector on data bus
+            cpu_writeDataBus(state, int_vector);
+        }
         if (!isNodeHigh(state, _rd)) {
             cpu_writeDataBus(state, ioRead(cpu_readAddressBus(state)));
         }

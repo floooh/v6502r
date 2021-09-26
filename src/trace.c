@@ -28,6 +28,14 @@ typedef struct {
     uint8_t mem[4096];      // only trace the first few KB of memory
 } trace_item_t;
 
+typedef struct {
+    uint16_t op_addr;
+    uint16_t cur_addr;      // incremented by disassembler input callback
+    bool op_prefixed;       // Z80 only, true if current instruction is prefixed
+    int out_str_index;
+    char out_str[MAX_DASM_STRING_LENGTH];
+} trace_dasm_t;
+
 static struct {
     bool valid;
     uint32_t flip_bits;         // for visually separating instructions and cycles
@@ -37,13 +45,7 @@ static struct {
     struct {
         bool scroll_to_end;
     } ui;
-    struct {
-        uint16_t op_addr;
-        uint16_t cur_addr;      // incremented by disassembler input callback
-        bool op_prefixed;       // Z80 only, true if current instruction is prefixed
-        int out_str_index;
-        char out_str[MAX_DASM_STRING_LENGTH];
-    } dasm;
+    trace_dasm_t dasm;
 } trace;
 
 void trace_init(void) {
@@ -99,9 +101,9 @@ static void ring_pop(void) {
     }
 }
 
-uint32_t trace_num_items(void) {
+int trace_num_items(void) {
     assert(trace.valid);
-    return ring_count();
+    return (int)ring_count();
 }
 
 bool trace_empty(void) {
@@ -491,7 +493,7 @@ static void dasm_outp_cb(char c, void* user_data) {
     trace.dasm.out_str[MAX_DASM_STRING_LENGTH-1] = 0;
 }
 
-static void ui_trace_disassemble(void) {
+static void trace_disassemble(void) {
     trace.dasm.cur_addr = trace.dasm.op_addr;
     trace.dasm.out_str_index = 0;
     #if defined(CHIP_6502)
@@ -562,7 +564,7 @@ void trace_store(void) {
 
     // disassemble current instruction
     if (disasm) {
-        ui_trace_disassemble();
+        trace_disassemble();
     }
     assert(sizeof(item->dasm.str) == sizeof(trace.dasm.out_str));
     memcpy(&item->dasm.str, &trace.dasm.out_str, sizeof(trace.dasm.out_str));

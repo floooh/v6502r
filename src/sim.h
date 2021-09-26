@@ -75,11 +75,28 @@ uint16_t sim_z80_get_wz(void);
 uint8_t sim_z80_get_f(void);
 uint8_t sim_z80_get_i(void);
 uint8_t sim_z80_get_r(void);
+uint8_t sim_z80_get_ir(void);
 bool sim_z80_get_m1(void);
 bool sim_z80_get_clk(void);
 bool sim_z80_get_mreq(void);
 bool sim_z80_get_rd(void);
 bool sim_z80_get_wr(void);
+
+void sim_z80_set_wait(bool high);
+void sim_z80_set_int(bool high);
+void sim_z80_set_nmi(bool high);
+void sim_z80_set_reset(bool high);
+void sim_z80_set_busrq(bool high);
+bool sim_z80_get_halt(void);
+bool sim_z80_get_wait(void);
+bool sim_z80_get_int(void);
+bool sim_z80_get_nmi(void);
+bool sim_z80_get_reset(void);
+bool sim_z80_get_busrq(void);
+bool sim_z80_get_busak(void);
+
+void sim_z80_set_intvec(uint8_t val);
+uint8_t sim_z80_get_intvec(void);
 #endif
 
 #if defined(__cplusplus)
