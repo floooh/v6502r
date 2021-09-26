@@ -1,8 +1,10 @@
 # v6502r
 
-Visual6502 Remixed (WIP)
+Visual6502 and VisualZ80 Remixed
 
-WASM Version: https://floooh.github.io/visual6502remix/
+WASM Version for 6502: https://floooh.github.io/visual6502remix/
+
+...and for the Z80: https://floooh.github.io/visualz80remix/
 
 TL;DR: Take the [visual6502](https://github.com/trebonian/visual6502) project
 and turn it into a native+wasm app via
@@ -26,6 +28,7 @@ To build and run the native version, run:
 > ./fips build
 ...
 > ./fips run v6502r
+> ./fips run vz80r
 ```
 
 Linux may require additional development packages for X11 and OpenGL development.
@@ -37,6 +40,7 @@ To build the WASM version:
 > ./fips set config wasm-ninja-release
 > ./fips build
 > ./fips run v6502r
+> ./fips run vz80r
 ```
 
 ## Software used in this project:
@@ -47,7 +51,7 @@ Many thanks to:
 - **perfect6502**: https://github.com/mist64/perfect6502
 - **Dear ImGui**: https://github.com/ocornut/imgui/
 - **ImGuiColorTextEdit**: https://github.com/BalazsJako/ImGuiColorTextEdit
-- **ImGuiMarkdown**: https://github.com/juliettef/imgui_markdown 
+- **ImGuiMarkdown**: https://github.com/juliettef/imgui_markdown
 - **asmx**: http://xi6.com/projects/asmx/
 - **The Sokol Headers**: https://github.com/floooh/sokol
 - **The Chips Headers (UI)**: https://github.com/floooh/chips
@@ -57,8 +61,3 @@ Many thanks to:
 
 Please be aware of the various licenses in the respective
 github repositories, subdirectories and files.
-
-
-
-
-
