@@ -116,7 +116,6 @@ void ui_init() {
     // default window open state
     ui.window_open.cpu_controls = true;
     ui.window_open.tracelog = true;
-    ui.window_open.timingdiagram = true;
 
     // setup sokol-imgui
     simgui_desc_t simgui_desc = { };
