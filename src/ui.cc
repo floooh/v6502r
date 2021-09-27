@@ -1569,13 +1569,14 @@ static ImVec2 draw_header(ImVec2 c_pos, float win_width) {
     return { c_pos.x, c_pos.y + 16.0f * d };
 }
 
-#define NUM_FOOTERS (26)
+#define NUM_FOOTERS (27)
 static const char* footers[NUM_FOOTERS] = {
     "SOWACO proudly presents",
-    "a 2019 production",
     #if defined(CHIP_6502)
+    "a 2019 production",
     "VISUAL 6502 REMIX",
     #elif defined(CHIP_Z80)
+    "a 2021 production",
     "VISUAL Z80 REMIX",
     #endif
     "Built with:",
@@ -1598,7 +1599,8 @@ static const char* footers[NUM_FOOTERS] = {
     "EMSCRIPTEN",
     "Special Kudos to:",
     "The visual6502.org Team",
-    "for reversing the 6502 and Z80!",
+    "for reversing the 6502",
+    "...and the Z80!",
     "...and of course...",
     #if defined(CHIP_6502)
     "6502 4EVER!!!",
