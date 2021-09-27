@@ -648,12 +648,40 @@ static void ui_cpu_status_panel(void) {
     char f_buf[9];
     ImGui::Text("WZ:%04X  I:%02X  R:%02X F:%s", sim_z80_get_wz(), sim_z80_get_i(), sim_z80_get_r(), ui_cpu_flags_as_string(sim_z80_get_f(), f_buf, sizeof(f_buf)));
     ImGui::Text("IR:%02X [%s]", sim_z80_get_ir(), trace_get_disasm(0));
-    ImGui::Text("Data:%02X Addr:%04X %s %s %s %s",
-        sim_get_data(), sim_get_addr(),
-        sim_z80_get_m1() ? "  ":"M1",
-        sim_z80_get_mreq() ? "    ":"MREQ",
-        sim_z80_get_rd() ? "  ":"RD",
-        sim_z80_get_wr() ? "  ":"WR");
+    const char* m_str = "??";
+    const char* t_str = "??";
+    switch (sim_z80_get_m()) {
+        case (1<<0): m_str = "M1"; break;
+        case (1<<1): m_str = "M2"; break;
+        case (1<<2): m_str = "M3"; break;
+        case (1<<3): m_str = "M4"; break;
+        case (1<<4): m_str = "M5"; break;
+    };
+    switch (sim_z80_get_t()) {
+        case (1<<0): t_str = "T1"; break;
+        case (1<<1): t_str = "T2"; break;
+        case (1<<2): t_str = "T3"; break;
+        case (1<<3): t_str = "T4"; break;
+        case (1<<4): t_str = "T5"; break;
+        case (1<<5): t_str = "T6"; break;
+    }
+    ImGui::Text("Cycle:%s/%s DBus:%02X ABus:%04X",
+        m_str, t_str, sim_get_data(), sim_get_addr());
+    ImGui::Text("%s %s %s %s %s %s %s %s\n%s %s %s %s %s %s",
+        sim_z80_get_clk() ? "CLK":"clk",
+        sim_z80_get_m1() ? "m1":"M1",
+        sim_z80_get_mreq() ? "mreq":"MREQ",
+        sim_z80_get_iorq() ? "iorq":"IORQ",
+        sim_z80_get_rd() ? "rd":"RD",
+        sim_z80_get_wr() ? "wr":"WR",
+        sim_z80_get_rfsh() ? "rfsh":"RFSH",
+        sim_z80_get_halt() ? "halt":"HALT",
+        sim_z80_get_wait() ? "wait":"WAIT",
+        sim_z80_get_int() ? "int":"INT",
+        sim_z80_get_nmi() ? "nmi":"NMI",
+        sim_z80_get_reset() ? "reset":"RESET",
+        sim_z80_get_busrq() ? "busrq":"BUSRQ",
+        sim_z80_get_busak() ? "busak":"BUSAK");
     ImGui::Separator();
     ui_input_z80_intvec("INT vector: ", "##int_vec");
     ImGui::Separator();

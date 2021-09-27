@@ -71,6 +71,9 @@ static nodenum_t nodes_reg_spl[8] = { reg_spl0, reg_spl1, reg_spl2, reg_spl3, re
 static nodenum_t nodes_reg_pch[8] = { reg_pch0, reg_pch1, reg_pch2, reg_pch3, reg_pch4, reg_pch5, reg_pch6, reg_pch7 };
 static nodenum_t nodes_reg_pcl[8] = { reg_pcl0, reg_pcl1, reg_pcl2, reg_pcl3, reg_pcl4, reg_pcl5, reg_pcl6, reg_pcl7 };
 
+static nodenum_t nodes_m[5] = { m1, m2, m3, m4, m5 };
+static nodenum_t nodes_t[6] = { t1, t2, t3, t4, t5, t6 };
+
 uint16_t cpu_readAddressBus(void *state) {
     return readNodes(state, 16, nodes_ab);
 }
@@ -254,6 +257,10 @@ bool cpu_readWAIT(state_t* state) {
     return isNodeHigh(state, _wait) != 0;
 }
 
+bool cpu_readRFSH(state_t* state) {
+    return isNodeHigh(state, _rfsh) != 0;
+}
+
 bool cpu_readINT(state_t* state) {
     return isNodeHigh(state, _int) != 0;
 }
@@ -292,6 +299,22 @@ void cpu_writeRESET(state_t* state, bool high) {
 
 void cpu_writeBUSRQ(state_t* state, bool high) {
     setNode(state, _busrq, high);
+}
+
+void cpu_write_node(void* state, int node_index, bool high) {
+    setNode(state, (uint16_t)node_index, high ? 1 : 0);
+}
+
+bool cpu_read_node(void* state, int node_index) {
+    return isNodeHigh(state, (uint16_t)node_index) != 0;
+}
+
+uint8_t cpu_readM(state_t* state) {
+    return readNodes(state, 5, nodes_m);
+}
+
+extern uint8_t cpu_readT(state_t* state) {
+    return readNodes(state, 6, nodes_t);
 }
 
 /************************************************************

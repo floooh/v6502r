@@ -20,6 +20,7 @@ extern uint8_t cpu_readX(state_t *state);
 extern uint8_t cpu_readY(state_t *state);
 extern uint8_t cpu_readSP(state_t *state);
 extern uint8_t cpu_readP(state_t *state);
+extern uint8_t cpu_readIR(state_t *state);
 extern bool cpu_readRW(state_t *state);
 extern bool cpu_readSYNC(state_t* state);
 extern bool cpu_readCLK0(state_t* state);
@@ -31,9 +32,10 @@ extern bool cpu_readRDY(state_t* state);
 extern bool cpu_readIRQ(state_t* state);
 extern bool cpu_readNMI(state_t* state);
 extern bool cpu_readRES(state_t* state);
-extern uint8_t cpu_readIR(state_t *state);
 
 // v6502r additions
+extern void cpu_write_node(state_t* state, int node_index, bool high);
+extern bool cpu_read_node(state_t* state, int node_index);
 extern bool cpu_read_node_state_as_bytes(state_t* state, uint8_t* ptr, size_t max_nodes);
 extern bool cpu_read_node_values(state_t* state, uint8_t* ptr, size_t max_bytes);
 extern bool cpu_read_transistor_on(state_t* state, uint8_t* ptr, size_t max_bytes);

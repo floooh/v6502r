@@ -194,6 +194,14 @@ uint8_t sim_get_flags(void) {
     #endif
 }
 
+bool sim_get_node(int node_index) {
+    return cpu_read_node(sim.cpu_state, node_index);
+}
+
+void sim_set_node(int node_index, bool high) {
+    cpu_write_node(sim.cpu_state, node_index, high);
+}
+
 #if defined(CHIP_6502)
 uint8_t sim_6502_get_a(void) {
     return cpu_readA(sim.cpu_state);
@@ -345,6 +353,10 @@ bool sim_z80_get_mreq(void) {
     return cpu_readMREQ(sim.cpu_state);
 }
 
+bool sim_z80_get_iorq(void) {
+    return cpu_readIORQ(sim.cpu_state);
+}
+
 bool sim_z80_get_rd(void) {
     return cpu_readRD(sim.cpu_state);
 }
@@ -389,6 +401,10 @@ bool sim_z80_get_wait(void) {
     return cpu_readWAIT(sim.cpu_state);
 }
 
+bool sim_z80_get_rfsh(void) {
+    return cpu_readRFSH(sim.cpu_state);
+}
+
 bool sim_z80_get_int(void) {
     return cpu_readINT(sim.cpu_state);
 }
@@ -407,5 +423,13 @@ bool sim_z80_get_busrq(void) {
 
 bool sim_z80_get_busak(void) {
     return cpu_readBUSAK(sim.cpu_state);
+}
+
+uint8_t sim_z80_get_m(void) {
+    return cpu_readM(sim.cpu_state);
+}
+
+uint8_t sim_z80_get_t(void) {
+    return cpu_readT(sim.cpu_state);
 }
 #endif

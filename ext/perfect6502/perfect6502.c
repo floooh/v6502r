@@ -151,6 +151,14 @@ bool cpu_readRES(void* state) {
     return isNodeHigh(state, res) != 0;
 }
 
+void cpu_write_node(void* state, int node_index, bool high) {
+    setNode(state, (uint16_t)node_index, high ? 1 : 0);
+}
+
+bool cpu_read_node(void* state, int node_index) {
+    return isNodeHigh(state, (uint16_t)node_index) != 0;
+}
+
 /************************************************************
  *
  * Address Bus and Data Bus Interface
