@@ -121,13 +121,13 @@ static int get_bitmap(const uint32_t* bm, uint32_t index) {
     return (bm[index>>5]>>(index&0x1F)) & 1;
 }
 
-static int get_nodes_value(const trace_item_t* item, uint32_t node_index) {
+static int get_node_value(const trace_item_t* item, uint32_t node_index) {
     return get_bitmap(item->node_values, node_index);
 };
 
 static bool is_node_high(uint32_t trace_index, uint32_t node_index) {
     uint32_t idx = trace_to_ring_index(trace_index);
-    return 0 != get_nodes_value(&trace.items[idx], node_index);
+    return 0 != get_node_value(&trace.items[idx], node_index);
 }
 
 static uint32_t read_nodes(uint32_t trace_index, uint32_t count, uint32_t* node_indices) {
@@ -614,6 +614,50 @@ bool trace_revert_to_cycle(uint32_t cycle) {
     trace_item_t* item = &trace.items[idx];
     load_item(item);
     trace.head = ring_idx(idx+1);
+    return true;
+}
+
+// returns the node-state difference in a 1-byte-per-node array
+bool trace_get_diff_visual_state(uint32_t cycle0, uint32_t cycle1, range_t to_buf) {
+    assert(trace.valid);
+    const int num_nodes = (int)cpu_get_num_nodes();
+    if ((int)to_buf.size < num_nodes) {
+        return false;
+    }
+    // hmmm... find the trace items containing the requested cycles
+    if (cycle0 > cycle1) {
+        uint32_t tmp = cycle1;
+        cycle1 = cycle0;
+        cycle0 = tmp;
+    }
+    uint32_t idx0, idx1;
+    for (idx0 = trace.tail; idx0 != trace.head; idx0 = ring_idx(idx0+1)) {
+        if (cycle0 == trace.items[idx0].cycle) {
+            break;
+        }
+    }
+    if (idx0 == trace.head) {
+        return false;
+    }
+    idx1 = idx0;
+    if (cycle0 != cycle1) {
+        for (idx1 = trace.tail; idx1 != trace.head; idx1 = ring_idx(idx1+1)) {
+            if (cycle1 == trace.items[idx1].cycle) {
+                break;
+            }
+        }
+        if (idx1 == trace.head) {
+            return false;
+        }
+    }
+    const trace_item_t* item0 = &trace.items[idx0];
+    const trace_item_t* item1 = &trace.items[idx1];
+
+    uint8_t* ptr = to_buf.ptr;
+    for (int i = 0; i < num_nodes; i++) {
+        bool diff = get_node_value(item0, i) != get_node_value(item1, i);
+        ptr[i] = diff ? 160 : 48;
+    }
     return true;
 }
 

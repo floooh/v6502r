@@ -108,7 +108,13 @@ static void app_frame(void) {
     gfx_new_frame(sapp_widthf(), sapp_heightf());
     ui_frame();
     sim_frame();
-    sim_get_node_state(gfx_get_nodestate_buffer());
+    if (ui_is_diffview()) {
+        const ui_diffview_t diffview = ui_get_diffview();
+        trace_get_diff_visual_state(diffview.cycle0, diffview.cycle1, gfx_get_nodestate_buffer());
+    }
+    else {
+        sim_get_node_visual_state(gfx_get_nodestate_buffer());
+    }
     const pick_result_t pick_result = pick_dopick(
         input_get_mouse_pos(),
         gfx_get_display_size(),

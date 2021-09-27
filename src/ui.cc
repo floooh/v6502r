@@ -68,9 +68,12 @@ static struct {
     } menu;
     struct {
         int hovered_flags;
+        bool diff_view;
         bool is_selected;
+        bool is_diff_selected;
         uint32_t hovered_cycle;
         uint32_t selected_cycle;
+        uint32_t diff_selected_cycle;
     } trace;
     bool link_hovered;
     char link_url[MAX_LINKURL_SIZE];
@@ -611,8 +614,8 @@ static void ui_cpu_status_panel(void) {
     ImGui::Text("Data:%02X Addr:%04X %s %s %s",
         sim_get_data(), sim_get_addr(),
         sim_6502_get_rw()?"R":"W",
-        sim_6502_get_clk0()?"CLK0":"    ",
-        sim_6502_get_sync()?"SYNC":"    ");
+        sim_6502_get_clk0()?"CLK0":"clk0",
+        sim_6502_get_sync()?"SYNC":"sync");
     ImGui::Separator();
     ui_input_6502_vec("NMI vector (FFFA): ", "##nmi_vec", 0xFFFA);
     ui_input_6502_vec("RES vector (FFFC): ", "##res_vec", 0xFFFC);
@@ -836,11 +839,19 @@ static void ui_listing(void) {
 }
 
 static void ui_tracelog_timingdiagram_begin() {
-    if (ui.trace.is_selected && !trace_empty()) {
-        if ((ui.trace.selected_cycle < trace_get_cycle(trace_num_items()-1)) ||
-            (ui.trace.selected_cycle > trace_get_cycle(0)))
-        {
-            ui.trace.is_selected = false;
+    if (!trace_empty()) {
+        const uint32_t min_cycle = trace_get_cycle(trace_num_items()-1);
+        const uint32_t max_cycle = trace_get_cycle(0);
+        if (ui.trace.is_selected) {
+            if ((ui.trace.selected_cycle < min_cycle) || (ui.trace.selected_cycle > max_cycle)) {
+                ui.trace.is_selected = false;
+                ui.trace.is_diff_selected = false;
+            }
+        }
+        if (ui.trace.is_diff_selected) {
+            if ((ui.trace.diff_selected_cycle < min_cycle) || (ui.trace.diff_selected_cycle > max_cycle)) {
+                ui.trace.is_diff_selected = false;
+            }
         }
     }
 }
@@ -1017,6 +1028,7 @@ static uint32_t ui_trace_bgcolor(uint32_t flipbits) {
 
 static const uint32_t ui_trace_hovered_color = 0xFF3643F4;
 static const uint32_t ui_trace_selected_color = 0xFF0000D5;
+static const uint32_t ui_trace_diff_selected_color = 0xFF8843F4;
 
 static void ui_tracelog(void) {
     if (!ui.window_open.tracelog) {
@@ -1053,10 +1065,18 @@ static void ui_tracelog(void) {
                     const uint32_t cur_cycle = trace_get_cycle(trace_index);
                     uint32_t bg_color = ui_trace_bgcolor(trace_get_flipbits(trace_index));
                     if ((0 != ui.trace.hovered_flags) && (ui.trace.hovered_cycle == cur_cycle)) {
-                        bg_color = ui_trace_hovered_color;
+                        if (ui.trace.diff_view && ui.trace.is_selected && !ui.trace.is_diff_selected) {
+                            bg_color = ui_trace_diff_selected_color;
+                        }
+                        else {
+                            bg_color = ui_trace_hovered_color;
+                        }
                     }
                     if (ui.trace.is_selected && (ui.trace.selected_cycle == cur_cycle)) {
                         bg_color = ui_trace_selected_color;
+                    }
+                    if (ui.trace.diff_view && ui.trace.is_diff_selected && (ui.trace.diff_selected_cycle == cur_cycle)) {
+                        bg_color = ui_trace_diff_selected_color;
                     }
                     ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, bg_color);
                     const ImVec2 min_p = ImGui::GetCursorScreenPos();
@@ -1069,8 +1089,15 @@ static void ui_tracelog(void) {
                         ui.trace.hovered_flags |= TRACELOG_HOVERED;
                         ui.trace.hovered_cycle = cur_cycle;
                         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                            ui.trace.is_selected = true;
-                            ui.trace.selected_cycle = cur_cycle;
+                            if (ui.trace.diff_view && ui.trace.is_selected && !ui.trace.is_diff_selected) {
+                                ui.trace.is_diff_selected = true;
+                                ui.trace.diff_selected_cycle = cur_cycle;
+                            }
+                            else {
+                                ui.trace.is_diff_selected = false;
+                                ui.trace.is_selected = true;
+                                ui.trace.selected_cycle = cur_cycle;
+                            }
                         }
                     }
                 }
@@ -1081,9 +1108,14 @@ static void ui_tracelog(void) {
             ImGui::EndTable();
             ImGui::Separator();
             if (ui.trace.is_selected) {
-                ImGui::SameLine();
                 if (ImGui::Button("Revert to Selected")) {
                     trace_revert_to_cycle(ui.trace.selected_cycle);
+                }
+                ImGui::SameLine();
+                ImGui::Checkbox("Diff View", &ui.trace.diff_view);
+                if (ui.trace.diff_view && !ui.trace.is_diff_selected) {
+                    ImGui::SameLine();
+                    ImGui::Text("(hint: select another cycle to view diff)");
                 }
             }
         }
@@ -1167,10 +1199,18 @@ static void ui_timingdiagram(void) {
             const float y1 = y0 + graph_height - top_padding;
             uint32_t bg_color = ui_trace_bgcolor(trace_get_flipbits(trace_index));
             if ((0 != ui.trace.hovered_flags) && (ui.trace.hovered_cycle == cur_cycle)) {
-                bg_color = ui_trace_hovered_color;
+                if (ui.trace.diff_view && ui.trace.is_selected && !ui.trace.is_diff_selected) {
+                    bg_color = ui_trace_diff_selected_color;
+                }
+                else {
+                    bg_color = ui_trace_hovered_color;
+                }
             }
             if (ui.trace.is_selected && (ui.trace.selected_cycle == cur_cycle)) {
                 bg_color = ui_trace_selected_color;
+            }
+            if (ui.trace.diff_view && ui.trace.is_diff_selected && (ui.trace.diff_selected_cycle == cur_cycle)) {
+                bg_color = ui_trace_diff_selected_color;
             }
             dl->AddRectFilled({x0,y0}, {x1,y1}, bg_color);
             if (ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect({x0,y0}, {x1,y1}, false)) {
@@ -1178,8 +1218,15 @@ static void ui_timingdiagram(void) {
                 ui.trace.hovered_flags |= TIMINGDIAGRAM_HOVERED;
                 ui.trace.hovered_cycle = cur_cycle;
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                    ui.trace.is_selected = true;
-                    ui.trace.selected_cycle = cur_cycle;
+                    if (ui.trace.diff_view && ui.trace.is_selected && !ui.trace.is_diff_selected) {
+                        ui.trace.is_diff_selected = true;
+                        ui.trace.diff_selected_cycle = cur_cycle;
+                    }
+                    else {
+                        ui.trace.is_diff_selected = false;
+                        ui.trace.is_selected = true;
+                        ui.trace.selected_cycle = cur_cycle;
+                    }
                 }
             }
             if ((col_index == left_col) || ((trace_index < (trace_num_items() - 1)) && (0 != strcmp(trace_get_disasm(trace_index), trace_get_disasm(trace_index + 1))))) {
@@ -1602,4 +1649,27 @@ static void ui_help_about(void) {
         draw_footer(c_pos, win_width);
     }
     ImGui::End();
+}
+
+bool ui_is_diffview(void) {
+    if (ui.trace.diff_view) {
+        return ui.trace.is_selected && (ui.trace.is_diff_selected || (ui.trace.hovered_flags != 0));
+    }
+    else {
+        return false;
+    }
+}
+
+ui_diffview_t ui_get_diffview(void) {
+    ui_diffview_t res = {};
+    if (ui.trace.is_selected) {
+        res.cycle0 = res.cycle1 = ui.trace.selected_cycle;
+        if (ui.trace.is_diff_selected) {
+            res.cycle1 = ui.trace.diff_selected_cycle;
+        }
+        else if (ui.trace.hovered_flags != 0){
+            res.cycle1 = ui.trace.hovered_cycle;
+        }
+    }
+    return res;
 }

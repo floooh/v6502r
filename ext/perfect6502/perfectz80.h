@@ -75,6 +75,7 @@ extern void cpu_setIntVec(uint8_t val);
 extern uint8_t cpu_getIntVec(void);
 
 // v6502r additions
+extern size_t cpu_get_num_nodes(void);
 extern void cpu_write_node(state_t* state, int node_index, bool high);
 extern bool cpu_read_node(state_t* state, int node_index);
 extern bool cpu_read_node_state_as_bytes(state_t* state, uint8_t* ptr, size_t max_nodes);

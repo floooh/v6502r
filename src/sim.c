@@ -146,7 +146,7 @@ void sim_set_cycle(uint32_t c) {
     cpu_cycle = c - 1;
 }
 
-bool sim_get_node_state(range_t to_buffer) {
+bool sim_get_node_visual_state(range_t to_buffer) {
     assert(sim.valid && to_buffer.ptr && (to_buffer.size > 0));
     return cpu_read_node_state_as_bytes(sim.cpu_state, to_buffer.ptr, to_buffer.size);
 }

@@ -26,8 +26,12 @@
 #include "netlist_6502.h"
 
 // v6502r additions
+size_t cpu_get_num_nodes(void) {
+    return sizeof(netlist_6502_node_is_pullup)/sizeof(*netlist_6502_node_is_pullup);
+}
+
 bool cpu_read_node_state_as_bytes(void* state, uint8_t* ptr, size_t max_nodes) {
-    size_t num_nodes = sizeof(netlist_6502_node_is_pullup)/sizeof(*netlist_6502_node_is_pullup);
+    size_t num_nodes = cpu_get_num_nodes();
     if (num_nodes > max_nodes) {
         return false;
     }

@@ -11,6 +11,7 @@ void trace_clear(void);
 void trace_store(void);
 bool trace_revert_to_previous(void);
 bool trace_revert_to_cycle(uint32_t cycle);
+bool trace_get_diff_visual_state(uint32_t cycle0, uint32_t cycle1, range_t to_buf);
 int trace_num_items(void);
 bool trace_empty(void);
 uint32_t trace_get_cycle(uint32_t index);
