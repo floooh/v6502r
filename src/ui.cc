@@ -1653,7 +1653,7 @@ static void ui_help_about(void) {
 
 bool ui_is_diffview(void) {
     if (ui.trace.diff_view) {
-        return ui.trace.is_selected && (ui.trace.is_diff_selected || (ui.trace.hovered_flags != 0));
+        return ui.trace.is_selected;
     }
     else {
         return false;
