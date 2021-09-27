@@ -34,6 +34,7 @@
 #include "nodenames.h"
 
 #include <math.h>
+#include <stdlib.h> // strtol
 
 enum {
     TRACELOG_HOVERED = (1<<0),
@@ -74,6 +75,9 @@ static struct {
         uint32_t hovered_cycle;
         uint32_t selected_cycle;
         uint32_t diff_selected_cycle;
+        bool watch_node_valid;
+        char watch_str[32];
+        uint32_t watch_node_index;
     } trace;
     bool link_hovered;
     char link_url[MAX_LINKURL_SIZE];
@@ -863,7 +867,7 @@ static void ui_tracelog_timingdiagram_end() {
 }
 
 #if defined(CHIP_6502)
-static const int ui_tracelog_table_num_columns = 18;
+static const int ui_tracelog_table_num_columns = 19;
 
 static void ui_tracelog_table_setup_columns(void) {
     const float char_width = 8.0f;
@@ -879,6 +883,7 @@ static void ui_tracelog_table_setup_columns(void) {
     ImGui::TableSetupColumn("Y", ImGuiTableColumnFlags_NoClip, 2*char_width);
     ImGui::TableSetupColumn("S", ImGuiTableColumnFlags_NoClip, 2*char_width);
     ImGui::TableSetupColumn("P", ImGuiTableColumnFlags_NoClip, 2*char_width);
+    ImGui::TableSetupColumn("Watch", ImGuiTableColumnFlags_NoClip, 4*char_width);
     ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_NoClip, 8*char_width);
     ImGui::TableSetupColumn("IRQ", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3*char_width);
     ImGui::TableSetupColumn("NMI", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3*char_width);
@@ -914,6 +919,13 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::TableNextColumn();
     ImGui::Text("%02X", trace_get_flags(trace_index));
     ImGui::TableNextColumn();
+    if (ui.trace.watch_node_valid) {
+        ImGui::Text("%c", trace_is_node_high(trace_index, ui.trace.watch_node_index) ? '1':'0');
+    }
+    else {
+        ImGui::Text("%s", "??");
+    }
+    ImGui::TableNextColumn();
     char p_buf[9];
     ImGui::Text("%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), p_buf, sizeof(p_buf)));
     ImGui::TableNextColumn();
@@ -928,7 +940,7 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::Text("%s", trace_get_disasm(trace_index));
 }
 #elif defined(CHIP_Z80)
-static const int ui_tracelog_table_num_columns = 27;
+static const int ui_tracelog_table_num_columns = 28;
 
 static void ui_tracelog_table_setup_columns(void) {
     const float char_width = 8.0f;
@@ -942,23 +954,24 @@ static void ui_tracelog_table_setup_columns(void) {
     ImGui::TableSetupColumn("AB", ImGuiTableColumnFlags_NoClip, 4*char_width);
     ImGui::TableSetupColumn("DB", ImGuiTableColumnFlags_NoClip, 2*char_width);
     ImGui::TableSetupColumn("PC", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("IR", ImGuiTableColumnFlags_NoClip, 2*char_width);
-    ImGui::TableSetupColumn("AF", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("BC", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("DE", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("HL", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("IR", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2*char_width);
+    ImGui::TableSetupColumn("AF", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("BC", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("DE", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("HL", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
     ImGui::TableSetupColumn("AF'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
     ImGui::TableSetupColumn("BC'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
     ImGui::TableSetupColumn("DE'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
     ImGui::TableSetupColumn("HL'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("IX", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("IY", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("SP", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("IX", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("IY", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
+    ImGui::TableSetupColumn("SP", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
     ImGui::TableSetupColumn("WZ", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
     ImGui::TableSetupColumn("I", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2*char_width);
     ImGui::TableSetupColumn("R", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2*char_width);
-    ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_None, 8*char_width);
-    ImGui::TableSetupColumn("Asm", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_None, 12*char_width);
+    ImGui::TableSetupColumn("Watch", ImGuiTableColumnFlags_NoClip, 4*char_width);
+    ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 8*char_width);
+    ImGui::TableSetupColumn("Asm", ImGuiTableColumnFlags_NoClip, 12*char_width);
 }
 
 static void ui_tracelog_table_row(int trace_index) {
@@ -1014,6 +1027,13 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::TableNextColumn();
     ImGui::Text("%02X", trace_z80_get_r(trace_index));
     ImGui::TableNextColumn();
+    if (ui.trace.watch_node_valid) {
+        ImGui::Text("%c", trace_is_node_high(trace_index, ui.trace.watch_node_index) ? '1':'0');
+    }
+    else {
+        ImGui::Text("%s", "??");
+    }
+    ImGui::TableNextColumn();
     char f_buf[9];
     ImGui::Text("%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), f_buf, sizeof(f_buf)));
     ImGui::TableNextColumn();
@@ -1029,6 +1049,27 @@ static uint32_t ui_trace_bgcolor(uint32_t flipbits) {
 static const uint32_t ui_trace_hovered_color = 0xFF3643F4;
 static const uint32_t ui_trace_selected_color = 0xFF0000D5;
 static const uint32_t ui_trace_diff_selected_color = 0xFF8843F4;
+
+static void ui_update_watch_node(void) {
+    ui.trace.watch_node_valid = false;
+    if (ui.trace.watch_str[0] == '#') {
+        int node_index = strtol(&ui.trace.watch_str[1], 0, 10);
+        if ((node_index >= 1) && (node_index < sim_get_num_nodes())) {
+            ui.trace.watch_node_valid = true;
+            ui.trace.watch_node_index = (uint32_t)node_index;
+        }
+    }
+    else {
+        for (int i = 0; i < num_node_names; i++) {
+            if (node_names[i][0] != 0) {
+                if (0 == strcmp(ui.trace.watch_str, node_names[i])) {
+                    ui.trace.watch_node_valid = true;
+                    ui.trace.watch_node_index = (uint32_t)i;
+                }
+            }
+        }
+    }
+}
 
 static void ui_tracelog(void) {
     if (!ui.window_open.tracelog) {
@@ -1107,7 +1148,18 @@ static void ui_tracelog(void) {
             }
             ImGui::EndTable();
             ImGui::Separator();
+            ImGui::PushItemWidth(64.0f);
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, ui.trace.watch_node_valid ? 0xFF004400 : 0xFF000044);
+            if (ImGui::InputText("Watch", ui.trace.watch_str, sizeof(ui.trace.watch_str))) {
+                ui_update_watch_node();
+            }
+            ImGui::PopStyleColor();
+            ImGui::PopItemWidth();
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Enter node name or #index.\nSee status in Watch column.");
+            }
             if (ui.trace.is_selected) {
+                ImGui::SameLine();
                 if (ImGui::Button("Revert to Selected")) {
                     trace_revert_to_cycle(ui.trace.selected_cycle);
                 }
@@ -1288,12 +1340,19 @@ static void ui_picking(void) {
         for (int i = 0; i < pick_result.num_hits; i++) {
             int node_index = pick_result.node_index[i];
             if ((node_index >= 0) && (node_index < num_node_names)) {
-                if (!sim_is_ignore_picking_highlight_node(node_index) && (node_names[node_index][0] != 0)) {
+                if (!sim_is_ignore_picking_highlight_node(node_index)) {
                     if (valid_node_index != 0) {
                         strcat(str, "\n");
                     }
                     valid_node_index++;
-                    strcat(str, node_names[node_index]);
+                    if (0 != node_names[node_index][0]) {
+                        strcat(str, node_names[node_index]);
+                    }
+                    else {
+                        char print_buf[32];
+                        snprintf(print_buf, sizeof(print_buf), "#%d", node_index);
+                        strcat(str, print_buf);
+                    }
                 }
             }
         }

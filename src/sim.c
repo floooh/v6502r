@@ -194,6 +194,10 @@ uint8_t sim_get_flags(void) {
     #endif
 }
 
+int sim_get_num_nodes(void) {
+    return (int)cpu_get_num_nodes();
+}
+
 bool sim_get_node(int node_index) {
     return cpu_read_node(sim.cpu_state, node_index);
 }

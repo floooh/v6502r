@@ -38,6 +38,7 @@ bool sim_get_transistor_on(range_t to_buffer);
 bool sim_is_ignore_picking_highlight_node(int node_num);
 uint16_t sim_get_pc(void);
 uint8_t sim_get_flags(void);
+int sim_get_num_nodes(void);
 bool sim_get_node(int node_index);
 void sim_set_node(int node_index, bool high);
 
