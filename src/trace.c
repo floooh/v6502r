@@ -16,17 +16,10 @@
 #define MAX_DASM_STRING_LENGTH (32)
 
 typedef struct {
-    uint32_t cycle;
-    uint32_t flip_bits;     // for grouping instruction and cycle ticks
-    uint32_t node_values[128];
-    uint32_t transistors_on[256];
-    struct {
-        uint16_t op_addr;
-        bool op_prefixed;   // Z80 only
-        char str[MAX_DASM_STRING_LENGTH];
-    } dasm;
-    uint8_t mem[4096];      // only trace the first few KB of memory
-} trace_item_t;
+    uint16_t op_addr;
+    bool op_prefixed;   // Z80 only
+    char str[MAX_DASM_STRING_LENGTH];
+} trace_item_dasm_t;
 
 typedef struct {
     uint16_t op_addr;
@@ -39,13 +32,21 @@ typedef struct {
 static struct {
     bool valid;
     uint32_t flip_bits;         // for visually separating instructions and cycles
-    uint32_t head;
-    uint32_t tail;
-    trace_item_t items[MAX_TRACE_ITEMS];
     struct {
         bool scroll_to_end;
     } ui;
     trace_dasm_t dasm;
+    // ring buffer as SoA for faster access and better packing
+    uint32_t head;
+    uint32_t tail;
+    struct {
+        uint32_t cycle[MAX_TRACE_ITEMS];
+        uint32_t flip_bits[MAX_TRACE_ITEMS];
+        uint32_t node_values[MAX_TRACE_ITEMS][128];
+        uint32_t transistors_on[MAX_TRACE_ITEMS][256];
+        trace_item_dasm_t dasm[MAX_TRACE_ITEMS];
+        uint8_t mem[MAX_TRACE_ITEMS][4096];
+    } items;
 } trace;
 
 void trace_init(void) {
@@ -121,13 +122,13 @@ static int get_bitmap(const uint32_t* bm, uint32_t index) {
     return (bm[index>>5]>>(index&0x1F)) & 1;
 }
 
-static int get_node_value(const trace_item_t* item, uint32_t node_index) {
-    return get_bitmap(item->node_values, node_index);
+static int get_node_value(uint32_t idx, uint32_t node_index) {
+    return get_bitmap(&trace.items.node_values[idx][0], node_index);
 };
 
 static bool is_node_high(uint32_t trace_index, uint32_t node_index) {
     uint32_t idx = trace_to_ring_index(trace_index);
-    return 0 != get_node_value(&trace.items[idx], node_index);
+    return 0 != get_node_value(idx, node_index);
 }
 
 static uint32_t read_nodes(uint32_t trace_index, uint32_t count, uint32_t* node_indices) {
@@ -143,16 +144,16 @@ bool trace_is_node_high(uint32_t trace_index, uint32_t node_index) {
     return is_node_high(trace_index, node_index);
 }
 
-uint32_t trace_get_cycle(uint32_t index) {
+uint32_t trace_get_cycle(uint32_t trace_index) {
     assert(trace.valid);
-    uint32_t idx = trace_to_ring_index(index);
-    return trace.items[idx].cycle;
+    uint32_t idx = trace_to_ring_index(trace_index);
+    return trace.items.cycle[idx];
 }
 
-uint32_t trace_get_flipbits(uint32_t index) {
+uint32_t trace_get_flipbits(uint32_t trace_index) {
     assert(trace.valid);
-    uint32_t idx = trace_to_ring_index(index);
-    return trace.items[idx].flip_bits;
+    uint32_t idx = trace_to_ring_index(trace_index);
+    return trace.items.flip_bits[idx];
 }
 
 #if defined(CHIP_6502)
@@ -224,7 +225,7 @@ uint8_t trace_get_flags(uint32_t index) {
 
 const char* trace_get_disasm(uint32_t index) {
     uint32_t idx = trace_to_ring_index(index);
-    return trace.items[idx].dasm.str;
+    return trace.items.dasm[idx].str;
 }
 
 #if defined(CHIP_6502)
@@ -520,12 +521,11 @@ void trace_store(void) {
     assert(trace.valid);
     int success = 0;
     uint32_t idx = ring_add();
-    trace_item_t* item = &trace.items[idx];
-    item->cycle = sim_get_cycle();
-    memcpy(&item->mem, cpu_memory, sizeof(item->mem));
-    success = sim_get_node_values((range_t){ .ptr=item->node_values, .size=sizeof(item->node_values) });
+    trace.items.cycle[idx] = sim_get_cycle();
+    memcpy(&trace.items.mem[idx], cpu_memory, sizeof(trace.items.mem[idx]));
+    success = sim_get_node_values((range_t){ .ptr=trace.items.node_values[idx], .size=sizeof(trace.items.node_values[idx]) });
     assert(success == 1); (void)success;
-    success = sim_get_transistor_on((range_t){ .ptr=item->transistors_on, .size=sizeof(item->transistors_on) });
+    success = sim_get_transistor_on((range_t){ .ptr=trace.items.transistors_on[idx], .size=sizeof(trace.items.transistors_on[idx]) });
     assert(success == 1); (void)success;
 
     // find start of instruction (first half tick after sync)
@@ -560,29 +560,29 @@ void trace_store(void) {
             trace.flip_bits &= ~TRACE_FLIPBIT_CLK;
         }
     #endif
-    item->flip_bits = trace.flip_bits;
+    trace.items.flip_bits[idx] = trace.flip_bits;
 
     // disassemble current instruction
     if (disasm) {
         trace_disassemble();
     }
-    assert(sizeof(item->dasm.str) == sizeof(trace.dasm.out_str));
-    memcpy(&item->dasm.str, &trace.dasm.out_str, sizeof(trace.dasm.out_str));
-    item->dasm.op_prefixed = trace.dasm.op_prefixed;
-    item->dasm.op_addr = trace.dasm.op_addr;
+    assert(sizeof(trace.items.dasm[idx].str) == sizeof(trace.dasm.out_str));
+    memcpy(&trace.items.dasm[idx].str, &trace.dasm.out_str, sizeof(trace.dasm.out_str));
+    trace.items.dasm[idx].op_prefixed = trace.dasm.op_prefixed;
+    trace.items.dasm[idx].op_addr = trace.dasm.op_addr;
     trace.ui.scroll_to_end = true;
 }
 
-static void load_item(trace_item_t* item) {
-    trace.flip_bits = item->flip_bits;
-    trace.dasm.op_prefixed = item->dasm.op_prefixed;
-    trace.dasm.op_addr = item->dasm.op_addr;
-    assert(sizeof(item->dasm.str) == sizeof(trace.dasm.out_str));
-    memcpy(&trace.dasm.out_str, &item->dasm.str, sizeof(trace.dasm.out_str));
-    sim_set_cycle(item->cycle);
-    memcpy(cpu_memory, &item->mem, sizeof(item->mem));
-    sim_set_node_values((range_t){ item->node_values, sizeof(item->node_values) });
-    sim_set_transistor_on((range_t){ item->transistors_on, sizeof(item->transistors_on) });
+static void load_item(uint32_t idx) {
+    trace.flip_bits = trace.items.flip_bits[idx];
+    trace.dasm.op_prefixed = trace.items.dasm[idx].op_prefixed;
+    trace.dasm.op_addr = trace.items.dasm[idx].op_addr;
+    assert(sizeof(trace.items.dasm[idx].str) == sizeof(trace.dasm.out_str));
+    memcpy(&trace.dasm.out_str, &trace.items.dasm[idx].str, sizeof(trace.dasm.out_str));
+    sim_set_cycle(trace.items.cycle[idx]);
+    memcpy(cpu_memory, &trace.items.mem[idx][0], sizeof(trace.items.mem[idx]));
+    sim_set_node_values((range_t){ trace.items.node_values[idx], sizeof(trace.items.node_values[idx]) });
+    sim_set_transistor_on((range_t){ trace.items.transistors_on[idx], sizeof(trace.items.transistors_on[idx]) });
 }
 
 // load the previous trace item into the simulator and pop it from the trace log
@@ -591,9 +591,7 @@ bool trace_revert_to_previous(void) {
     if (trace_num_items() < 1) {
         return false;
     }
-    uint32_t idx = trace_to_ring_index(1);
-    trace_item_t* item = &trace.items[idx];
-    load_item(item);
+    load_item(trace_to_ring_index(1));
     ring_pop();
     return true;
 }
@@ -604,15 +602,14 @@ bool trace_revert_to_cycle(uint32_t cycle) {
     // find the selected item by cycle
     uint32_t idx;
     for (idx = trace.tail; idx != trace.head; idx = ring_idx(idx+1)) {
-        if (cycle == trace.items[idx].cycle) {
+        if (cycle == trace.items.cycle[idx]) {
             break;
         }
     }
     if (idx == trace.head) {
         return false;
     }
-    trace_item_t* item = &trace.items[idx];
-    load_item(item);
+    load_item(idx);
     trace.head = ring_idx(idx+1);
     return true;
 }
@@ -624,7 +621,6 @@ bool trace_get_diff_visual_state(uint32_t cycle0, uint32_t cycle1, range_t to_bu
     if ((int)to_buf.size < num_nodes) {
         return false;
     }
-    // hmmm... find the trace items containing the requested cycles
     if (cycle0 > cycle1) {
         uint32_t tmp = cycle1;
         cycle1 = cycle0;
@@ -632,7 +628,7 @@ bool trace_get_diff_visual_state(uint32_t cycle0, uint32_t cycle1, range_t to_bu
     }
     uint32_t idx0, idx1;
     for (idx0 = trace.tail; idx0 != trace.head; idx0 = ring_idx(idx0+1)) {
-        if (cycle0 == trace.items[idx0].cycle) {
+        if (cycle0 == trace.items.cycle[idx0]) {
             break;
         }
     }
@@ -642,7 +638,7 @@ bool trace_get_diff_visual_state(uint32_t cycle0, uint32_t cycle1, range_t to_bu
     idx1 = idx0;
     if (cycle0 != cycle1) {
         for (idx1 = trace.tail; idx1 != trace.head; idx1 = ring_idx(idx1+1)) {
-            if (cycle1 == trace.items[idx1].cycle) {
+            if (cycle1 == trace.items.cycle[idx1]) {
                 break;
             }
         }
@@ -650,12 +646,9 @@ bool trace_get_diff_visual_state(uint32_t cycle0, uint32_t cycle1, range_t to_bu
             return false;
         }
     }
-    const trace_item_t* item0 = &trace.items[idx0];
-    const trace_item_t* item1 = &trace.items[idx1];
-
     uint8_t* ptr = to_buf.ptr;
     for (int i = 0; i < num_nodes; i++) {
-        bool diff = get_node_value(item0, i) != get_node_value(item1, i);
+        bool diff = get_node_value(idx0, i) != get_node_value(idx1, i);
         ptr[i] = diff ? 160 : 48;
     }
     return true;
