@@ -21,6 +21,10 @@
 #define WINDOW_TITLE "Visual Z80 Remix"
 #endif
 
+static const uint8_t gfx_visual_node_inactive = 48;
+static const uint8_t gfx_visual_node_active = 160;
+static const uint8_t gfx_visual_node_highlighted = 255;
+
 typedef struct {
     float x, y, z, w;
 } float4_t;
@@ -33,3 +37,4 @@ typedef struct {
     void* ptr;
     size_t size;
 } range_t;
+

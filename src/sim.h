@@ -5,6 +5,16 @@
 extern "C" {
 #endif
 
+typedef struct {
+    const char* node_name;
+    int node_index;
+} sim_named_node_t;
+
+typedef struct {
+    const sim_named_node_t* ptr;
+    int num;
+} sim_named_node_range_t;
+
 void sim_init(void);
 void sim_shutdown(void);
 void sim_start(void);
@@ -14,6 +24,7 @@ void sim_step_op(void);
 void sim_set_paused(bool paused);
 bool sim_get_paused(void);
 void sim_set_nodestate(range_t from_buffer);
+sim_named_node_range_t sim_get_sorted_nodes(void);
 int sim_find_node(const char* name);    // accepts name or '#1234', return -1 if not found
 void sim_mem_w8(uint16_t addr, uint8_t val);
 uint8_t sim_mem_r8(uint16_t addr);
@@ -21,21 +32,15 @@ void sim_mem_w16(uint16_t addr, uint16_t val);
 uint16_t sim_mem_r16(uint16_t addr);
 void sim_mem_clear(uint16_t addr, uint16_t num_bytes);
 void sim_mem_write(uint16_t addr, uint16_t num_bytes, const uint8_t* ptr);
-#if defined(CHIP_Z80)
-void sim_io_w8(uint16_t addr, uint8_t val);
-uint8_t sim_io_r8(uint16_t addr);
-void sim_io_w16(uint16_t addr, uint16_t val);
-uint16_t sim_io_r16(uint16_t addr);
-#endif
 uint32_t sim_get_cycle(void);
 void sim_set_cycle(uint32_t c);
 uint16_t sim_get_addr(void);
 uint8_t sim_get_data(void);
-bool sim_get_node_visual_state(range_t to_buffer);
-bool sim_set_node_values(range_t from_buffer);
-bool sim_get_node_values(range_t to_buffer);
-bool sim_set_transistor_on(range_t from_buffer);
-bool sim_get_transistor_on(range_t to_buffer);
+bool sim_write_node_visual_state(range_t to_buffer);
+bool sim_read_node_values(range_t from_buffer);
+bool sim_write_node_values(range_t to_buffer);
+bool sim_read_transistor_on(range_t from_buffer);
+bool sim_write_transistor_on(range_t to_buffer);
 bool sim_is_ignore_picking_highlight_node(int node_index);
 uint16_t sim_get_pc(void);
 uint8_t sim_get_flags(void);
@@ -63,6 +68,10 @@ bool sim_6502_get_rdy(void);
 #endif
 
 #if defined(CHIP_Z80)
+void sim_io_w8(uint16_t addr, uint8_t val);
+uint8_t sim_io_r8(uint16_t addr);
+void sim_io_w16(uint16_t addr, uint16_t val);
+uint16_t sim_io_r16(uint16_t addr);
 uint16_t sim_z80_get_af(void);
 uint16_t sim_z80_get_bc(void);
 uint16_t sim_z80_get_de(void);

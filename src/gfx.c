@@ -222,7 +222,7 @@ float gfx_get_aspect(void) {
 void gfx_highlight_node(int node_index) {
     assert(gfx.valid);
     assert((node_index >= 0) && (node_index < MAX_NODES));
-    gfx.node_state[node_index] = 255;
+    gfx.node_state[node_index] = gfx_visual_node_highlighted;
 }
 
 void gfx_toggle_layer_visibility(int layer_index) {

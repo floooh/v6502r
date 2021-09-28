@@ -11,31 +11,26 @@
 #include "nodenames.h"
 #include "sim.h"
 #include "trace.h"
-#include "gfx.h"
 #include <stdlib.h> // qsort, bsearch, strtol
-
-typedef struct {
-    const char* name;
-    int index;
-} sorted_node_t;
+#include <ctype.h>  // isdigit
 
 static struct {
     bool valid;
     bool paused;
     void* cpu_state;
     int num_sorted_nodes;
-    sorted_node_t sorted_nodes[MAX_NODES];
+    sim_named_node_t sorted_nodes[MAX_NODES];
 } sim;
 
 static int qsort_cb(const void* a, const void* b) {
-    const sorted_node_t* n0 = a;
-    const sorted_node_t* n1 = b;
-    return strcmp(n0->name, n1->name);
+    const sim_named_node_t* n0 = a;
+    const sim_named_node_t* n1 = b;
+    return strcmp(n0->node_name, n1->node_name);
 }
 
 static int bsearch_cb(const void* key, const void* elem) {
-    const sorted_node_t* n = elem;
-    return strcmp((const char*)key, n->name);
+    const sim_named_node_t* n = elem;
+    return strcmp((const char*)key, n->node_name);
 }
 
 void sim_init(void) {
@@ -50,12 +45,12 @@ void sim_init(void) {
     assert(num_node_names < MAX_NODES);
     for (int i = 0; i < num_node_names; i++) {
         if (node_names[i][0]) {
-            sorted_node_t* n = &sim.sorted_nodes[sim.num_sorted_nodes++];
-            n->name = node_names[i];
-            n->index = i;
+            sim_named_node_t* n = &sim.sorted_nodes[sim.num_sorted_nodes++];
+            n->node_name = node_names[i];
+            n->node_index = i;
         }
     }
-    qsort(sim.sorted_nodes, (size_t)sim.num_sorted_nodes, sizeof(sorted_node_t), qsort_cb);
+    qsort(sim.sorted_nodes, (size_t)sim.num_sorted_nodes, sizeof(sim_named_node_t), qsort_cb);
 }
 
 void sim_shutdown(void) {
@@ -121,21 +116,28 @@ void sim_step_op(void) {
 
 int sim_find_node(const char* name) {
     assert(name);
-    // special case '#1234'
-    if (name[0] == '#') {
-        int node_index = strtol(&name[1], 0, 10);
+    // special case 'number'
+    if (isdigit(name[0])) {
+        int node_index = strtol(name, 0, 10);
         if ((node_index >= 1) && (node_index < sim_get_num_nodes())) {
             return node_index;
         }
     }
     else {
-        const sorted_node_t* n = bsearch(name, sim.sorted_nodes, (size_t)sim.num_sorted_nodes, sizeof(sorted_node_t), bsearch_cb);
+        const sim_named_node_t* n = bsearch(name, sim.sorted_nodes, (size_t)sim.num_sorted_nodes, sizeof(sim_named_node_t), bsearch_cb);
         if (n) {
-            return n->index;
+            return n->node_index;
         }
     }
     // fallthrough: not found or invalid '#' number
     return -1;
+}
+
+sim_named_node_range_t sim_get_sorted_nodes(void) {
+    return (sim_named_node_range_t){
+        .ptr = sim.sorted_nodes,
+        .num = sim.num_sorted_nodes
+    };
 }
 
 void sim_mem_w8(uint16_t addr, uint8_t val) {
@@ -195,27 +197,27 @@ void sim_set_cycle(uint32_t c) {
     cpu_cycle = c - 1;
 }
 
-bool sim_get_node_visual_state(range_t to_buffer) {
+bool sim_write_node_visual_state(range_t to_buffer) {
     assert(sim.valid && to_buffer.ptr && (to_buffer.size > 0));
-    return cpu_read_node_state_as_bytes(sim.cpu_state, to_buffer.ptr, to_buffer.size);
+    return cpu_read_node_state_as_bytes(sim.cpu_state, gfx_visual_node_active, gfx_visual_node_inactive, to_buffer.ptr, to_buffer.size);
 }
 
-bool sim_get_node_values(range_t to_buffer) {
+bool sim_write_node_values(range_t to_buffer) {
     assert(sim.valid && to_buffer.ptr && (to_buffer.size > 0));
     return cpu_read_node_values(sim.cpu_state, to_buffer.ptr, to_buffer.size);
 }
 
-bool sim_get_transistor_on(range_t to_buffer) {
+bool sim_write_transistor_on(range_t to_buffer) {
     assert(sim.valid && to_buffer.ptr && (to_buffer.size > 0));
     return cpu_read_transistor_on(sim.cpu_state, to_buffer.ptr, to_buffer.size);
 }
 
-bool sim_set_node_values(range_t from_buffer) {
+bool sim_read_node_values(range_t from_buffer) {
     assert(sim.valid && from_buffer.ptr && (from_buffer.size > 0));
     return cpu_write_node_values(sim.cpu_state, from_buffer.ptr, from_buffer.size);
 }
 
-bool sim_set_transistor_on(range_t from_buffer) {
+bool sim_read_transistor_on(range_t from_buffer) {
     assert(sim.valid && from_buffer.ptr && (from_buffer.size > 0));
     return cpu_write_transistor_on(sim.cpu_state, from_buffer.ptr, from_buffer.size);
 }

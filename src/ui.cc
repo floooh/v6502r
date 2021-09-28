@@ -33,7 +33,8 @@
 #include "util.h"
 #include "nodenames.h"
 
-#include <math.h>
+#include <math.h>   // sinf, fmodf
+#include <string.h> // strncpy
 
 enum {
     TRACELOG_HOVERED = (1<<0),
@@ -90,9 +91,12 @@ static struct {
         uint32_t watch_node_index;
     } trace;
     struct {
+        bool active;
         bool node_valid;
         char node_str[32];
         uint32_t node_index;
+        bool is_node_hovered;
+        uint32_t hovered_node_index;
     } explore;
     bool link_hovered;
     char link_url[MAX_LINKURL_SIZE];
@@ -1168,7 +1172,7 @@ static void ui_tracelog(void) {
             ImGui::PopItemWidth();
             ImGui::EndGroup();
             if (ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Enter node name or #index.\nSee status in Watch column.");
+                ImGui::SetTooltip("Enter node name or number.\nSee status in Watch column.");
             }
             if (ui.trace.is_selected) {
                 ImGui::SameLine();
@@ -1349,6 +1353,12 @@ static void ui_update_explore_node(void) {
     }
 }
 
+static void ui_update_explore_node_by_name(const char* node_name) {
+    strncpy(ui.explore.node_str, node_name, sizeof(ui.explore.node_str));
+    ui.explore.node_str[sizeof(ui.explore.node_str)-1] = 0;
+    ui_update_explore_node();
+}
+
 static void ui_nodeexplorer(void) {
     if (!ui.window_open.nodeexplorer) {
         return;
@@ -1358,7 +1368,7 @@ static void ui_nodeexplorer(void) {
     if (ImGui::Begin("Node Explorer", &ui.window_open.nodeexplorer, ImGuiWindowFlags_None)) {
         ImGui::BeginGroup();
         ImGui::AlignTextToFramePadding();
-        ImGui::Text("Find node:");
+        ImGui::Text("Show node:");
         ImGui::SameLine();
         ImGui::PushStyleColor(ImGuiCol_Text, ui.explore.node_valid ? ui_found_text_color : ui_notfound_text_color);
         ImGui::PushItemWidth(-1.0f);
@@ -1369,10 +1379,48 @@ static void ui_nodeexplorer(void) {
         ImGui::PopStyleColor();
         ImGui::EndGroup();
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Enter node name or #index.");
+            ImGui::SetTooltip("Enter node name or number.");
         }
+        ui.explore.is_node_hovered = false;
+        if (ImGui::BeginListBox("##nodes", { 96.0f, -1.0f} )) {
+            const sim_named_node_range_t nodes = sim_get_sorted_nodes();
+            ImGuiListClipper clipper;
+            clipper.Begin(nodes.num, ImGui::GetTextLineHeightWithSpacing());
+            while (clipper.Step()) {
+                for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
+                    ImGui::PushID(i);
+                    if (ImGui::Selectable(nodes.ptr[i].node_name)) {
+                        ui_update_explore_node_by_name(nodes.ptr[i].node_name);
+                    }
+                    if (ImGui::IsItemHovered()) {
+                        ui.explore.is_node_hovered = true;
+                        ui.explore.hovered_node_index = (uint32_t)nodes.ptr[i].node_index;
+                    }
+                    ImGui::PopID();
+                }
+            }
+            ImGui::EndListBox();
+        }
+        ui.explore.active = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) || !ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow);
     }
     ImGui::End();
+}
+
+bool ui_is_nodeexplorer_active(void) {
+    return ui.window_open.nodeexplorer && ui.explore.active;
+}
+
+void ui_write_nodeexplorer_visual_state(range_t to_buffer) {
+    memset(to_buffer.ptr, gfx_visual_node_inactive, to_buffer.size);
+    uint8_t* byte_ptr = (uint8_t*)to_buffer.ptr;
+    if (ui.explore.node_valid) {
+        assert(ui.explore.node_index < to_buffer.size);
+        byte_ptr[ui.explore.node_index] = gfx_visual_node_active;
+    }
+    if (ui.explore.is_node_hovered) {
+        assert(ui.explore.node_index < to_buffer.size);
+        byte_ptr[ui.explore.hovered_node_index] = gfx_visual_node_active;
+    }
 }
 
 static void ui_picking(void) {

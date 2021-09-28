@@ -18,6 +18,8 @@ void ui_draw(void);
 bool ui_handle_input(const sapp_event* event);
 bool ui_is_diffview(void);
 ui_diffview_t ui_get_diffview(void);
+bool ui_is_nodeexplorer_active(void);
+void ui_write_nodeexplorer_visual_state(range_t to_buffer);
 
 #if defined(__cplusplus)
 } // extern "C"

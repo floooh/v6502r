@@ -78,7 +78,7 @@ extern uint8_t cpu_getIntVec(void);
 extern size_t cpu_get_num_nodes(void);
 extern void cpu_write_node(state_t* state, int node_index, bool high);
 extern bool cpu_read_node(state_t* state, int node_index);
-extern bool cpu_read_node_state_as_bytes(state_t* state, uint8_t* ptr, size_t max_nodes);
+extern bool cpu_read_node_state_as_bytes(state_t* state, uint8_t active_value, uint8_t inactive_value, uint8_t* ptr, size_t max_nodes);
 extern bool cpu_read_node_values(state_t* state, uint8_t* ptr, size_t max_bytes);
 extern bool cpu_read_transistor_on(state_t* state, uint8_t* ptr, size_t max_bytes);
 extern bool cpu_write_node_values(state_t* state, const uint8_t* ptr, size_t max_bytes);

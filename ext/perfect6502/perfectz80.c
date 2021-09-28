@@ -8,13 +8,13 @@ size_t cpu_get_num_nodes(void) {
     return sizeof(netlist_z80_node_is_pullup)/sizeof(*netlist_z80_node_is_pullup);
 }
 
-bool cpu_read_node_state_as_bytes(void* state, uint8_t* ptr, size_t max_nodes) {
+bool cpu_read_node_state_as_bytes(void* state, uint8_t active_value, uint8_t inactive_value, uint8_t* ptr, size_t max_nodes) {
     size_t num_nodes = cpu_get_num_nodes();
     if (num_nodes > max_nodes) {
         return false;
     }
     for (size_t i = 0; i < num_nodes; i++) {
-        ptr[i] = (isNodeHigh(state, i) != 0) ? 160 : 48;
+        ptr[i] = (isNodeHigh(state, i) != 0) ? active_value : inactive_value;
     }
     return true;
 }

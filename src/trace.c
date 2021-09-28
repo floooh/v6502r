@@ -12,6 +12,7 @@
 #include "nodenames.h"
 #include "trace.h"
 #include "sim.h"
+#include "gfx.h"
 
 #define MAX_DASM_STRING_LENGTH (32)
 
@@ -523,9 +524,9 @@ void trace_store(void) {
     uint32_t idx = ring_add();
     trace.items.cycle[idx] = sim_get_cycle();
     memcpy(&trace.items.mem[idx], cpu_memory, sizeof(trace.items.mem[idx]));
-    success = sim_get_node_values((range_t){ .ptr=trace.items.node_values[idx], .size=sizeof(trace.items.node_values[idx]) });
+    success = sim_write_node_values((range_t){ .ptr=trace.items.node_values[idx], .size=sizeof(trace.items.node_values[idx]) });
     assert(success == 1); (void)success;
-    success = sim_get_transistor_on((range_t){ .ptr=trace.items.transistors_on[idx], .size=sizeof(trace.items.transistors_on[idx]) });
+    success = sim_write_transistor_on((range_t){ .ptr=trace.items.transistors_on[idx], .size=sizeof(trace.items.transistors_on[idx]) });
     assert(success == 1); (void)success;
 
     // find start of instruction (first half tick after sync)
@@ -581,8 +582,8 @@ static void load_item(uint32_t idx) {
     memcpy(&trace.dasm.out_str, &trace.items.dasm[idx].str, sizeof(trace.dasm.out_str));
     sim_set_cycle(trace.items.cycle[idx]);
     memcpy(cpu_memory, &trace.items.mem[idx][0], sizeof(trace.items.mem[idx]));
-    sim_set_node_values((range_t){ trace.items.node_values[idx], sizeof(trace.items.node_values[idx]) });
-    sim_set_transistor_on((range_t){ trace.items.transistors_on[idx], sizeof(trace.items.transistors_on[idx]) });
+    sim_read_node_values((range_t){ trace.items.node_values[idx], sizeof(trace.items.node_values[idx]) });
+    sim_read_transistor_on((range_t){ trace.items.transistors_on[idx], sizeof(trace.items.transistors_on[idx]) });
 }
 
 // load the previous trace item into the simulator and pop it from the trace log
@@ -615,7 +616,7 @@ bool trace_revert_to_cycle(uint32_t cycle) {
 }
 
 // returns the node-state difference in a 1-byte-per-node array
-bool trace_get_diff_visual_state(uint32_t cycle0, uint32_t cycle1, range_t to_buf) {
+bool trace_write_diff_visual_state(uint32_t cycle0, uint32_t cycle1, range_t to_buf) {
     assert(trace.valid);
     const int num_nodes = (int)cpu_get_num_nodes();
     if ((int)to_buf.size < num_nodes) {
@@ -649,7 +650,7 @@ bool trace_get_diff_visual_state(uint32_t cycle0, uint32_t cycle1, range_t to_bu
     uint8_t* ptr = to_buf.ptr;
     for (int i = 0; i < num_nodes; i++) {
         bool diff = get_node_value(idx0, i) != get_node_value(idx1, i);
-        ptr[i] = diff ? 160 : 48;
+        ptr[i] = diff ? gfx_visual_node_active : gfx_visual_node_inactive;
     }
     return true;
 }
