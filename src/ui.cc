@@ -40,6 +40,16 @@ enum {
     TIMINGDIAGRAM_HOVERED = (1<<1),
 };
 
+static const ImU32 ui_trace_hovered_color = 0xFF3643F4;
+static const ImU32 ui_trace_selected_color = 0xFF0000D5;
+static const ImU32 ui_trace_diff_selected_color = 0xFF8843F4;
+static const ImU32 ui_trace_bg_colors[4] = { 0xFF327D2E, 0xFF3C8E38, 0xFFC06515, 0xFFD17619 };
+static const ImU32 ui_diagram_line_color = 0xFFEEEEEE;
+static const ImU32 ui_diagram_text_color = 0xFFFFFFFF;
+static const ImU32 ui_diagram_text_bg_color = 0x88000000;
+static const ImU32 ui_found_text_color = 0xFF00FF00;
+static const ImU32 ui_notfound_text_color = 0xFF4488FF;
+
 static struct {
     bool valid;
     ui_memedit_t memedit;
@@ -53,6 +63,7 @@ static struct {
         bool cpu_controls;
         bool tracelog;
         bool timingdiagram;
+        bool nodeexplorer;
         bool listing;
         bool help_asm;
         bool help_opcodes;
@@ -78,16 +89,22 @@ static struct {
         char watch_str[32];
         uint32_t watch_node_index;
     } trace;
+    struct {
+        bool node_valid;
+        char node_str[32];
+        uint32_t node_index;
+    } explore;
     bool link_hovered;
     char link_url[MAX_LINKURL_SIZE];
 } ui;
 
 static void ui_menu(void);
 static void ui_picking(void);
-static void ui_tracelog_timingdiagram_begin();
+static void ui_tracelog_timingdiagram_begin(void);
 static void ui_tracelog(void);
 static void ui_timingdiagram(void);
-static void ui_tracelog_timingdiagram_end();
+static void ui_tracelog_timingdiagram_end(void);
+static void ui_nodeexplorer(void);
 static void ui_controls(void);
 static void ui_listing(void);
 static void ui_help_assembler(void);
@@ -346,6 +363,9 @@ bool ui_handle_input(const sapp_event* ev) {
     if (test_alt(ev, SAPP_KEYCODE_D)) {
         ui.dasm.open = !ui.dasm.open;
     }
+    if (test_alt(ev, SAPP_KEYCODE_E)) {
+        ui.window_open.nodeexplorer = !ui.window_open.nodeexplorer;
+    }
     if (test_click(ev, ui.menu.open_source_hovered) || test_ctrl_shift(ev, SAPP_KEYCODE_O)) {
         util_html5_load();
         ui.menu.open_source_hovered = false;
@@ -408,6 +428,7 @@ void ui_frame() {
     ui_tracelog();
     ui_timingdiagram();
     ui_tracelog_timingdiagram_end();
+    ui_nodeexplorer();
     ui_controls();
     ui_asm_draw();
     ui_listing();
@@ -473,6 +494,7 @@ static void ui_menu(void) {
         }
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("Controls", "Alt+C", &ui.window_open.cpu_controls);
+            ImGui::MenuItem("Node Explorer", "Alt+E", &ui.window_open.nodeexplorer);
             ImGui::MenuItem("Trace Log", "Alt+T", &ui.window_open.tracelog);
             ImGui::MenuItem("Timing Diagram", nullptr, &ui.window_open.timingdiagram);
             ImGui::MenuItem("Listing", "Alt+L", &ui.window_open.listing);
@@ -794,8 +816,7 @@ static void ui_controls(void) {
     if (!ui.window_open.cpu_controls) {
         return;
     }
-    const float disp_w = (float) sapp_width();
-    ImGui::SetNextWindowPos({ disp_w - 300, 50 }, ImGuiCond_Once);
+    ImGui::SetNextWindowPos({ ImGui::GetIO().DisplaySize.x - 300, 50 }, ImGuiCond_Once);
     ImGui::SetNextWindowSize({ 270, 480 }, ImGuiCond_Once);
     #if defined(CHIP_6502)
     const char* cpu_name = "MOS 6502";
@@ -1041,13 +1062,8 @@ static void ui_tracelog_table_row(int trace_index) {
 #endif
 
 static uint32_t ui_trace_bgcolor(uint32_t flipbits) {
-    static const uint32_t colors[4] = { 0xFF327D2E, 0xFF3C8E38, 0xFFC06515, 0xFFD17619 };
-    return colors[flipbits & 3];
+    return ui_trace_bg_colors[flipbits & 3];
 }
-
-static const uint32_t ui_trace_hovered_color = 0xFF3643F4;
-static const uint32_t ui_trace_selected_color = 0xFF0000D5;
-static const uint32_t ui_trace_diff_selected_color = 0xFF8843F4;
 
 static void ui_update_watch_node(void) {
     ui.trace.watch_node_valid = false;
@@ -1064,8 +1080,8 @@ static void ui_tracelog(void) {
         ui.trace.diff_view_active = false;
         return;
     }
-    const float disp_w = (float) sapp_width();
-    const float disp_h = (float) sapp_height();
+    const float disp_w = ImGui::GetIO().DisplaySize.x;
+    const float disp_h = ImGui::GetIO().DisplaySize.y;
     const float footer_h = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
     ImGui::SetNextWindowPos({ disp_w / 2, disp_h - 150 }, ImGuiCond_Once, { 0.5f, 0.0f });
     ImGui::SetNextWindowSize({ 600, 128 }, ImGuiCond_Once);
@@ -1139,15 +1155,18 @@ static void ui_tracelog(void) {
             ImGui::Separator();
 
             // Watch search field
+            ImGui::BeginGroup();
+            ImGui::AlignTextToFramePadding();
             ImGui::Text("Watch:");
             ImGui::SameLine();
             ImGui::PushItemWidth(64.0f);
-            ImGui::PushStyleColor(ImGuiCol_Text, ui.trace.watch_node_valid ? 0xFF00FF00 : 0xFF8888FF);
+            ImGui::PushStyleColor(ImGuiCol_Text, ui.trace.watch_node_valid ? ui_found_text_color : ui_notfound_text_color);
             if (ImGui::InputText("##watch", ui.trace.watch_str, sizeof(ui.trace.watch_str))) {
                 ui_update_watch_node();
             }
             ImGui::PopStyleColor();
             ImGui::PopItemWidth();
+            ImGui::EndGroup();
             if (ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Enter node name or #index.\nSee status in Watch column.");
             }
@@ -1220,9 +1239,6 @@ static void ui_timingdiagram(void) {
     if (ImGui::Begin("Timing Diagram", &ui.window_open.timingdiagram, ImGuiWindowFlags_HorizontalScrollbar)) {
         ImDrawList* dl = ImGui::GetWindowDrawList();
         const ImVec2 dl_orig = ImGui::GetCursorScreenPos();
-        const ImU32 line_color = 0xFFEEEEEE;
-        const ImU32 text_color = 0xFFFFFFFF;
-        const ImU32 text_bg    = 0x88000000;
 
         if (trace_ui_get_scroll_to_end()) {
             ImGui::SetScrollX(ImGui::GetScrollMaxX());
@@ -1281,7 +1297,7 @@ static void ui_timingdiagram(void) {
                 }
                 float ty = y0 - top_padding;
                 dl->AddRectFilled({ tx - 3.0f, ty }, { tx + 64.0f, ty + ImGui::GetTextLineHeight() }, ImColor(ImGui::GetStyle().Colors[ImGuiCol_WindowBg]));
-                dl->AddText({ tx, ty }, text_color, trace_get_disasm(trace_index));
+                dl->AddText({ tx, ty }, ui_diagram_text_color, trace_get_disasm(trace_index));
             }
         }
         for (int line = 0; line < num_time_diagram_nodes; line++) {
@@ -1300,9 +1316,9 @@ static void ui_timingdiagram(void) {
                 else {
                     y += cell_height * 0.3f;
                 }
-                dl->AddLine({x,y}, {x+cell_width,y}, line_color);
+                dl->AddLine({x,y}, {x+cell_width,y}, ui_diagram_line_color);
                 if (last_y != 0.0f) {
-                    dl->AddLine({x,y}, {x,last_y}, line_color);
+                    dl->AddLine({x,y}, {x,last_y}, ui_diagram_line_color);
                 }
                 last_y = y;
             }
@@ -1311,18 +1327,53 @@ static void ui_timingdiagram(void) {
             const float tx = dl_orig.x + ImGui::GetScrollX();
             const float ty = dl_orig.y + top_padding + line * cell_height + cell_padding;
             const ImVec2 ts = ImGui::CalcTextSize(node_name);
-            dl->AddRectFilled({ tx - 3.0f, ty - 1.0f }, { tx + ts.x + 3.0f, ty + ts.y + 2.0f }, text_bg);
+            dl->AddRectFilled({ tx - 3.0f, ty - 1.0f }, { tx + ts.x + 3.0f, ty + ts.y + 2.0f }, ui_diagram_text_bg_color);
             if (active_low) {
-                dl->AddLine({ tx, ty + 1.0f }, { tx + ts.x, ty + 1.0f }, text_color);
+                dl->AddLine({ tx, ty + 1.0f }, { tx + ts.x, ty + 1.0f }, ui_diagram_text_color);
             }
-            dl->AddText({ tx, ty }, text_color, node_name);
+            dl->AddText({ tx, ty }, ui_diagram_text_color, node_name);
         }
     }
     ImGui::End();
     if (!any_hovered) {
         ui.trace.hovered_flags &= ~TIMINGDIAGRAM_HOVERED;
     }
- }
+}
+
+static void ui_update_explore_node(void) {
+    ui.explore.node_valid = false;
+    int node_index = sim_find_node(ui.explore.node_str);
+    if (node_index >= 0) {
+        ui.explore.node_valid = true;
+        ui.explore.node_index = (uint32_t)node_index;
+    }
+}
+
+static void ui_nodeexplorer(void) {
+    if (!ui.window_open.nodeexplorer) {
+        return;
+    }
+    ImGui::SetNextWindowPos({ImGui::GetIO().DisplaySize.x - 350, 70}, ImGuiCond_Once);
+    ImGui::SetNextWindowSize({300, 400}, ImGuiCond_Once);
+    if (ImGui::Begin("Node Explorer", &ui.window_open.nodeexplorer, ImGuiWindowFlags_None)) {
+        ImGui::BeginGroup();
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Find node:");
+        ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_Text, ui.explore.node_valid ? ui_found_text_color : ui_notfound_text_color);
+        ImGui::PushItemWidth(-1.0f);
+        if (ImGui::InputText("##search", ui.explore.node_str, sizeof(ui.explore.node_str))) {
+            ui_update_explore_node();
+        }
+        ImGui::PopItemWidth();
+        ImGui::PopStyleColor();
+        ImGui::EndGroup();
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Enter node name or #index.");
+        }
+    }
+    ImGui::End();
+}
 
 static void ui_picking(void) {
     const pick_result_t pick_result = pick_get_last_result();
@@ -1372,7 +1423,8 @@ static void markdown_link_callback(ImGui::MarkdownLinkCallbackData data) {
 }
 
 static ImVec2 display_center(void) {
-    return ImVec2((float)sapp_width()*0.5f, (float)sapp_height()*0.5f);
+    const ImVec2 s = ImGui::GetIO().DisplaySize;
+    return { s.x * 0.5f, s.y * 0.5f };
 }
 
 static void ui_help_assembler(void) {
