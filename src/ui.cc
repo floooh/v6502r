@@ -51,6 +51,9 @@ static const ImU32 ui_diagram_text_bg_color = 0x88000000;
 static const ImU32 ui_found_text_color = 0xFF00FF00;
 static const ImU32 ui_notfound_text_color = 0xFF4488FF;
 
+#define MAX_NODEEXPLORER_NODES (32)
+#define MAX_NODEEXPLORER_INPUTBUFFER_SIZE (256)
+
 static struct {
     bool valid;
     ui_memedit_t memedit;
@@ -92,11 +95,12 @@ static struct {
     } trace;
     struct {
         bool active;
-        bool node_valid;
-        char node_str[32];
-        uint32_t node_index;
+        int num_nodes;
+        uint32_t node_indices[MAX_NODEEXPLORER_NODES];
         bool is_node_hovered;
         uint32_t hovered_node_index;
+        char input_buffer[MAX_NODEEXPLORER_INPUTBUFFER_SIZE];
+        char token_buffer[MAX_NODEEXPLORER_INPUTBUFFER_SIZE];
     } explore;
     bool link_hovered;
     char link_url[MAX_LINKURL_SIZE];
@@ -1344,19 +1348,34 @@ static void ui_timingdiagram(void) {
     }
 }
 
-static void ui_update_explore_node(void) {
-    ui.explore.node_valid = false;
-    int node_index = sim_find_node(ui.explore.node_str);
-    if (node_index >= 0) {
-        ui.explore.node_valid = true;
-        ui.explore.node_index = (uint32_t)node_index;
+static void ui_nodeexplorer_update_nodes_from_string_buffer(void) {
+    ui.explore.num_nodes = 0;
+    assert(sizeof(ui.explore.input_buffer) == sizeof(ui.explore.token_buffer));
+    memcpy(ui.explore.token_buffer, ui.explore.input_buffer, sizeof(ui.explore.token_buffer));
+    char* strok_context = 0;
+    const char* token_str;
+    char* str = ui.explore.token_buffer;
+    while (0 != (token_str = strtok_r(str, " ", &strok_context))) {
+        str = 0;
+        if (ui.explore.num_nodes < MAX_NODEEXPLORER_NODES) {
+            int node_index = sim_find_node(token_str);
+            if (node_index >= 0) {
+                ui.explore.node_indices[ui.explore.num_nodes++] = (uint32_t)node_index;
+            }
+            else {
+                ui.explore.num_nodes = 0;
+                break;
+            }
+        }
     }
 }
 
 static void ui_update_explore_node_by_name(const char* node_name) {
+    /* FIXME
     strncpy(ui.explore.node_str, node_name, sizeof(ui.explore.node_str));
     ui.explore.node_str[sizeof(ui.explore.node_str)-1] = 0;
     ui_update_explore_node();
+    */
 }
 
 static void ui_nodeexplorer(void) {
@@ -1368,18 +1387,18 @@ static void ui_nodeexplorer(void) {
     if (ImGui::Begin("Node Explorer", &ui.window_open.nodeexplorer, ImGuiWindowFlags_None)) {
         ImGui::BeginGroup();
         ImGui::AlignTextToFramePadding();
-        ImGui::Text("Show node:");
+        ImGui::Text("Show nodes:");
         ImGui::SameLine();
-        ImGui::PushStyleColor(ImGuiCol_Text, ui.explore.node_valid ? ui_found_text_color : ui_notfound_text_color);
+        ImGui::PushStyleColor(ImGuiCol_Text, (ui.explore.num_nodes > 0) ? ui_found_text_color : ui_notfound_text_color);
         ImGui::PushItemWidth(-1.0f);
-        if (ImGui::InputText("##search", ui.explore.node_str, sizeof(ui.explore.node_str))) {
-            ui_update_explore_node();
+        if (ImGui::InputText("##search", ui.explore.input_buffer, sizeof(ui.explore.input_buffer))) {
+            ui_nodeexplorer_update_nodes_from_string_buffer();
         }
         ImGui::PopItemWidth();
         ImGui::PopStyleColor();
         ImGui::EndGroup();
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Enter node name or number.");
+            ImGui::SetTooltip("Enter node names or numbers.");
         }
         ui.explore.is_node_hovered = false;
         if (ImGui::BeginListBox("##nodes", { 96.0f, -1.0f} )) {
@@ -1413,12 +1432,13 @@ bool ui_is_nodeexplorer_active(void) {
 void ui_write_nodeexplorer_visual_state(range_t to_buffer) {
     memset(to_buffer.ptr, gfx_visual_node_inactive, to_buffer.size);
     uint8_t* byte_ptr = (uint8_t*)to_buffer.ptr;
-    if (ui.explore.node_valid) {
-        assert(ui.explore.node_index < to_buffer.size);
-        byte_ptr[ui.explore.node_index] = gfx_visual_node_active;
+    for (int i = 0; i < ui.explore.num_nodes; i++) {
+        assert(ui.explore.node_indices[i] < to_buffer.size);
+        byte_ptr[ui.explore.node_indices[i]] = gfx_visual_node_active;
+
     }
     if (ui.explore.is_node_hovered) {
-        assert(ui.explore.node_index < to_buffer.size);
+        assert(ui.explore.hovered_node_index < to_buffer.size);
         byte_ptr[ui.explore.hovered_node_index] = gfx_visual_node_active;
     }
 }
