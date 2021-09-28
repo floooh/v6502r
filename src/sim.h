@@ -14,6 +14,7 @@ void sim_step_op(void);
 void sim_set_paused(bool paused);
 bool sim_get_paused(void);
 void sim_set_nodestate(range_t from_buffer);
+int sim_find_node(const char* name);    // accepts name or '#1234', return -1 if not found
 void sim_mem_w8(uint16_t addr, uint8_t val);
 uint8_t sim_mem_r8(uint16_t addr);
 void sim_mem_w16(uint16_t addr, uint16_t val);
@@ -35,7 +36,7 @@ bool sim_set_node_values(range_t from_buffer);
 bool sim_get_node_values(range_t to_buffer);
 bool sim_set_transistor_on(range_t from_buffer);
 bool sim_get_transistor_on(range_t to_buffer);
-bool sim_is_ignore_picking_highlight_node(int node_num);
+bool sim_is_ignore_picking_highlight_node(int node_index);
 uint16_t sim_get_pc(void);
 uint8_t sim_get_flags(void);
 int sim_get_num_nodes(void);

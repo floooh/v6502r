@@ -34,7 +34,6 @@
 #include "nodenames.h"
 
 #include <math.h>
-#include <stdlib.h> // strtol
 
 enum {
     TRACELOG_HOVERED = (1<<0),
@@ -1052,22 +1051,10 @@ static const uint32_t ui_trace_diff_selected_color = 0xFF8843F4;
 
 static void ui_update_watch_node(void) {
     ui.trace.watch_node_valid = false;
-    if (ui.trace.watch_str[0] == '#') {
-        int node_index = strtol(&ui.trace.watch_str[1], 0, 10);
-        if ((node_index >= 1) && (node_index < sim_get_num_nodes())) {
-            ui.trace.watch_node_valid = true;
-            ui.trace.watch_node_index = (uint32_t)node_index;
-        }
-    }
-    else {
-        for (int i = 0; i < num_node_names; i++) {
-            if (node_names[i][0] != 0) {
-                if (0 == strcmp(ui.trace.watch_str, node_names[i])) {
-                    ui.trace.watch_node_valid = true;
-                    ui.trace.watch_node_index = (uint32_t)i;
-                }
-            }
-        }
+    int node_index = sim_find_node(ui.trace.watch_str);
+    if (node_index >= 0) {
+        ui.trace.watch_node_valid = true;
+        ui.trace.watch_node_index = (uint32_t)node_index;
     }
 }
 

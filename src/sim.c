@@ -12,12 +12,31 @@
 #include "sim.h"
 #include "trace.h"
 #include "gfx.h"
+#include <stdlib.h> // qsort, bsearch, strtol
+
+typedef struct {
+    const char* name;
+    int index;
+} sorted_node_t;
 
 static struct {
     bool valid;
     bool paused;
     void* cpu_state;
+    int num_sorted_nodes;
+    sorted_node_t sorted_nodes[MAX_NODES];
 } sim;
+
+static int qsort_cb(const void* a, const void* b) {
+    const sorted_node_t* n0 = a;
+    const sorted_node_t* n1 = b;
+    return strcmp(n0->name, n1->name);
+}
+
+static int bsearch_cb(const void* key, const void* elem) {
+    const sorted_node_t* n = elem;
+    return strcmp((const char*)key, n->name);
+}
 
 void sim_init(void) {
     assert(!sim.valid);
@@ -26,6 +45,17 @@ void sim_init(void) {
     assert(sim.cpu_state);
     sim.paused = true;
     sim.valid = true;
+
+    // create a sorted node array for fast lookup by node name
+    assert(num_node_names < MAX_NODES);
+    for (int i = 0; i < num_node_names; i++) {
+        if (node_names[i][0]) {
+            sorted_node_t* n = &sim.sorted_nodes[sim.num_sorted_nodes++];
+            n->name = node_names[i];
+            n->index = i;
+        }
+    }
+    qsort(sim.sorted_nodes, (size_t)sim.num_sorted_nodes, sizeof(sorted_node_t), qsort_cb);
 }
 
 void sim_shutdown(void) {
@@ -87,6 +117,25 @@ void sim_step_op(void) {
             cur_m1 = cpu_readM1(sim.cpu_state);
         } while (!(prev_m1 && !cur_m1));   // M1 pin is active-low!
     #endif
+}
+
+int sim_find_node(const char* name) {
+    assert(name);
+    // special case '#1234'
+    if (name[0] == '#') {
+        int node_index = strtol(&name[1], 0, 10);
+        if ((node_index >= 1) && (node_index < sim_get_num_nodes())) {
+            return node_index;
+        }
+    }
+    else {
+        const sorted_node_t* n = bsearch(name, sim.sorted_nodes, (size_t)sim.num_sorted_nodes, sizeof(sorted_node_t), bsearch_cb);
+        if (n) {
+            return n->index;
+        }
+    }
+    // fallthrough: not found or invalid '#' number
+    return -1;
 }
 
 void sim_mem_w8(uint16_t addr, uint8_t val) {
@@ -171,12 +220,12 @@ bool sim_set_transistor_on(range_t from_buffer) {
     return cpu_write_transistor_on(sim.cpu_state, from_buffer.ptr, from_buffer.size);
 }
 
-bool sim_is_ignore_picking_highlight_node(int node_num) {
+bool sim_is_ignore_picking_highlight_node(int node_index) {
     // these nodes are all over the place, don't highlight them in picking
     #if defined(CHIP_6502)
-    return (p6502_vcc == node_num) || (p6502_vss == node_num);
+    return (p6502_vcc == node_index) || (p6502_vss == node_index);
     #elif defined(CHIP_Z80)
-    return (pz80_vcc == node_num) || (pz80_vss == node_num);
+    return (pz80_vcc == node_index) || (pz80_vss == node_index);
     #endif
 }
 
