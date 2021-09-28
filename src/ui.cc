@@ -68,7 +68,7 @@ static struct {
     } menu;
     struct {
         int hovered_flags;
-        bool diff_view;
+        bool diff_view_active;
         bool is_selected;
         bool is_diff_selected;
         uint32_t hovered_cycle;
@@ -1060,6 +1060,8 @@ static void ui_update_watch_node(void) {
 
 static void ui_tracelog(void) {
     if (!ui.window_open.tracelog) {
+        // diff-view is deactivated when tracelog window isn't open
+        ui.trace.diff_view_active = false;
         return;
     }
     const float disp_w = (float) sapp_width();
@@ -1093,7 +1095,7 @@ static void ui_tracelog(void) {
                     const uint32_t cur_cycle = trace_get_cycle(trace_index);
                     uint32_t bg_color = ui_trace_bgcolor(trace_get_flipbits(trace_index));
                     if ((0 != ui.trace.hovered_flags) && (ui.trace.hovered_cycle == cur_cycle)) {
-                        if (ui.trace.diff_view && ui.trace.is_selected && !ui.trace.is_diff_selected) {
+                        if (ui.trace.diff_view_active && ui.trace.is_selected && !ui.trace.is_diff_selected) {
                             bg_color = ui_trace_diff_selected_color;
                         }
                         else {
@@ -1103,7 +1105,7 @@ static void ui_tracelog(void) {
                     if (ui.trace.is_selected && (ui.trace.selected_cycle == cur_cycle)) {
                         bg_color = ui_trace_selected_color;
                     }
-                    if (ui.trace.diff_view && ui.trace.is_diff_selected && (ui.trace.diff_selected_cycle == cur_cycle)) {
+                    if (ui.trace.diff_view_active && ui.trace.is_diff_selected && (ui.trace.diff_selected_cycle == cur_cycle)) {
                         bg_color = ui_trace_diff_selected_color;
                     }
                     ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, bg_color);
@@ -1117,7 +1119,7 @@ static void ui_tracelog(void) {
                         ui.trace.hovered_flags |= TRACELOG_HOVERED;
                         ui.trace.hovered_cycle = cur_cycle;
                         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                            if (ui.trace.diff_view && ui.trace.is_selected && !ui.trace.is_diff_selected) {
+                            if (ui.trace.diff_view_active && ui.trace.is_selected && !ui.trace.is_diff_selected) {
                                 ui.trace.is_diff_selected = true;
                                 ui.trace.diff_selected_cycle = cur_cycle;
                             }
@@ -1135,9 +1137,13 @@ static void ui_tracelog(void) {
             }
             ImGui::EndTable();
             ImGui::Separator();
+
+            // Watch search field
+            ImGui::Text("Watch:");
+            ImGui::SameLine();
             ImGui::PushItemWidth(64.0f);
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, ui.trace.watch_node_valid ? 0xFF004400 : 0xFF000044);
-            if (ImGui::InputText("Watch", ui.trace.watch_str, sizeof(ui.trace.watch_str))) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ui.trace.watch_node_valid ? 0xFF00FF00 : 0xFF8888FF);
+            if (ImGui::InputText("##watch", ui.trace.watch_str, sizeof(ui.trace.watch_str))) {
                 ui_update_watch_node();
             }
             ImGui::PopStyleColor();
@@ -1151,8 +1157,8 @@ static void ui_tracelog(void) {
                     trace_revert_to_cycle(ui.trace.selected_cycle);
                 }
                 ImGui::SameLine();
-                ImGui::Checkbox("Diff View", &ui.trace.diff_view);
-                if (ui.trace.diff_view && !ui.trace.is_diff_selected) {
+                ImGui::Checkbox("Diff View", &ui.trace.diff_view_active);
+                if (ui.trace.diff_view_active && !ui.trace.is_diff_selected) {
                     ImGui::SameLine();
                     ImGui::Text("(hint: select another cycle to view diff)");
                 }
@@ -1208,7 +1214,7 @@ static void ui_timingdiagram(void) {
     const float graph_height = num_time_diagram_nodes * cell_height + top_padding;
     const float graph_width  = num_cols * cell_width;
     ImGui::SetNextWindowPos({60, 60}, ImGuiCond_Once);
-    ImGui::SetNextWindowSize({600, top_padding + graph_height + 20.0f}, ImGuiCond_Once);
+    ImGui::SetNextWindowSize({600, top_padding + graph_height + 32.0f}, ImGuiCond_Once);
     ImGui::SetNextWindowContentSize({graph_width, graph_height});
     bool any_hovered = false;
     if (ImGui::Begin("Timing Diagram", &ui.window_open.timingdiagram, ImGuiWindowFlags_HorizontalScrollbar)) {
@@ -1238,7 +1244,7 @@ static void ui_timingdiagram(void) {
             const float y1 = y0 + graph_height - top_padding;
             uint32_t bg_color = ui_trace_bgcolor(trace_get_flipbits(trace_index));
             if ((0 != ui.trace.hovered_flags) && (ui.trace.hovered_cycle == cur_cycle)) {
-                if (ui.trace.diff_view && ui.trace.is_selected && !ui.trace.is_diff_selected) {
+                if (ui.trace.diff_view_active && ui.trace.is_selected && !ui.trace.is_diff_selected) {
                     bg_color = ui_trace_diff_selected_color;
                 }
                 else {
@@ -1248,7 +1254,7 @@ static void ui_timingdiagram(void) {
             if (ui.trace.is_selected && (ui.trace.selected_cycle == cur_cycle)) {
                 bg_color = ui_trace_selected_color;
             }
-            if (ui.trace.diff_view && ui.trace.is_diff_selected && (ui.trace.diff_selected_cycle == cur_cycle)) {
+            if (ui.trace.diff_view_active && ui.trace.is_diff_selected && (ui.trace.diff_selected_cycle == cur_cycle)) {
                 bg_color = ui_trace_diff_selected_color;
             }
             dl->AddRectFilled({x0,y0}, {x1,y1}, bg_color);
@@ -1257,7 +1263,7 @@ static void ui_timingdiagram(void) {
                 ui.trace.hovered_flags |= TIMINGDIAGRAM_HOVERED;
                 ui.trace.hovered_cycle = cur_cycle;
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                    if (ui.trace.diff_view && ui.trace.is_selected && !ui.trace.is_diff_selected) {
+                    if (ui.trace.diff_view_active && ui.trace.is_selected && !ui.trace.is_diff_selected) {
                         ui.trace.is_diff_selected = true;
                         ui.trace.diff_selected_cycle = cur_cycle;
                     }
@@ -1700,7 +1706,7 @@ static void ui_help_about(void) {
 }
 
 bool ui_is_diffview(void) {
-    if (ui.trace.diff_view) {
+    if (ui.trace.diff_view_active) {
         return ui.trace.is_selected;
     }
     else {
