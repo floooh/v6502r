@@ -13,6 +13,7 @@
 static struct {
     bool valid;
     bool window_open;
+    bool window_focused;
     TextEditor* editor;
     uint16_t prev_addr;
     uint16_t prev_len;
@@ -22,7 +23,7 @@ static struct {
     } binary;
 } state;
 
-bool ui_asm_get_window_open(void) {
+bool ui_asm_is_window_open(void) {
     assert(state.valid);
     return state.window_open;
 }
@@ -30,6 +31,11 @@ bool ui_asm_get_window_open(void) {
 void ui_asm_set_window_open(bool b) {
     assert(state.valid);
     state.window_open = b;
+}
+
+bool ui_asm_is_window_focused(void) {
+    assert(state.valid);
+    return state.window_focused;
 }
 
 void ui_asm_toggle_window_open(void) {
@@ -99,6 +105,7 @@ void ui_asm_discard(void) {
 
 void ui_asm_draw(void) {
     assert(state.valid);
+    state.window_focused = false;
     if (!state.window_open) {
         return;
     }
@@ -128,6 +135,7 @@ void ui_asm_draw(void) {
             ImGui::Text("%s", cur_error->msg);
             ImGui::PopStyleColor();
         }
+        state.window_focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
     }
     ImGui::End();
     if (state.editor->IsTextChanged()) {

@@ -31,6 +31,7 @@
 #include "pick.h"
 #include "trace.h"
 #include "util.h"
+#include "TextEditor.h"
 #include "nodenames.h"
 
 #include <math.h>   // sinf, fmodf
@@ -51,8 +52,7 @@ static const ImU32 ui_diagram_text_bg_color = 0x88000000;
 static const ImU32 ui_found_text_color = 0xFF00FF00;
 static const ImU32 ui_notfound_text_color = 0xFF4488FF;
 
-#define MAX_NODEEXPLORER_NODES (32)
-#define MAX_NODEEXPLORER_INPUTBUFFER_SIZE (256)
+#define MAX_NODEEXPLORER_TOKENBUFFER_SIZE (1024)
 
 static struct {
     bool valid;
@@ -94,13 +94,14 @@ static struct {
         uint32_t watch_node_index;
     } trace;
     struct {
-        bool active;
+        TextEditor* editor;
+        bool window_focused;
+        bool explorer_mode_active;
         bool is_node_hovered;
         uint32_t hovered_node_index;
         uint8_t selected[MAX_NODES];
-        char input_buffer[MAX_NODEEXPLORER_INPUTBUFFER_SIZE];
-        char token_buffer[MAX_NODEEXPLORER_INPUTBUFFER_SIZE];
-    } explore;
+        char token_buffer[MAX_NODEEXPLORER_TOKENBUFFER_SIZE];
+    } explorer;
     bool link_hovered;
     char link_url[MAX_LINKURL_SIZE];
 } ui;
@@ -111,7 +112,13 @@ static void ui_tracelog_timingdiagram_begin(void);
 static void ui_tracelog(void);
 static void ui_timingdiagram(void);
 static void ui_tracelog_timingdiagram_end(void);
-static void ui_nodeexplorer_clear_selected_nodes(void);
+static void ui_nodeexplorer_init(void);
+static void ui_nodeexplorer_discard(void);
+static void ui_nodeexplorer_undo(void);
+static void ui_nodeexplorer_redo(void);
+static void ui_nodeexplorer_cut(void);
+static void ui_nodeexplorer_copy(void);
+static void ui_nodeexplorer_paste(void);
 static void ui_nodeexplorer(void);
 static void ui_controls(void);
 static void ui_listing(void);
@@ -147,7 +154,7 @@ void ui_init() {
     // default window open state
     ui.window_open.cpu_controls = true;
     ui.window_open.tracelog = true;
-    ui_nodeexplorer_clear_selected_nodes();
+    ui_nodeexplorer_init();
 
     // setup sokol-imgui
     simgui_desc_t simgui_desc = { };
@@ -259,6 +266,7 @@ void ui_init() {
 
 void ui_shutdown() {
     assert(ui.valid);
+    ui_nodeexplorer_discard();
     ui_asm_discard();
     ui_dasm_discard(&ui.dasm);
     ui_memedit_discard(&ui.memedit);
@@ -320,6 +328,51 @@ static bool handle_special_link(void) {
         return true;
     }
     return false;
+}
+
+static void ui_undo(void) {
+    if (ui_asm_is_window_focused()) {
+        ui_asm_undo();
+    }
+    else if (ui.explorer.window_focused) {
+        ui_nodeexplorer_undo();
+    }
+}
+
+static void ui_redo(void) {
+    if (ui_asm_is_window_focused()) {
+        ui_asm_redo();
+    }
+    else if (ui.explorer.window_focused) {
+        ui_nodeexplorer_redo();
+    }
+}
+
+static void ui_cut(void) {
+    if (ui_asm_is_window_focused()) {
+        ui_asm_cut();
+    }
+    else if (ui.explorer.window_focused) {
+        ui_nodeexplorer_cut();
+    }
+}
+
+static void ui_copy(void) {
+    if (ui_asm_is_window_focused()) {
+        ui_asm_copy();
+    }
+    else if (ui.explorer.window_focused) {
+        ui_nodeexplorer_copy();
+    }
+}
+
+static void ui_paste(void) {
+    if (ui_asm_is_window_focused()) {
+        ui_asm_paste();
+    }
+    else if (ui.explorer.window_focused) {
+        ui_nodeexplorer_paste();
+    }
 }
 
 bool ui_handle_input(const sapp_event* ev) {
@@ -393,25 +446,25 @@ bool ui_handle_input(const sapp_event* ev) {
         ui.menu.save_binary_hovered = false;
     }
     if (test_ctrl(ev, SAPP_KEYCODE_Z) || test_ctrl(ev, SAPP_KEYCODE_Y)) {
-        ui_asm_undo();
+        ui_undo();
         sapp_consume_event();
     }
     if (test_ctrl_shift(ev, SAPP_KEYCODE_Z) || test_ctrl_shift(ev, SAPP_KEYCODE_Y)) {
-        ui_asm_redo();
+        ui_redo();
         sapp_consume_event();
     }
     if (test_click(ev, ui.menu.cut_hovered) || test_ctrl(ev, SAPP_KEYCODE_X)) {
-        ui_asm_cut();
+        ui_cut();
         ui.menu.cut_hovered = false;
         sapp_consume_event();
     }
     if (test_click(ev, ui.menu.copy_hovered) || test_ctrl(ev, SAPP_KEYCODE_C)) {
-        ui_asm_copy();
+        ui_copy();
         ui.menu.copy_hovered = false;
         sapp_consume_event();
     }
     if (ev->type == SAPP_EVENTTYPE_CLIPBOARD_PASTED) {
-        ui_asm_paste();
+        ui_paste();
     }
     if (0 != (ev->modifiers & (SAPP_MODIFIER_CTRL|SAPP_MODIFIER_ALT|SAPP_MODIFIER_SUPER))) {
         return true;
@@ -511,7 +564,7 @@ static void ui_menu(void) {
             ImGui::MenuItem("IO Editor", nullptr, &ui.ioedit.open);
             #endif
             ImGui::MenuItem("Disassembler", "Alt+D", &ui.dasm.open);
-            if (ImGui::MenuItem("Assembler", "Alt+A", ui_asm_get_window_open())) {
+            if (ImGui::MenuItem("Assembler", "Alt+A", ui_asm_is_window_open())) {
                 ui_asm_toggle_window_open();
             }
             ImGui::EndMenu();
@@ -1349,24 +1402,37 @@ static void ui_timingdiagram(void) {
 }
 
 static void ui_nodeexplorer_clear_selected_nodes(void) {
-    memset(ui.explore.selected, gfx_visual_node_inactive, sizeof(ui.explore.selected));
+    memset(ui.explorer.selected, gfx_visual_node_inactive, sizeof(ui.explorer.selected));
 }
 
-static void ui_nodeexplorer_update_selected_nodes_from_string_buffer(void) {
+static void ui_nodeexplorer_update_selected_nodes_from_editor(void) {
+    TextEditor::ErrorMarkers err_markers;
     ui_nodeexplorer_clear_selected_nodes();
-    assert(sizeof(ui.explore.input_buffer) == sizeof(ui.explore.token_buffer));
-    memcpy(ui.explore.token_buffer, ui.explore.input_buffer, sizeof(ui.explore.token_buffer));
-    char* strok_context = 0;
-    const char* token_str;
-    char* str = ui.explore.token_buffer;
-    while (0 != (token_str = strtok_r(str, " ", &strok_context))) {
-        str = 0;
-        int node_index = sim_find_node(token_str);
-        if (node_index >= 0) {
-            assert(node_index < MAX_NODES);
-            ui.explore.selected[node_index] = gfx_visual_node_active;
+    auto lines = ui.explorer.editor->GetTextLines();
+    int line_nr = 0;
+    for (const auto& line: lines) {
+        line_nr++;
+        strncpy(ui.explorer.token_buffer, line.c_str(), sizeof(ui.explorer.token_buffer));
+        ui.explorer.token_buffer[sizeof(ui.explorer.token_buffer)-1] = 0;
+        char* strok_state = 0;
+        char* str = ui.explorer.token_buffer;
+        const char* token_str;
+        while (0 != (token_str = strtok_r(str, " ,\t\r\n", &strok_state))) {
+            str = 0;
+            int node_index = sim_find_node(token_str);
+            if (node_index >= 0) {
+                assert(node_index < MAX_NODES);
+                ui.explorer.selected[node_index] = gfx_visual_node_active;
+            }
+            else {
+                char err_msg[128];
+                snprintf(err_msg, sizeof(err_msg), "Unknown node: '%s'", token_str);
+                // err_markers is std::map<int, std::string>
+                err_markers[line_nr] = err_msg;
+            }
         }
     }
+    ui.explorer.editor->SetErrorMarkers(err_markers);
 }
 
 static void ui_update_explore_node_by_name(const char* node_name) {
@@ -1377,27 +1443,55 @@ static void ui_update_explore_node_by_name(const char* node_name) {
     */
 }
 
+static void ui_nodeexplorer_init(void) {
+    ui_nodeexplorer_clear_selected_nodes();
+    ui.explorer.editor = new TextEditor();
+    ui.explorer.editor->SetPalette(TextEditor::GetRetroBluePalette());
+    ui.explorer.editor->SetShowWhitespaces(false);
+    ui.explorer.editor->SetTabSize(8);
+    ui.explorer.editor->SetImGuiChildIgnored(true);
+}
+
+static void ui_nodeexplorer_discard(void) {
+    delete ui.explorer.editor;
+    ui.explorer.editor = 0;
+}
+
+static void ui_nodeexplorer_undo(void) {
+    ui.explorer.editor->Undo();
+    ui_nodeexplorer_update_selected_nodes_from_editor();
+}
+
+static void ui_nodeexplorer_redo(void) {
+    ui.explorer.editor->Redo();
+    ui_nodeexplorer_update_selected_nodes_from_editor();
+}
+
+static void ui_nodeexplorer_cut(void) {
+    ui.explorer.editor->Cut();
+    ui_nodeexplorer_update_selected_nodes_from_editor();
+}
+
+static void ui_nodeexplorer_copy(void) {
+    ui.explorer.editor->Copy();
+    ui_nodeexplorer_update_selected_nodes_from_editor();
+}
+
+static void ui_nodeexplorer_paste(void) {
+    ui.explorer.editor->Paste();
+    ui_nodeexplorer_update_selected_nodes_from_editor();
+}
+
 static void ui_nodeexplorer(void) {
+    ui.explorer.window_focused = false;
     if (!ui.window_open.nodeexplorer) {
         return;
     }
     ImGui::SetNextWindowPos({ImGui::GetIO().DisplaySize.x - 350, 70}, ImGuiCond_Once);
     ImGui::SetNextWindowSize({300, 400}, ImGuiCond_Once);
     if (ImGui::Begin("Node Explorer", &ui.window_open.nodeexplorer, ImGuiWindowFlags_None)) {
-        ImGui::BeginGroup();
-        ImGui::AlignTextToFramePadding();
-        ImGui::Text("Show nodes:");
-        ImGui::SameLine();
-        ImGui::PushItemWidth(-1.0f);
-        if (ImGui::InputText("##search", ui.explore.input_buffer, sizeof(ui.explore.input_buffer))) {
-            ui_nodeexplorer_update_selected_nodes_from_string_buffer();
-        }
-        ImGui::PopItemWidth();
-        ImGui::EndGroup();
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Enter node names or numbers.");
-        }
-        ui.explore.is_node_hovered = false;
+        ui.explorer.is_node_hovered = false;
+        ImGui::Text("Select nodes, or type node names and numbers:");
         if (ImGui::BeginListBox("##nodes", { 96.0f, -1.0f} )) {
             const sim_named_node_range_t nodes = sim_get_sorted_nodes();
             ImGuiListClipper clipper;
@@ -1409,30 +1503,41 @@ static void ui_nodeexplorer(void) {
                         ui_update_explore_node_by_name(nodes.ptr[i].node_name);
                     }
                     if (ImGui::IsItemHovered()) {
-                        ui.explore.is_node_hovered = true;
-                        ui.explore.hovered_node_index = (uint32_t)nodes.ptr[i].node_index;
+                        ui.explorer.is_node_hovered = true;
+                        ui.explorer.hovered_node_index = (uint32_t)nodes.ptr[i].node_index;
                     }
                     ImGui::PopID();
                 }
             }
             ImGui::EndListBox();
+            ImGui::SameLine();
+
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(ui.explorer.editor->GetPalette()[(int)TextEditor::PaletteIndex::Background]));
+            ImGui::BeginChild("##editor", {0,0}, false, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
+            ui.explorer.editor->Render("Editor");
+            ImGui::EndChild();
+            ImGui::PopStyleColor();
         }
-        ui.explore.active = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) || !ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow);
+        ui.explorer.window_focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
+        ui.explorer.explorer_mode_active = ui.explorer.window_focused || !ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow);
     }
     ImGui::End();
+    if (ui.explorer.editor->IsTextChanged()) {
+        ui_nodeexplorer_update_selected_nodes_from_editor();
+    }
 }
 
 bool ui_is_nodeexplorer_active(void) {
-    return ui.window_open.nodeexplorer && ui.explore.active;
+    return ui.window_open.nodeexplorer && ui.explorer.explorer_mode_active;
 }
 
 void ui_write_nodeexplorer_visual_state(range_t to_buffer) {
-    assert(to_buffer.size >= sizeof(ui.explore.selected));
-    memcpy(to_buffer.ptr, ui.explore.selected, sizeof(ui.explore.selected));
-    if (ui.explore.is_node_hovered) {
-        assert(ui.explore.hovered_node_index < to_buffer.size);
+    assert(to_buffer.size >= sizeof(ui.explorer.selected));
+    memcpy(to_buffer.ptr, ui.explorer.selected, sizeof(ui.explorer.selected));
+    if (ui.explorer.is_node_hovered) {
+        assert(ui.explorer.hovered_node_index < to_buffer.size);
         uint8_t* byte_ptr = (uint8_t*)to_buffer.ptr;
-        byte_ptr[ui.explore.hovered_node_index] = gfx_visual_node_active;
+        byte_ptr[ui.explorer.hovered_node_index] = gfx_visual_node_active;
     }
 }
 

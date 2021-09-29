@@ -16,8 +16,9 @@ void ui_asm_paste(void);
 void ui_asm_assemble(void);
 const char* ui_asm_source(void);
 void ui_asm_put_source(const char* name, range_t src);
-bool ui_asm_get_window_open(void);
+bool ui_asm_is_window_open(void);
 void ui_asm_set_window_open(bool b);
+bool ui_asm_is_window_focused(void);
 void ui_asm_toggle_window_open(void);
 range_t ui_asm_get_binary(void);
 
