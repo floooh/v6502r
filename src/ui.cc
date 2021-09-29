@@ -1435,12 +1435,10 @@ static void ui_nodeexplorer_update_selected_nodes_from_editor(void) {
     ui.explorer.editor->SetErrorMarkers(err_markers);
 }
 
-static void ui_update_explore_node_by_name(const char* node_name) {
-    /* FIXME
-    strncpy(ui.explore.node_str, node_name, sizeof(ui.explore.node_str));
-    ui.explore.node_str[sizeof(ui.explore.node_str)-1] = 0;
-    ui_update_explore_node();
-    */
+static void ui_nodeexplorer_add_node_by_name(const char* node_name) {
+    ui.explorer.editor->MoveEnd();
+    ui.explorer.editor->InsertText(std::string("\n") + node_name);
+    ui_nodeexplorer_update_selected_nodes_from_editor();
 }
 
 static void ui_nodeexplorer_init(void) {
@@ -1450,6 +1448,7 @@ static void ui_nodeexplorer_init(void) {
     ui.explorer.editor->SetShowWhitespaces(false);
     ui.explorer.editor->SetTabSize(8);
     ui.explorer.editor->SetImGuiChildIgnored(true);
+    ui.explorer.editor->SetColorizerEnable(false);
 }
 
 static void ui_nodeexplorer_discard(void) {
@@ -1487,12 +1486,17 @@ static void ui_nodeexplorer(void) {
     if (!ui.window_open.nodeexplorer) {
         return;
     }
-    ImGui::SetNextWindowPos({ImGui::GetIO().DisplaySize.x - 350, 70}, ImGuiCond_Once);
-    ImGui::SetNextWindowSize({300, 400}, ImGuiCond_Once);
-    if (ImGui::Begin("Node Explorer", &ui.window_open.nodeexplorer, ImGuiWindowFlags_None)) {
+    ImGui::SetNextWindowPos({ImGui::GetIO().DisplaySize.x - 450, 70}, ImGuiCond_Once);
+    ImGui::SetNextWindowSize({400, 300}, ImGuiCond_Once);
+    if (ImGui::Begin("Node Explorer", &ui.window_open.nodeexplorer, ImGuiWindowFlags_NoScrollWithMouse)) {
         ui.explorer.is_node_hovered = false;
-        ImGui::Text("Select nodes, or type node names and numbers:");
-        if (ImGui::BeginListBox("##nodes", { 96.0f, -1.0f} )) {
+        ImGui::Text("Select nodes, groups or type node-names and -numbers:");
+        ImGui::Separator();
+
+        // node listbox
+        ImGui::BeginGroup();
+        ImGui::Text("Nodes:");
+        if (ImGui::BeginListBox("##nodes", {96.0f, -1.0f})) {
             const sim_named_node_range_t nodes = sim_get_sorted_nodes();
             ImGuiListClipper clipper;
             clipper.Begin(nodes.num, ImGui::GetTextLineHeightWithSpacing());
@@ -1500,7 +1504,7 @@ static void ui_nodeexplorer(void) {
                 for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
                     ImGui::PushID(i);
                     if (ImGui::Selectable(nodes.ptr[i].node_name)) {
-                        ui_update_explore_node_by_name(nodes.ptr[i].node_name);
+                        ui_nodeexplorer_add_node_by_name(nodes.ptr[i].node_name);
                     }
                     if (ImGui::IsItemHovered()) {
                         ui.explorer.is_node_hovered = true;
@@ -1510,14 +1514,27 @@ static void ui_nodeexplorer(void) {
                 }
             }
             ImGui::EndListBox();
-            ImGui::SameLine();
-
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(ui.explorer.editor->GetPalette()[(int)TextEditor::PaletteIndex::Background]));
-            ImGui::BeginChild("##editor", {0,0}, false, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
-            ui.explorer.editor->Render("Editor");
-            ImGui::EndChild();
-            ImGui::PopStyleColor();
         }
+        ImGui::EndGroup();
+
+        // group listbox
+        ImGui::SameLine();
+        ImGui::BeginGroup();
+        ImGui::Text("Groups:");
+        if (ImGui::BeginListBox("##groups", {64.0f, -1.0f})) {
+
+            ImGui::EndListBox();
+        }
+        ImGui::EndGroup();
+
+        // editor
+        ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(ui.explorer.editor->GetPalette()[(int)TextEditor::PaletteIndex::Background]));
+        ImGui::BeginChild("##editor", {0,0}, false, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
+        ui.explorer.editor->Render("Editor");
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+
         ui.explorer.window_focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
         ui.explorer.explorer_mode_active = ui.explorer.window_focused || !ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow);
     }

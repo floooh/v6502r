@@ -10,6 +10,7 @@
 #include "chips/z80dasm.h"
 #endif
 #include "nodenames.h"
+#include "nodegroups.h"
 #include "trace.h"
 #include "sim.h"
 #include "gfx.h"
@@ -157,70 +158,25 @@ uint32_t trace_get_flipbits(uint32_t trace_index) {
     return trace.items.flip_bits[idx];
 }
 
-#if defined(CHIP_6502)
-static uint32_t nodes_ab[16] = { p6502_ab0, p6502_ab1, p6502_ab2, p6502_ab3, p6502_ab4, p6502_ab5, p6502_ab6, p6502_ab7, p6502_ab8, p6502_ab9, p6502_ab10, p6502_ab11, p6502_ab12, p6502_ab13, p6502_ab14, p6502_ab15 };
-static uint32_t nodes_db[8]  = { p6502_db0, p6502_db1, p6502_db2, p6502_db3, p6502_db4, p6502_db5, p6502_db6, p6502_db7 };
-static uint32_t nodes_pcl[8] = { p6502_pcl0,p6502_pcl1,p6502_pcl2,p6502_pcl3,p6502_pcl4,p6502_pcl5,p6502_pcl6,p6502_pcl7 };
-static uint32_t nodes_pch[8] = { p6502_pch0,p6502_pch1,p6502_pch2,p6502_pch3,p6502_pch4,p6502_pch5,p6502_pch6,p6502_pch7 };
-static uint32_t nodes_p[8]   = { p6502_p0,p6502_p1,p6502_p2,p6502_p3,p6502_p4,0,p6502_p6,p6502_p7 }; // missing p6502_p5 is not a typo (there is no physical bit 5 in status reg)
-static uint32_t nodes_a[8]   = { p6502_a0,p6502_a1,p6502_a2,p6502_a3,p6502_a4,p6502_a5,p6502_a6,p6502_a7 };
-static uint32_t nodes_x[8]   = { p6502_x0,p6502_x1,p6502_x2,p6502_x3,p6502_x4,p6502_x5,p6502_x6,p6502_x7 };
-static uint32_t nodes_y[8]   = { p6502_y0,p6502_y1,p6502_y2,p6502_y3,p6502_y4,p6502_y5,p6502_y6,p6502_y7 };
-static uint32_t nodes_sp[8]  = { p6502_s0,p6502_s1,p6502_s2,p6502_s3,p6502_s4,p6502_s5,p6502_s6,p6502_s7 };
-static uint32_t nodes_ir[8]  = { p6502_notir0,p6502_notir1,p6502_notir2,p6502_notir3,p6502_notir4,p6502_notir5,p6502_notir6,p6502_notir7 };
-#elif defined(CHIP_Z80)
-static uint32_t nodes_ab[16] = { pz80_ab0,pz80_ab1,pz80_ab2,pz80_ab3,pz80_ab4,pz80_ab5,pz80_ab6,pz80_ab7,pz80_ab8,pz80_ab9,pz80_ab10,pz80_ab11,pz80_ab12,pz80_ab13,pz80_ab14,pz80_ab15 };
-static uint32_t nodes_db[8]  = { pz80_db0,pz80_db1,pz80_db2,pz80_db3,pz80_db4,pz80_db5,pz80_db6,pz80_db7 };
-static uint32_t nodes_pcl[8] = { pz80_reg_pcl0,pz80_reg_pcl1,pz80_reg_pcl2,pz80_reg_pcl3,pz80_reg_pcl4,pz80_reg_pcl5,pz80_reg_pcl6,pz80_reg_pcl7 };
-static uint32_t nodes_pch[8] = { pz80_reg_pch0,pz80_reg_pch1,pz80_reg_pch2,pz80_reg_pch3,pz80_reg_pch4,pz80_reg_pch5,pz80_reg_pch6,pz80_reg_pch7 };
-static uint32_t nodes_ir[8]  = { pz80_instr0,pz80_instr1,pz80_instr2,pz80_instr3,pz80_instr4,pz80_instr5,pz80_instr6,pz80_instr7 };
-static uint32_t nodes_reg_ff[8] = { pz80_reg_ff0, pz80_reg_ff1, pz80_reg_ff2, pz80_reg_ff3, pz80_reg_ff4, pz80_reg_ff5, pz80_reg_ff6, pz80_reg_ff7 };
-static uint32_t nodes_reg_aa[8] = { pz80_reg_aa0, pz80_reg_aa1, pz80_reg_aa2, pz80_reg_aa3, pz80_reg_aa4, pz80_reg_aa5, pz80_reg_aa6, pz80_reg_aa7 };
-static uint32_t nodes_reg_bb[8] = { pz80_reg_bb0, pz80_reg_bb1, pz80_reg_bb2, pz80_reg_bb3, pz80_reg_bb4, pz80_reg_bb5, pz80_reg_bb6, pz80_reg_bb7 };
-static uint32_t nodes_reg_cc[8] = { pz80_reg_cc0, pz80_reg_cc1, pz80_reg_cc2, pz80_reg_cc3, pz80_reg_cc4, pz80_reg_cc5, pz80_reg_cc6, pz80_reg_cc7 };
-static uint32_t nodes_reg_dd[8] = { pz80_reg_dd0, pz80_reg_dd1, pz80_reg_dd2, pz80_reg_dd3, pz80_reg_dd4, pz80_reg_dd5, pz80_reg_dd6, pz80_reg_dd7 };
-static uint32_t nodes_reg_ee[8] = { pz80_reg_ee0, pz80_reg_ee1, pz80_reg_ee2, pz80_reg_ee3, pz80_reg_ee4, pz80_reg_ee5, pz80_reg_ee6, pz80_reg_ee7 };
-static uint32_t nodes_reg_hh[8] = { pz80_reg_hh0, pz80_reg_hh1, pz80_reg_hh2, pz80_reg_hh3, pz80_reg_hh4, pz80_reg_hh5, pz80_reg_hh6, pz80_reg_hh7 };
-static uint32_t nodes_reg_ll[8] = { pz80_reg_ll0, pz80_reg_ll1, pz80_reg_ll2, pz80_reg_ll3, pz80_reg_ll4, pz80_reg_ll5, pz80_reg_ll6, pz80_reg_ll7 };
-static uint32_t nodes_reg_f[8]  = { pz80_reg_f0, pz80_reg_f1, pz80_reg_f2, pz80_reg_f3, pz80_reg_f4, pz80_reg_f5, pz80_reg_f6, pz80_reg_f7 };
-static uint32_t nodes_reg_a[8] = { pz80_reg_a0, pz80_reg_a1, pz80_reg_a2, pz80_reg_a3, pz80_reg_a4, pz80_reg_a5, pz80_reg_a6, pz80_reg_a7 };
-static uint32_t nodes_reg_b[8] = { pz80_reg_b0, pz80_reg_b1, pz80_reg_b2, pz80_reg_b3, pz80_reg_b4, pz80_reg_b5, pz80_reg_b6, pz80_reg_b7 };
-static uint32_t nodes_reg_c[8] = { pz80_reg_c0, pz80_reg_c1, pz80_reg_c2, pz80_reg_c3, pz80_reg_c4, pz80_reg_c5, pz80_reg_c6, pz80_reg_c7 };
-static uint32_t nodes_reg_d[8] = { pz80_reg_d0, pz80_reg_d1, pz80_reg_d2, pz80_reg_d3, pz80_reg_d4, pz80_reg_d5, pz80_reg_d6, pz80_reg_d7 };
-static uint32_t nodes_reg_e[8] = { pz80_reg_e0, pz80_reg_e1, pz80_reg_e2, pz80_reg_e3, pz80_reg_e4, pz80_reg_e5, pz80_reg_e6, pz80_reg_e7 };
-static uint32_t nodes_reg_h[8] = { pz80_reg_h0, pz80_reg_h1, pz80_reg_h2, pz80_reg_h3, pz80_reg_h4, pz80_reg_h5, pz80_reg_h6, pz80_reg_h7 };
-static uint32_t nodes_reg_l[8] = { pz80_reg_l0, pz80_reg_l1, pz80_reg_l2, pz80_reg_l3, pz80_reg_l4, pz80_reg_l5, pz80_reg_l6, pz80_reg_l7 };
-static uint32_t nodes_reg_i[8] = { pz80_reg_i0, pz80_reg_i1, pz80_reg_i2, pz80_reg_i3, pz80_reg_i4, pz80_reg_i5, pz80_reg_i6, pz80_reg_i7 };
-static uint32_t nodes_reg_r[8] = { pz80_reg_r0, pz80_reg_r1, pz80_reg_r2, pz80_reg_r3, pz80_reg_r4, pz80_reg_r5, pz80_reg_r6, pz80_reg_r7 };
-static uint32_t nodes_reg_w[8] = { pz80_reg_w0, pz80_reg_w1, pz80_reg_w2, pz80_reg_w3, pz80_reg_w4, pz80_reg_w5, pz80_reg_w6, pz80_reg_w7 };
-static uint32_t nodes_reg_z[8] = { pz80_reg_z0, pz80_reg_z1, pz80_reg_z2, pz80_reg_z3, pz80_reg_z4, pz80_reg_z5, pz80_reg_z6, pz80_reg_z7 };
-static uint32_t nodes_reg_ixh[8] = { pz80_reg_ixh0, pz80_reg_ixh1, pz80_reg_ixh2, pz80_reg_ixh3, pz80_reg_ixh4, pz80_reg_ixh5, pz80_reg_ixh6, pz80_reg_ixh7 };
-static uint32_t nodes_reg_ixl[8] = { pz80_reg_ixl0, pz80_reg_ixl1, pz80_reg_ixl2, pz80_reg_ixl3, pz80_reg_ixl4, pz80_reg_ixl5, pz80_reg_ixl6, pz80_reg_ixl7 };
-static uint32_t nodes_reg_iyh[8] = { pz80_reg_iyh0, pz80_reg_iyh1, pz80_reg_iyh2, pz80_reg_iyh3, pz80_reg_iyh4, pz80_reg_iyh5, pz80_reg_iyh6, pz80_reg_iyh7 };
-static uint32_t nodes_reg_iyl[8] = { pz80_reg_iyl0, pz80_reg_iyl1, pz80_reg_iyl2, pz80_reg_iyl3, pz80_reg_iyl4, pz80_reg_iyl5, pz80_reg_iyl6, pz80_reg_iyl7 };
-static uint32_t nodes_reg_sph[8] = { pz80_reg_sph0, pz80_reg_sph1, pz80_reg_sph2, pz80_reg_sph3, pz80_reg_sph4, pz80_reg_sph5, pz80_reg_sph6, pz80_reg_sph7 };
-static uint32_t nodes_reg_spl[8] = { pz80_reg_spl0, pz80_reg_spl1, pz80_reg_spl2, pz80_reg_spl3, pz80_reg_spl4, pz80_reg_spl5, pz80_reg_spl6, pz80_reg_spl7 };
-#endif
-
 uint16_t trace_get_addr(uint32_t index) {
-    return read_nodes(index, 16, nodes_ab);
+    return read_nodes(index, 16, nodegroup_ab);
 }
 
 uint8_t trace_get_data(uint32_t index) {
-    return read_nodes(index, 8, nodes_db);
+    return read_nodes(index, 8, nodegroup_db);
 }
 
 uint16_t trace_get_pc(uint32_t index) {
-    uint8_t pcl = read_nodes(index, 8, nodes_pcl);
-    uint8_t pch = read_nodes(index, 8, nodes_pch);
+    uint8_t pcl = read_nodes(index, 8, nodegroup_pcl);
+    uint8_t pch = read_nodes(index, 8, nodegroup_pch);
     return (pch<<8)|pcl;
 }
 
 uint8_t trace_get_flags(uint32_t index) {
     #if defined(CHIP_6502)
-    return read_nodes(index, 8, nodes_p);
+    return read_nodes(index, 8, nodegroup_p);
     #else
-    return read_nodes(index, 8, is_node_high(index, pz80_ex_af) ? nodes_reg_f : nodes_reg_ff);
+    return read_nodes(index, 8, is_node_high(index, pz80_ex_af) ? nodegroup_reg_f : nodegroup_reg_ff);
     #endif
 }
 
@@ -231,23 +187,23 @@ const char* trace_get_disasm(uint32_t index) {
 
 #if defined(CHIP_6502)
 uint8_t trace_6502_get_a(uint32_t index) {
-    return read_nodes(index, 8, nodes_a);
+    return read_nodes(index, 8, nodegroup_a);
 }
 
 uint8_t trace_6502_get_x(uint32_t index) {
-    return read_nodes(index, 8, nodes_x);
+    return read_nodes(index, 8, nodegroup_x);
 }
 
 uint8_t trace_6502_get_y(uint32_t index) {
-    return read_nodes(index, 8, nodes_y);
+    return read_nodes(index, 8, nodegroup_y);
 }
 
 uint8_t trace_6502_get_sp(uint32_t index) {
-    return read_nodes(index, 8, nodes_sp);
+    return read_nodes(index, 8, nodegroup_sp);
 }
 
 uint8_t trace_6502_get_ir(uint32_t index) {
-    return ~read_nodes(index, 8, nodes_ir);
+    return ~read_nodes(index, 8, nodegroup_ir);
 }
 
 bool trace_6502_get_rw(uint32_t index) {
@@ -309,127 +265,127 @@ bool trace_z80_get_wr(uint32_t index) {
 }
 
 uint8_t trace_z80_get_ir(uint32_t index) {
-    return read_nodes(index, 8, nodes_ir);
+    return read_nodes(index, 8, nodegroup_ir);
 }
 
 uint8_t trace_z80_get_a(uint32_t index) {
-    return read_nodes(index, 8, is_node_high(index, pz80_ex_af) ? nodes_reg_a : nodes_reg_aa);
+    return read_nodes(index, 8, is_node_high(index, pz80_ex_af) ? nodegroup_reg_a : nodegroup_reg_aa);
 }
 
 uint8_t trace_z80_get_a2(uint32_t index) {
-    return read_nodes(index, 8, !is_node_high(index, pz80_ex_af) ? nodes_reg_a : nodes_reg_aa);
+    return read_nodes(index, 8, !is_node_high(index, pz80_ex_af) ? nodegroup_reg_a : nodegroup_reg_aa);
 }
 
 uint8_t trace_z80_get_f(uint32_t index) {
-    return read_nodes(index, 8, is_node_high(index, pz80_ex_af) ? nodes_reg_f : nodes_reg_ff);
+    return read_nodes(index, 8, is_node_high(index, pz80_ex_af) ? nodegroup_reg_f : nodegroup_reg_ff);
 }
 
 uint8_t trace_z80_get_f2(uint32_t index) {
-    return read_nodes(index, 8, !is_node_high(index, pz80_ex_af) ? nodes_reg_f : nodes_reg_ff);
+    return read_nodes(index, 8, !is_node_high(index, pz80_ex_af) ? nodegroup_reg_f : nodegroup_reg_ff);
 }
 
 uint8_t trace_z80_get_b(uint32_t index) {
-    return read_nodes(index, 8, is_node_high(index, pz80_ex_bcdehl) ? nodes_reg_bb : nodes_reg_b);
+    return read_nodes(index, 8, is_node_high(index, pz80_ex_bcdehl) ? nodegroup_reg_bb : nodegroup_reg_b);
 }
 
 uint8_t trace_z80_get_b2(uint32_t index) {
-    return read_nodes(index, 8, !is_node_high(index, pz80_ex_bcdehl) ? nodes_reg_bb : nodes_reg_b);
+    return read_nodes(index, 8, !is_node_high(index, pz80_ex_bcdehl) ? nodegroup_reg_bb : nodegroup_reg_b);
 }
 
 uint8_t trace_z80_get_c(uint32_t index) {
-    return read_nodes(index, 8, is_node_high(index, pz80_ex_bcdehl) ? nodes_reg_cc : nodes_reg_c);
+    return read_nodes(index, 8, is_node_high(index, pz80_ex_bcdehl) ? nodegroup_reg_cc : nodegroup_reg_c);
 }
 
 uint8_t trace_z80_get_c2(uint32_t index) {
-    return read_nodes(index, 8, !is_node_high(index, pz80_ex_bcdehl) ? nodes_reg_cc : nodes_reg_c);
+    return read_nodes(index, 8, !is_node_high(index, pz80_ex_bcdehl) ? nodegroup_reg_cc : nodegroup_reg_c);
 }
 
 uint8_t trace_z80_get_d(uint32_t index) {
     if (is_node_high(index, pz80_ex_bcdehl)) {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodes_reg_hh : nodes_reg_dd);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodegroup_reg_hh : nodegroup_reg_dd);
     }
     else {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodes_reg_h : nodes_reg_d);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodegroup_reg_h : nodegroup_reg_d);
     }
 }
 
 uint8_t trace_z80_get_d2(uint32_t index) {
     if (!is_node_high(index, pz80_ex_bcdehl)) {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodes_reg_hh : nodes_reg_dd);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodegroup_reg_hh : nodegroup_reg_dd);
     }
     else {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodes_reg_h : nodes_reg_d);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodegroup_reg_h : nodegroup_reg_d);
     }
 }
 
 uint8_t trace_z80_get_e(uint32_t index) {
     if (is_node_high(index, pz80_ex_bcdehl)) {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodes_reg_ll : nodes_reg_ee);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodegroup_reg_ll : nodegroup_reg_ee);
     }
     else {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodes_reg_l : nodes_reg_e);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodegroup_reg_l : nodegroup_reg_e);
     }
 }
 
 uint8_t trace_z80_get_e2(uint32_t index) {
     if (!is_node_high(index, pz80_ex_bcdehl)) {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodes_reg_ll : nodes_reg_ee);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodegroup_reg_ll : nodegroup_reg_ee);
     }
     else {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodes_reg_l : nodes_reg_e);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodegroup_reg_l : nodegroup_reg_e);
     }
 }
 
 uint8_t trace_z80_get_h(uint32_t index) {
     if (is_node_high(index, pz80_ex_bcdehl)) {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodes_reg_dd : nodes_reg_hh);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodegroup_reg_dd : nodegroup_reg_hh);
     }
     else {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodes_reg_d : nodes_reg_h);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodegroup_reg_d : nodegroup_reg_h);
     }
 }
 
 uint8_t trace_z80_get_h2(uint32_t index) {
     if (!is_node_high(index, pz80_ex_bcdehl)) {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodes_reg_dd : nodes_reg_hh);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodegroup_reg_dd : nodegroup_reg_hh);
     }
     else {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodes_reg_d : nodes_reg_h);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodegroup_reg_d : nodegroup_reg_h);
     }
 }
 
 uint8_t trace_z80_get_l(uint32_t index) {
     if (is_node_high(index, pz80_ex_bcdehl)) {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodes_reg_ee : nodes_reg_ll);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodegroup_reg_ee : nodegroup_reg_ll);
     }
     else {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodes_reg_e : nodes_reg_l);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodegroup_reg_e : nodegroup_reg_l);
     }
 }
 
 uint8_t trace_z80_get_l2(uint32_t index) {
     if (!is_node_high(index, pz80_ex_bcdehl)) {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodes_reg_ee : nodes_reg_ll);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl1) ? nodegroup_reg_ee : nodegroup_reg_ll);
     }
     else {
-        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodes_reg_e : nodes_reg_l);
+        return read_nodes(index, 8, is_node_high(index, pz80_ex_dehl0) ? nodegroup_reg_e : nodegroup_reg_l);
     }
 }
 
 uint8_t trace_z80_get_i(uint32_t index) {
-    return read_nodes(index, 8, nodes_reg_i);
+    return read_nodes(index, 8, nodegroup_reg_i);
 }
 
 uint8_t trace_z80_get_r(uint32_t index) {
-    return read_nodes(index, 8, nodes_reg_r);
+    return read_nodes(index, 8, nodegroup_reg_r);
 }
 
 uint8_t trace_z80_get_w(uint32_t index) {
-    return read_nodes(index, 8, nodes_reg_w);
+    return read_nodes(index, 8, nodegroup_reg_w);
 }
 
 uint8_t trace_z80_get_z(uint32_t index) {
-    return read_nodes(index, 8, nodes_reg_z);
+    return read_nodes(index, 8, nodegroup_reg_z);
 }
 
 uint16_t trace_z80_get_af(uint32_t index) {
@@ -465,15 +421,15 @@ uint16_t trace_z80_get_hl2(uint32_t index) {
 }
 
 uint16_t trace_z80_get_ix(uint32_t index) {
-    return (read_nodes(index, 8, nodes_reg_ixh) << 8) | read_nodes(index, 8, nodes_reg_ixl);
+    return (read_nodes(index, 8, nodegroup_reg_ixh) << 8) | read_nodes(index, 8, nodegroup_reg_ixl);
 }
 
 uint16_t trace_z80_get_iy(uint32_t index) {
-    return (read_nodes(index, 8, nodes_reg_iyh) << 8) | read_nodes(index, 8, nodes_reg_iyl);
+    return (read_nodes(index, 8, nodegroup_reg_iyh) << 8) | read_nodes(index, 8, nodegroup_reg_iyl);
 }
 
 uint16_t trace_z80_get_sp(uint32_t index) {
-    return (read_nodes(index, 8, nodes_reg_sph) << 8) | read_nodes(index, 8, nodes_reg_spl);
+    return (read_nodes(index, 8, nodegroup_reg_sph) << 8) | read_nodes(index, 8, nodegroup_reg_spl);
 }
 
 uint16_t trace_z80_get_wz(uint32_t index) {
