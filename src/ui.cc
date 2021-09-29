@@ -95,10 +95,9 @@ static struct {
     } trace;
     struct {
         bool active;
-        int num_nodes;
-        uint32_t node_indices[MAX_NODEEXPLORER_NODES];
         bool is_node_hovered;
         uint32_t hovered_node_index;
+        uint8_t selected[MAX_NODES];
         char input_buffer[MAX_NODEEXPLORER_INPUTBUFFER_SIZE];
         char token_buffer[MAX_NODEEXPLORER_INPUTBUFFER_SIZE];
     } explore;
@@ -112,6 +111,7 @@ static void ui_tracelog_timingdiagram_begin(void);
 static void ui_tracelog(void);
 static void ui_timingdiagram(void);
 static void ui_tracelog_timingdiagram_end(void);
+static void ui_nodeexplorer_clear_selected_nodes(void);
 static void ui_nodeexplorer(void);
 static void ui_controls(void);
 static void ui_listing(void);
@@ -147,6 +147,7 @@ void ui_init() {
     // default window open state
     ui.window_open.cpu_controls = true;
     ui.window_open.tracelog = true;
+    ui_nodeexplorer_clear_selected_nodes();
 
     // setup sokol-imgui
     simgui_desc_t simgui_desc = { };
@@ -157,7 +158,6 @@ void ui_init() {
     style.WindowRounding = 0.0f;
     style.WindowBorderSize = 1.0f;
     style.Alpha = 1.0f;
-    //style.TabRounding = 0.0f;
 
     // setup ImGui font with custom icons
     auto& io = ImGui::GetIO();
@@ -1348,8 +1348,12 @@ static void ui_timingdiagram(void) {
     }
 }
 
-static void ui_nodeexplorer_update_nodes_from_string_buffer(void) {
-    ui.explore.num_nodes = 0;
+static void ui_nodeexplorer_clear_selected_nodes(void) {
+    memset(ui.explore.selected, gfx_visual_node_inactive, sizeof(ui.explore.selected));
+}
+
+static void ui_nodeexplorer_update_selected_nodes_from_string_buffer(void) {
+    ui_nodeexplorer_clear_selected_nodes();
     assert(sizeof(ui.explore.input_buffer) == sizeof(ui.explore.token_buffer));
     memcpy(ui.explore.token_buffer, ui.explore.input_buffer, sizeof(ui.explore.token_buffer));
     char* strok_context = 0;
@@ -1357,15 +1361,10 @@ static void ui_nodeexplorer_update_nodes_from_string_buffer(void) {
     char* str = ui.explore.token_buffer;
     while (0 != (token_str = strtok_r(str, " ", &strok_context))) {
         str = 0;
-        if (ui.explore.num_nodes < MAX_NODEEXPLORER_NODES) {
-            int node_index = sim_find_node(token_str);
-            if (node_index >= 0) {
-                ui.explore.node_indices[ui.explore.num_nodes++] = (uint32_t)node_index;
-            }
-            else {
-                ui.explore.num_nodes = 0;
-                break;
-            }
+        int node_index = sim_find_node(token_str);
+        if (node_index >= 0) {
+            assert(node_index < MAX_NODES);
+            ui.explore.selected[node_index] = gfx_visual_node_active;
         }
     }
 }
@@ -1389,13 +1388,11 @@ static void ui_nodeexplorer(void) {
         ImGui::AlignTextToFramePadding();
         ImGui::Text("Show nodes:");
         ImGui::SameLine();
-        ImGui::PushStyleColor(ImGuiCol_Text, (ui.explore.num_nodes > 0) ? ui_found_text_color : ui_notfound_text_color);
         ImGui::PushItemWidth(-1.0f);
         if (ImGui::InputText("##search", ui.explore.input_buffer, sizeof(ui.explore.input_buffer))) {
-            ui_nodeexplorer_update_nodes_from_string_buffer();
+            ui_nodeexplorer_update_selected_nodes_from_string_buffer();
         }
         ImGui::PopItemWidth();
-        ImGui::PopStyleColor();
         ImGui::EndGroup();
         if (ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Enter node names or numbers.");
@@ -1430,15 +1427,11 @@ bool ui_is_nodeexplorer_active(void) {
 }
 
 void ui_write_nodeexplorer_visual_state(range_t to_buffer) {
-    memset(to_buffer.ptr, gfx_visual_node_inactive, to_buffer.size);
-    uint8_t* byte_ptr = (uint8_t*)to_buffer.ptr;
-    for (int i = 0; i < ui.explore.num_nodes; i++) {
-        assert(ui.explore.node_indices[i] < to_buffer.size);
-        byte_ptr[ui.explore.node_indices[i]] = gfx_visual_node_active;
-
-    }
+    assert(to_buffer.size >= sizeof(ui.explore.selected));
+    memcpy(to_buffer.ptr, ui.explore.selected, sizeof(ui.explore.selected));
     if (ui.explore.is_node_hovered) {
         assert(ui.explore.hovered_node_index < to_buffer.size);
+        uint8_t* byte_ptr = (uint8_t*)to_buffer.ptr;
         byte_ptr[ui.explore.hovered_node_index] = gfx_visual_node_active;
     }
 }
