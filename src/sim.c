@@ -522,7 +522,15 @@ static void sim_add_nodegroup(const char* name, range_t nodegroup) {
 static void sim_init_nodegroups(void) {
     // setup node groups
     #if defined(CHIP_6502)
-
+    sim_add_nodegroup("Addr", RANGE(nodegroup_ab));
+    sim_add_nodegroup("Data", RANGE(nodegroup_db));
+    sim_add_nodegroup("IR", RANGE(nodegroup_ir));
+    sim_add_nodegroup("A", RANGE(nodegroup_a));
+    sim_add_nodegroup("X", RANGE(nodegroup_x));
+    sim_add_nodegroup("Y", RANGE(nodegroup_y));
+    sim_add_nodegroup("S", RANGE(nodegroup_sp));
+    sim_add_nodegroup("PCH", RANGE(nodegroup_pch));
+    sim_add_nodegroup("PCL", RANGE(nodegroup_pcl));
     #elif defined(CHIP_Z80)
     sim_add_nodegroup("Addr", RANGE(nodegroup_ab));
     sim_add_nodegroup("Data", RANGE(nodegroup_db));
