@@ -53,6 +53,7 @@ static const ImU32 ui_found_text_color = 0xFF00FF00;
 static const ImU32 ui_notfound_text_color = 0xFF4488FF;
 
 #define MAX_NODEEXPLORER_TOKENBUFFER_SIZE (1024)
+#define MAX_NODEEXPLORER_HOVERED_NODES (32)
 
 static struct {
     bool valid;
@@ -97,8 +98,8 @@ static struct {
         TextEditor* editor;
         bool window_focused;
         bool explorer_mode_active;
-        bool is_node_hovered;
-        uint32_t hovered_node_index;
+        int num_hovered_nodes;
+        uint32_t hovered_node_indices[MAX_NODEEXPLORER_HOVERED_NODES];
         uint8_t selected[MAX_NODES];
         char token_buffer[MAX_NODEEXPLORER_TOKENBUFFER_SIZE];
     } explorer;
@@ -1441,6 +1442,19 @@ static void ui_nodeexplorer_add_node_by_name(const char* node_name) {
     ui_nodeexplorer_update_selected_nodes_from_editor();
 }
 
+static void ui_nodeexplorer_add_nodegroup(sim_nodegroup_t group) {
+    ui.explorer.editor->MoveEnd();
+    ui.explorer.editor->InsertText("\n");
+    for (int i = 0; i < group.num_nodes; i++) {
+        const uint32_t node_index = group.nodes[i];
+        const char* node_name = sim_get_node_name_by_index(node_index);
+        if (node_name[0]) {
+            ui.explorer.editor->InsertText(node_name + std::string(" "));
+        }
+    }
+    ui_nodeexplorer_update_selected_nodes_from_editor();
+}
+
 static void ui_nodeexplorer_init(void) {
     ui_nodeexplorer_clear_selected_nodes();
     ui.explorer.editor = new TextEditor();
@@ -1489,7 +1503,7 @@ static void ui_nodeexplorer(void) {
     ImGui::SetNextWindowPos({ImGui::GetIO().DisplaySize.x - 450, 70}, ImGuiCond_Once);
     ImGui::SetNextWindowSize({400, 300}, ImGuiCond_Once);
     if (ImGui::Begin("Node Explorer", &ui.window_open.nodeexplorer, ImGuiWindowFlags_NoScrollWithMouse)) {
-        ui.explorer.is_node_hovered = false;
+        ui.explorer.num_hovered_nodes = 0;
         ImGui::Text("Select nodes, groups or type node-names and -numbers:");
         ImGui::Separator();
 
@@ -1507,8 +1521,8 @@ static void ui_nodeexplorer(void) {
                         ui_nodeexplorer_add_node_by_name(nodes.ptr[i].node_name);
                     }
                     if (ImGui::IsItemHovered()) {
-                        ui.explorer.is_node_hovered = true;
-                        ui.explorer.hovered_node_index = (uint32_t)nodes.ptr[i].node_index;
+                        ui.explorer.num_hovered_nodes = 1;
+                        ui.explorer.hovered_node_indices[0] = (uint32_t)nodes.ptr[i].node_index;
                     }
                     ImGui::PopID();
                 }
@@ -1521,8 +1535,27 @@ static void ui_nodeexplorer(void) {
         ImGui::SameLine();
         ImGui::BeginGroup();
         ImGui::Text("Groups:");
-        if (ImGui::BeginListBox("##groups", {64.0f, -1.0f})) {
-
+        if (ImGui::BeginListBox("##groups", {80.0f, -1.0f})) {
+            const sim_nodegroup_range_t groups = sim_get_nodegroups();
+            ImGuiListClipper clipper;
+            clipper.Begin(groups.num, ImGui::GetTextLineHeightWithSpacing());
+            while (clipper.Step()) {
+                for (int group_index = clipper.DisplayStart; group_index < clipper.DisplayEnd; group_index++) {
+                    ImGui::PushID(group_index);
+                    if (ImGui::Selectable(groups.ptr[group_index].group_name)) {
+                        ui_nodeexplorer_add_nodegroup(groups.ptr[group_index]);
+                    }
+                    if (ImGui::IsItemHovered()) {
+                        const int num_nodes = groups.ptr[group_index].num_nodes;
+                        assert(num_nodes < MAX_NODEEXPLORER_HOVERED_NODES);
+                        ui.explorer.num_hovered_nodes = num_nodes;
+                        for (int i = 0; i < num_nodes; i++) {
+                            ui.explorer.hovered_node_indices[i] = groups.ptr[group_index].nodes[i];
+                        }
+                    }
+                    ImGui::PopID();
+                }
+            }
             ImGui::EndListBox();
         }
         ImGui::EndGroup();
@@ -1551,10 +1584,11 @@ bool ui_is_nodeexplorer_active(void) {
 void ui_write_nodeexplorer_visual_state(range_t to_buffer) {
     assert(to_buffer.size >= sizeof(ui.explorer.selected));
     memcpy(to_buffer.ptr, ui.explorer.selected, sizeof(ui.explorer.selected));
-    if (ui.explorer.is_node_hovered) {
-        assert(ui.explorer.hovered_node_index < to_buffer.size);
+    for (int i = 0; i < ui.explorer.num_hovered_nodes; i++) {
+        const uint32_t node_index = ui.explorer.hovered_node_indices[i];
+        assert(node_index < to_buffer.size);
         uint8_t* byte_ptr = (uint8_t*)to_buffer.ptr;
-        byte_ptr[ui.explorer.hovered_node_index] = gfx_visual_node_active;
+        byte_ptr[node_index] = gfx_visual_node_highlighted;
     }
 }
 
@@ -1572,8 +1606,8 @@ static void ui_picking(void) {
                         strcat(str, "\n");
                     }
                     valid_node_index++;
-                    if (0 != node_names[node_index][0]) {
-                        strcat(str, node_names[node_index]);
+                    if (0 != sim_get_node_name_by_index(node_index)[0]) {
+                        strcat(str, sim_get_node_name_by_index(node_index));
                     }
                     else {
                         char print_buf[32];

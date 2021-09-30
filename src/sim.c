@@ -9,10 +9,14 @@
 #include "perfectz80.h"
 #endif
 #include "nodenames.h"
+#include "nodegroups.h"
 #include "sim.h"
 #include "trace.h"
 #include <stdlib.h> // qsort, bsearch, strtol
 #include <ctype.h>  // isdigit
+
+#define MAX_NODE_GROUPS (64)
+#define RANGE(arr) ((range_t){.ptr=arr,.size=sizeof(arr)})
 
 static struct {
     bool valid;
@@ -20,7 +24,11 @@ static struct {
     void* cpu_state;
     int num_sorted_nodes;
     sim_named_node_t sorted_nodes[MAX_NODES];
+    int num_nodegroups;
+    sim_nodegroup_t nodegroups[MAX_NODE_GROUPS];
 } sim;
+
+static void sim_init_nodegroups(void);
 
 static int qsort_cb(const void* a, const void* b) {
     const sim_named_node_t* n0 = a;
@@ -40,6 +48,7 @@ void sim_init(void) {
     assert(sim.cpu_state);
     sim.paused = true;
     sim.valid = true;
+    sim_init_nodegroups();
 
     // create a sorted node array for fast lookup by node name
     assert(num_node_names < MAX_NODES);
@@ -131,6 +140,17 @@ int sim_find_node(const char* name) {
     }
     // fallthrough: not found or invalid '#' number
     return -1;
+}
+
+// returns empty string for unnamed nodes
+const char* sim_get_node_name_by_index(int node_index) {
+    assert((node_index >= 0) && (node_index < MAX_NODES));
+    if (node_index < num_node_names) {
+        return node_names[node_index];
+    }
+    else {
+        return "";
+    }
 }
 
 sim_named_node_range_t sim_get_sorted_nodes(void) {
@@ -249,11 +269,11 @@ int sim_get_num_nodes(void) {
     return (int)cpu_get_num_nodes();
 }
 
-bool sim_get_node(int node_index) {
+bool sim_get_node_state(int node_index) {
     return cpu_read_node(sim.cpu_state, node_index);
 }
 
-void sim_set_node(int node_index, bool high) {
+void sim_set_node_state(int node_index, bool high) {
     cpu_write_node(sim.cpu_state, node_index, high);
 }
 
@@ -488,3 +508,68 @@ uint8_t sim_z80_get_t(void) {
     return cpu_readT(sim.cpu_state);
 }
 #endif
+
+static void sim_add_nodegroup(const char* name, range_t nodegroup) {
+    assert(name);
+    assert(sim.num_nodegroups < MAX_NODE_GROUPS);
+    sim.nodegroups[sim.num_nodegroups++] = (sim_nodegroup_t){
+        .group_name = name,
+        .num_nodes = nodegroup.size / sizeof(uint32_t),
+        .nodes = nodegroup.ptr
+    };
+}
+
+static void sim_init_nodegroups(void) {
+    // setup node groups
+    #if defined(CHIP_6502)
+
+    #elif defined(CHIP_Z80)
+    sim_add_nodegroup("Addr", RANGE(nodegroup_ab));
+    sim_add_nodegroup("Data", RANGE(nodegroup_db));
+    sim_add_nodegroup("IR", RANGE(nodegroup_ir));
+    sim_add_nodegroup("A", RANGE(nodegroup_reg_a));
+    sim_add_nodegroup("F", RANGE(nodegroup_reg_f));
+    sim_add_nodegroup("B", RANGE(nodegroup_reg_b));
+    sim_add_nodegroup("C", RANGE(nodegroup_reg_c));
+    sim_add_nodegroup("D", RANGE(nodegroup_reg_d));
+    sim_add_nodegroup("E", RANGE(nodegroup_reg_e));
+    sim_add_nodegroup("H", RANGE(nodegroup_reg_h));
+    sim_add_nodegroup("L", RANGE(nodegroup_reg_l));
+    sim_add_nodegroup("A'", RANGE(nodegroup_reg_aa));
+    sim_add_nodegroup("F'", RANGE(nodegroup_reg_ff));
+    sim_add_nodegroup("B'", RANGE(nodegroup_reg_bb));
+    sim_add_nodegroup("C'", RANGE(nodegroup_reg_cc));
+    sim_add_nodegroup("D'", RANGE(nodegroup_reg_dd));
+    sim_add_nodegroup("E'", RANGE(nodegroup_reg_ee));
+    sim_add_nodegroup("H'", RANGE(nodegroup_reg_hh));
+    sim_add_nodegroup("L'", RANGE(nodegroup_reg_ll));
+    sim_add_nodegroup("IXH", RANGE(nodegroup_reg_ixh));
+    sim_add_nodegroup("IXL", RANGE(nodegroup_reg_ixl));
+    sim_add_nodegroup("IYH", RANGE(nodegroup_reg_iyh));
+    sim_add_nodegroup("IYL", RANGE(nodegroup_reg_iyl));
+    sim_add_nodegroup("SPH", RANGE(nodegroup_reg_sph));
+    sim_add_nodegroup("SPL", RANGE(nodegroup_reg_spl));
+    sim_add_nodegroup("WZH", RANGE(nodegroup_reg_w));
+    sim_add_nodegroup("WZL", RANGE(nodegroup_reg_z));
+    sim_add_nodegroup("RegBits", RANGE(nodegroup_regbits));
+    sim_add_nodegroup("PCH", RANGE(nodegroup_pch));
+    sim_add_nodegroup("PCL", RANGE(nodegroup_pcl));
+    sim_add_nodegroup("PCBits", RANGE(nodegroup_pcbits));
+    sim_add_nodegroup("UBus", RANGE(nodegroup_ubus));
+    sim_add_nodegroup("VBus", RANGE(nodegroup_vbus));
+    sim_add_nodegroup("ALU_A", RANGE(nodegroup_alua));
+    sim_add_nodegroup("ALU_B", RANGE(nodegroup_alub));
+    sim_add_nodegroup("ALU_Bus", RANGE(nodegroup_alubus));
+    sim_add_nodegroup("ALU_Lat", RANGE(nodegroup_alulat));
+    sim_add_nodegroup("ALU_Out", RANGE(nodegroup_aluout));
+    sim_add_nodegroup("DBus", RANGE(nodegroup_dbus));
+    sim_add_nodegroup("DLatch", RANGE(nodegroup_dlatch));
+    #endif
+}
+
+sim_nodegroup_range_t sim_get_nodegroups(void) {
+    return (sim_nodegroup_range_t) {
+        .num = sim.num_nodegroups,
+        .ptr = sim.nodegroups
+    };
+}

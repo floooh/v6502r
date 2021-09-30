@@ -15,6 +15,17 @@ typedef struct {
     int num;
 } sim_named_node_range_t;
 
+typedef struct {
+    const char* group_name;
+    int num_nodes;
+    uint32_t* nodes;
+} sim_nodegroup_t;
+
+typedef struct {
+    int num;
+    const sim_nodegroup_t* ptr;
+} sim_nodegroup_range_t;
+
 void sim_init(void);
 void sim_shutdown(void);
 void sim_start(void);
@@ -25,7 +36,9 @@ void sim_set_paused(bool paused);
 bool sim_get_paused(void);
 void sim_set_nodestate(range_t from_buffer);
 sim_named_node_range_t sim_get_sorted_nodes(void);
+sim_nodegroup_range_t sim_get_nodegroups(void);
 int sim_find_node(const char* name);    // accepts name or '#1234', return -1 if not found
+const char* sim_get_node_name_by_index(int node_index);
 void sim_mem_w8(uint16_t addr, uint8_t val);
 uint8_t sim_mem_r8(uint16_t addr);
 void sim_mem_w16(uint16_t addr, uint16_t val);
@@ -45,8 +58,8 @@ bool sim_is_ignore_picking_highlight_node(int node_index);
 uint16_t sim_get_pc(void);
 uint8_t sim_get_flags(void);
 int sim_get_num_nodes(void);
-bool sim_get_node(int node_index);
-void sim_set_node(int node_index, bool high);
+bool sim_get_node_state(int node_index);
+void sim_set_node_state(int node_index, bool high);
 
 #if defined(CHIP_6502)
 uint8_t sim_6502_get_a(void);

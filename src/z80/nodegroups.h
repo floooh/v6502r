@@ -33,3 +33,15 @@ static uint32_t nodegroup_reg_iyh[8] = { pz80_reg_iyh0, pz80_reg_iyh1, pz80_reg_
 static uint32_t nodegroup_reg_iyl[8] = { pz80_reg_iyl0, pz80_reg_iyl1, pz80_reg_iyl2, pz80_reg_iyl3, pz80_reg_iyl4, pz80_reg_iyl5, pz80_reg_iyl6, pz80_reg_iyl7 };
 static uint32_t nodegroup_reg_sph[8] = { pz80_reg_sph0, pz80_reg_sph1, pz80_reg_sph2, pz80_reg_sph3, pz80_reg_sph4, pz80_reg_sph5, pz80_reg_sph6, pz80_reg_sph7 };
 static uint32_t nodegroup_reg_spl[8] = { pz80_reg_spl0, pz80_reg_spl1, pz80_reg_spl2, pz80_reg_spl3, pz80_reg_spl4, pz80_reg_spl5, pz80_reg_spl6, pz80_reg_spl7 };
+static uint32_t nodegroup_regbits[16] = { pz80_regbit0, pz80_regbit1, pz80_regbit2, pz80_regbit3, pz80_regbit4, pz80_regbit5, pz80_regbit6, pz80_regbit7, pz80_regbit8, pz80_regbit9, pz80_regbit10, pz80_regbit11, pz80_regbit12, pz80_regbit13, pz80_regbit14, pz80_regbit15 };
+static uint32_t nodegroup_pcbits[16] = { pz80_pcbit0, pz80_pcbit1, pz80_pcbit2, pz80_pcbit3, pz80_pcbit4, pz80_pcbit5, pz80_pcbit6, pz80_pcbit7, pz80_pcbit8, pz80_pcbit9, pz80_pcbit10, pz80_pcbit11, pz80_pcbit12, pz80_pcbit13, pz80_pcbit14, pz80_pcbit15 };
+static uint32_t nodegroup_ubus[8] = { pz80_ubus0, pz80_ubus1, pz80_ubus2, pz80_ubus3, pz80_ubus4, pz80_ubus5,pz80_ubus6, pz80_ubus7 };
+static uint32_t nodegroup_vbus[8] = { pz80_vbus0, pz80_vbus1, pz80_vbus2, pz80_vbus3, pz80_vbus4, pz80_vbus5,pz80_vbus6, pz80_vbus7 };
+static uint32_t nodegroup_alua[8] = { pz80_alua0, pz80_alua1, pz80_alua2, pz80_alua3, pz80_alua4, pz80_alua5, pz80_alua6, pz80_alua7 };
+static uint32_t nodegroup_alub[8] = { pz80_alub0, pz80_alub1, pz80_alub2, pz80_alub3, pz80_alub4, pz80_alub5, pz80_alub6, pz80_alub7 };
+static uint32_t nodegroup_alubus[8] = { pz80_alubus0, pz80_alubus1, pz80_alubus2, pz80_alubus3, pz80_alubus4, pz80_alubus5, pz80_alubus6, pz80_alubus7 };
+static uint32_t nodegroup_alulat[4] = { pz80_alulat0, pz80_alulat1, pz80_alulat2, pz80_alulat3 };
+static uint32_t nodegroup_aluout[4] = { pz80_aluout0, pz80_aluout1, pz80_aluout2, pz80_aluout3 };
+static uint32_t nodegroup_dbus[8] = { pz80_dbus0, pz80_dbus1, pz80_dbus2, pz80_dbus3, pz80_dbus4, pz80_dbus5, pz80_dbus6, pz80_dbus7 };
+static uint32_t nodegroup_dlatch[8] = { pz80_dlatch0, pz80_dlatch1, pz80_dlatch2, pz80_dlatch3, pz80_dlatch4, pz80_dlatch5, pz80_dlatch6, pz80_dlatch7 };
+
