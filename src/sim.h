@@ -121,6 +121,7 @@ bool sim_z80_get_nmi(void);
 bool sim_z80_get_reset(void);
 bool sim_z80_get_busrq(void);
 bool sim_z80_get_busak(void);
+bool sim_z80_get_iff1(void);
 
 uint8_t sim_z80_get_m(void);
 uint8_t sim_z80_get_t(void);

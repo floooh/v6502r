@@ -760,8 +760,8 @@ static void ui_cpu_status_panel(void) {
         case (1<<4): t_str = "T5"; break;
         case (1<<5): t_str = "T6"; break;
     }
-    ImGui::Text("Cycle:%s/%s DBus:%02X ABus:%04X",
-        m_str, t_str, sim_get_data(), sim_get_addr());
+    ImGui::Text("Cycle:%s/%s DBus:%02X ABus:%04X %s",
+        m_str, t_str, sim_get_data(), sim_get_addr(), sim_z80_get_iff1() ? "IFF1":"iff1");
     ImGui::Text("%s %s %s %s %s %s %s %s\n%s %s %s %s %s %s",
         sim_z80_get_clk() ? "CLK":"clk",
         sim_z80_get_m1() ? "m1":"M1",
@@ -1027,7 +1027,7 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::Text("%s", trace_get_disasm(trace_index));
 }
 #elif defined(CHIP_Z80)
-static const int ui_tracelog_table_num_columns = 28;
+static const int ui_tracelog_table_num_columns = 29;
 
 static void ui_tracelog_table_setup_columns(void) {
     const float char_width = 8.0f;
@@ -1056,6 +1056,7 @@ static void ui_tracelog_table_setup_columns(void) {
     ImGui::TableSetupColumn("WZ", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
     ImGui::TableSetupColumn("I", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2*char_width);
     ImGui::TableSetupColumn("R", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2*char_width);
+    ImGui::TableSetupColumn("IFF1", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
     ImGui::TableSetupColumn("Watch", ImGuiTableColumnFlags_NoClip, 4*char_width);
     ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 8*char_width);
     ImGui::TableSetupColumn("Asm", ImGuiTableColumnFlags_NoClip, 12*char_width);
@@ -1113,6 +1114,8 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::Text("%02X", trace_z80_get_i(trace_index));
     ImGui::TableNextColumn();
     ImGui::Text("%02X", trace_z80_get_r(trace_index));
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_z80_get_iff1(trace_index) ? "IFF1":"    ");
     ImGui::TableNextColumn();
     if (ui.trace.watch_node_valid) {
         ImGui::Text("%c", trace_is_node_high(trace_index, ui.trace.watch_node_index) ? '1':'0');
@@ -1269,7 +1272,7 @@ static struct { uint32_t node; const char* name; bool active_low; } time_diagram
     { p6502_rdy, "RDY", false },
 };
 #elif defined(CHIP_Z80)
-static const int num_time_diagram_nodes = 14;
+static const int num_time_diagram_nodes = 15;
 static struct { uint32_t node; const char* name; bool active_low; } time_diagram_nodes[num_time_diagram_nodes] = {
     { pz80_clk, "CLK", false },
     { pz80__m1, "M1", true },
@@ -1285,6 +1288,7 @@ static struct { uint32_t node; const char* name; bool active_low; } time_diagram
     { pz80__reset, "RESET", true },
     { pz80__busrq, "BUSRQ", true },
     { pz80__busak, "BUSAK", true },
+    { 1278, "IFF1", false },
 };
 #endif
 

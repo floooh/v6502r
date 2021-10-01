@@ -43,6 +43,7 @@ bool trace_z80_get_ioreq(uint32_t index);
 bool trace_z80_get_rfsh(uint32_t index);
 bool trace_z80_get_rd(uint32_t index);
 bool trace_z80_get_wr(uint32_t index);
+bool trace_z80_get_iff1(uint32_t index);
 uint8_t trace_z80_get_ir(uint32_t index);
 uint8_t trace_z80_get_a(uint32_t index);
 uint8_t trace_z80_get_a2(uint32_t index);
