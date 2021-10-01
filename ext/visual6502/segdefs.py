@@ -142,7 +142,8 @@ def write_header(dst_dir):
     fp.write('static const uint16_t seg_min_y = {}; // min y coordinate\n'.format(MIN_Y))
     fp.write('static const uint16_t grid_cells = {}; // length of picking grid in one dimension\n'.format(GRID_NUM_CELLS))
     for i,vb in enumerate(VERTEXBUFFERS):
-        fp.write('extern uint16_t seg_vertices_{}[{}]; // (x,y,u=node_index,v=0) as triangle list\n'.format(i,len(vb)*4))
+        if len(vb) > 0:
+            fp.write('extern uint16_t seg_vertices_{}[{}]; // (x,y,u=node_index,v=0) as triangle list\n'.format(i,len(vb)*4))
     fp.write('extern uint32_t pick_tris[{}][2]; // (layer,tri_index) pairs for picking check\n'.format(len(GRID_TRIANGLES)))
     fp.write('extern uint32_t pick_grid[{}][2]; // [y*grid_cells+x](start,num) pairs into pick_tris\n'.format(len(GRID)))
     fp.close()
@@ -153,12 +154,13 @@ def write_source(dst_dir):
     fp.write("// machine generated, don't edit!\n")
     fp.write('#include "segdefs.h"\n')
     for ivb,vb in enumerate(VERTEXBUFFERS):
-        fp.write('uint16_t seg_vertices_{}[{}] = {{\n'.format(ivb,len(vb)*4))
-        for iv,v in enumerate(vb):
-            fp.write('{},{},{},{},'.format(v[0],v[1],v[2],v[3]))
-            if 0 == ((iv+1) % 8):
-                fp.write('\n')
-        fp.write('};\n')
+        if len(vb) > 0:
+            fp.write('uint16_t seg_vertices_{}[{}] = {{\n'.format(ivb,len(vb)*4))
+            for iv,v in enumerate(vb):
+                fp.write('{},{},{},{},'.format(v[0],v[1],v[2],v[3]))
+                if 0 == ((iv+1) % 8):
+                    fp.write('\n')
+            fp.write('};\n')
     fp.write('uint32_t pick_tris[{}][2] = {{\n'.format(len(GRID_TRIANGLES)))
     for itri,tri in enumerate(GRID_TRIANGLES):
         fp.write('{{{},{}}},'.format(tri[0],tri[1]))    # layer+triindex

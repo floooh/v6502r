@@ -31,30 +31,30 @@ size_t cpu_get_num_nodes(void) {
 }
 
 bool cpu_read_node_state_as_bytes(void* state, uint8_t active_value, uint8_t inactive_value, uint8_t* ptr, size_t max_nodes) {
-    size_t num_nodes = cpu_get_num_nodes();
+    int num_nodes = (int) cpu_get_num_nodes();
     if (num_nodes > max_nodes) {
         return false;
     }
-    for (size_t i = 0; i < num_nodes; i++) {
+    for (int i = 0; i < num_nodes; i++) {
         ptr[i] = (isNodeHigh(state, i) != 0) ? active_value : inactive_value;
     }
     return true;
 }
 
 bool cpu_read_node_values(void* state, uint8_t* ptr, size_t max_bytes) {
-    return read_node_values(state, ptr, max_bytes);
+    return read_node_values(state, ptr, (int)max_bytes);
 }
 
 bool cpu_read_transistor_on(void* state, uint8_t* ptr, size_t max_bytes) {
-    return read_transistor_on(state, ptr, max_bytes);
+    return read_transistor_on(state, ptr, (int)max_bytes);
 }
 
 bool cpu_write_node_values(void* state, const uint8_t* ptr, size_t max_bytes) {
-    return write_node_values(state, ptr, max_bytes);
+    return write_node_values(state, ptr, (int)max_bytes);
 }
 
 bool cpu_write_transistor_on(void* state, const uint8_t* ptr, size_t max_bytes) {
-    return write_transistor_on(state, ptr, max_bytes);
+    return write_transistor_on(state, ptr, (int)max_bytes);
 }
 
 /************************************************************

@@ -605,8 +605,8 @@ static void ui_menu(void) {
         }
         if (ImGui::BeginMenu("Theme")) {
             if (ImGui::MenuItem("Default")) {
-                gfx_set_layer_palette(false, (gfx_palette_t){
-                    .colors = {
+                gfx_set_layer_palette(false, {
+                    {
                         { 1.0f, 0.0f, 0.0f, 1.0f },
                         { 0.0f, 1.0f, 0.0f, 1.0f },
                         { 0.0f, 0.0f, 1.0f, 1.0f },
@@ -617,8 +617,8 @@ static void ui_menu(void) {
                 });
             }
             if (ImGui::MenuItem("Visual6502")) {
-                gfx_set_layer_palette(false, (gfx_palette_t){
-                    .colors = {
+                gfx_set_layer_palette(false, {
+                    {
                         { 1.0f, 0.0f, 0.0f, 1.0f },
                         { 1.0f, 1.0f, 0.0f, 1.0f },
                         { 1.0f, 0.0f, 1.0f, 1.0f },
@@ -629,8 +629,8 @@ static void ui_menu(void) {
                 });
             }
             if (ImGui::MenuItem("Matrix")) {
-                gfx_set_layer_palette(true, (gfx_palette_t){
-                    .colors = {
+                gfx_set_layer_palette(true, {
+                    {
                         { 0.0f, 0.5f, 0.0f, 1.0f },
                         { 0.0f, 0.5f, 0.0f, 1.0f },
                         { 0.0f, 0.5f, 0.0f, 1.0f },
@@ -641,8 +641,8 @@ static void ui_menu(void) {
                 });
             }
             if (ImGui::MenuItem("X-Ray")) {
-                gfx_set_layer_palette(true, (gfx_palette_t){
-                    .colors = {
+                gfx_set_layer_palette(true, {
+                    {
                         { 0.5f, 0.5f, 0.5f, 1.0f },
                         { 0.5f, 0.5f, 0.5f, 1.0f },
                         { 0.5f, 0.5f, 0.5f, 1.0f },
@@ -1316,8 +1316,8 @@ static void ui_timingdiagram(void) {
         }
 
         // draw vertical background stripes
-        const int left_col = (ImGui::GetScrollX() / cell_width); // don't clip instruction string
-        const int right_col = (ImGui::GetScrollX() + ImGui::GetWindowWidth() + cell_width) / cell_width;
+        const int left_col = (int)(ImGui::GetScrollX() / cell_width); // don't clip instruction string
+        const int right_col = (int)((ImGui::GetScrollX() + ImGui::GetWindowWidth() + cell_width) / cell_width);
         assert(left_col <= right_col);
         for (int col_index = left_col; col_index < right_col; col_index++) {
             if ((col_index < 0) || (col_index >= num_cols)) {
@@ -1424,10 +1424,9 @@ static void ui_nodeexplorer_update_selected_nodes_from_editor(void) {
         line_nr++;
         strncpy(ui.explorer.token_buffer, line.c_str(), sizeof(ui.explorer.token_buffer));
         ui.explorer.token_buffer[sizeof(ui.explorer.token_buffer)-1] = 0;
-        char* strok_state = 0;
         char* str = ui.explorer.token_buffer;
         const char* token_str;
-        while (0 != (token_str = strtok_r(str, " ,\t\r\n", &strok_state))) {
+        while (0 != (token_str = strtok(str, " ,\t\r\n"))) {
             str = 0;
             int node_index = sim_find_node(token_str);
             if (node_index >= 0) {

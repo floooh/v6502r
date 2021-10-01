@@ -45,7 +45,7 @@ void ui_asm_toggle_window_open(void) {
 
 range_t ui_asm_get_binary(void) {
     assert(state.valid);
-    return (range_t) { .ptr = state.binary.buf, .size = state.binary.num_bytes };
+    return { state.binary.buf, state.binary.num_bytes };
 }
 
 void ui_asm_init(void) {
