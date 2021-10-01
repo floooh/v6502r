@@ -12,7 +12,41 @@ and turn it into a native+wasm app via
 ImGui](https://github.com/ocornut/imgui/) and
 [Sokol](https://github.com/floooh/sokol).
 
-## To Build:
+# Feature Gallery
+
+6502 simulation:
+
+![6502 screenshot](screenshots/v6502r.jpg)
+
+Z80 simulation:
+
+![Z80 screenshot](screenshots/vz80r.jpg)
+
+Log CPU state and revert to a previous cycle:
+
+![Tracelog](screenshots/tracelog.jpg)
+
+Integrated assembler:
+
+![Assembler](screenshots/assembler.jpg)
+
+I/O pin timing diagram:
+
+![Timing Diagram](screenshots/timingdiagram.jpg)
+
+Visualize difference between two cycles:
+
+![Diff View](screenshots/diffview.jpg)
+
+Explore netlist nodes by their name, groups or number:
+
+![Node Explorer](screenshots/nodeexplorer.jpg)
+
+...and a kickass About box ;)
+
+![About Box](screenshots/about.jpg)
+
+## How To Build:
 
 Make sure ```python``` and ```cmake``` is in the path.
 
