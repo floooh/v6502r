@@ -24,7 +24,9 @@ def parse_nodenames(src_dir):
         if (node_index+1) > NUM_NODES:
             NUM_NODES = node_index+1
         if (node_index != -1) and (NODENAMES[node_index] is None):
-            NODENAMES[node_index] = str(tokens[0])
+            # the .replace is a special fix for '##aluout', the '##'
+            # is a special character in Dear ImGui
+            NODENAMES[node_index] = str(tokens[0]).replace('##', '_#')
 
 #-------------------------------------------------------------------------------
 def write_header(dst_dir, node_prefix):
