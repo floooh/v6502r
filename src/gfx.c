@@ -75,7 +75,7 @@ void gfx_init(const gfx_desc_t* desc) {
             gfx.layers[i].vb = sg_make_buffer(&(sg_buffer_desc){
                 .data = desc->seg_vertices[i]
             });
-            gfx.layers[i].num_elms = desc->seg_vertices[i].size / 8;
+            gfx.layers[i].num_elms = (int)(desc->seg_vertices[i].size / 8);
             assert(gfx.layers[i].num_elms > 0);
         }
     }

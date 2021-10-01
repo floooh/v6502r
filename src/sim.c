@@ -521,7 +521,7 @@ static void sim_add_nodegroup(const char* name, range_t nodegroup) {
     assert(sim.num_nodegroups < MAX_NODE_GROUPS);
     sim.nodegroups[sim.num_nodegroups++] = (sim_nodegroup_t){
         .group_name = name,
-        .num_nodes = nodegroup.size / sizeof(uint32_t),
+        .num_nodes = (int)(nodegroup.size / sizeof(uint32_t)),
         .nodes = nodegroup.ptr
     };
 }
