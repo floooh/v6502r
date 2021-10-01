@@ -31,11 +31,11 @@ size_t cpu_get_num_nodes(void) {
 }
 
 bool cpu_read_node_state_as_bytes(void* state, uint8_t active_value, uint8_t inactive_value, uint8_t* ptr, size_t max_nodes) {
-    int num_nodes = (int) cpu_get_num_nodes();
+    const size_t num_nodes = (int) cpu_get_num_nodes();
     if (num_nodes > max_nodes) {
         return false;
     }
-    for (int i = 0; i < num_nodes; i++) {
+    for (int i = 0; i < (int)num_nodes; i++) {
         ptr[i] = (isNodeHigh(state, i) != 0) ? active_value : inactive_value;
     }
     return true;

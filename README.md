@@ -38,7 +38,7 @@ Visualize difference between two cycles:
 
 ![Diff View](screenshots/diffview.jpg)
 
-Explore netlist nodes by their name, groups or number:
+Explore netlist nodes by their name, group or number:
 
 ![Node Explorer](screenshots/nodeexplorer.jpg)
 
