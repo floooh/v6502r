@@ -2,6 +2,11 @@
 #include <stdint.h>
 #include "nodenames.h"
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
+
 static uint32_t nodegroup_ab[16] = { pz80_ab0,pz80_ab1,pz80_ab2,pz80_ab3,pz80_ab4,pz80_ab5,pz80_ab6,pz80_ab7,pz80_ab8,pz80_ab9,pz80_ab10,pz80_ab11,pz80_ab12,pz80_ab13,pz80_ab14,pz80_ab15 };
 static uint32_t nodegroup_db[8]  = { pz80_db0,pz80_db1,pz80_db2,pz80_db3,pz80_db4,pz80_db5,pz80_db6,pz80_db7 };
 static uint32_t nodegroup_pcl[8] = { pz80_reg_pcl0,pz80_reg_pcl1,pz80_reg_pcl2,pz80_reg_pcl3,pz80_reg_pcl4,pz80_reg_pcl5,pz80_reg_pcl6,pz80_reg_pcl7 };
@@ -45,3 +50,6 @@ static uint32_t nodegroup_aluout[4] = { pz80_aluout0, pz80_aluout1, pz80_aluout2
 static uint32_t nodegroup_dbus[8] = { pz80_dbus0, pz80_dbus1, pz80_dbus2, pz80_dbus3, pz80_dbus4, pz80_dbus5, pz80_dbus6, pz80_dbus7 };
 static uint32_t nodegroup_dlatch[8] = { pz80_dlatch0, pz80_dlatch1, pz80_dlatch2, pz80_dlatch3, pz80_dlatch4, pz80_dlatch5, pz80_dlatch6, pz80_dlatch7 };
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif

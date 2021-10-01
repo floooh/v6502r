@@ -13,3 +13,8 @@ fips_begin_lib(asmx_z80)
 fips_end_lib()
 target_include_directories(asmx_z80 INTERFACE src)
 target_compile_definitions(asmx_z80 PUBLIC ASMX_Z80)
+
+if (FIPS_GCC OR FIPS_CLANG)
+    target_compile_options(asmx_6502 PRIVATE -Wno-implicit-fallthrough)
+    target_compile_options(asmx_z80 PRIVATE -Wno-implicit-fallthrough)
+endif()

@@ -94,7 +94,7 @@ static pick_result_t do_pick(float2_t mouse_pos, float2_t disp_size, float2_t of
     uint32_t gx = (uint32_t)(vx / cell_width);
     uint32_t gy = (uint32_t)(vy / cell_height);
     uint32_t cell_index = gy * pick.grid.num_cells_x + gx;
-    if ((cell_index < 0) || (cell_index >= (pick.grid.num_cells))) {
+    if (cell_index >= pick.grid.num_cells) {
         // this should never happen, but anyway...
         return res;
     }
