@@ -468,10 +468,15 @@ bool ui_handle_input(const sapp_event* ev) {
         ui_paste();
     }
     if (0 != (ev->modifiers & (SAPP_MODIFIER_CTRL|SAPP_MODIFIER_ALT|SAPP_MODIFIER_SUPER))) {
-        return true;
+        return false;
     }
     else {
-        return simgui_handle_event(ev);
+        // sokol_imgui.h returns true if either WantsCaptureKeyboard or
+        // WantsCaptureMouse is set which is too broad in our case,
+        // we just need to prevent further mouse input handling when
+        // Dear ImGui wants to capture the mouse
+        simgui_handle_event(ev);
+        return ImGui::GetIO().WantCaptureMouse;
     }
 }
 

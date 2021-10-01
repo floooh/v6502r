@@ -33,6 +33,7 @@ float2_t input_get_mouse_pos(void) {
 void input_handle_event(const sapp_event* ev) {
     assert(input.valid);
     if (ui_handle_input(ev)) {
+        // cancel any chip visualization mouse input if Dear ImGui captured the mouse
         input.mouse.x = 0;
         input.mouse.y = 0;
         input.dragging = false;
