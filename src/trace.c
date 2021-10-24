@@ -265,7 +265,7 @@ bool trace_z80_get_wr(uint32_t index) {
 }
 
 bool trace_z80_get_iff1(uint32_t index) {
-    return !is_node_high(index, 1278);
+    return is_node_high(index, 181);
 }
 
 uint8_t trace_z80_get_ir(uint32_t index) {
