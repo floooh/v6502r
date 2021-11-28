@@ -2,6 +2,8 @@
 # project: v6502r
 #
 cmake_minimum_required(VERSION 3.0)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_C_STANDARD 99)
 project(v6502r)
 # include the fips main cmake file
 get_filename_component(FIPS_ROOT_DIR "../fips" ABSOLUTE)
