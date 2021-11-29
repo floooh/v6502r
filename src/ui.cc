@@ -54,7 +54,6 @@ static const ImU32 ui_notfound_text_color = 0xFF4488FF;
 
 #define MAX_NODEEXPLORER_TOKENBUFFER_SIZE (1024)
 #define MAX_NODEEXPLORER_HOVERED_NODES (32)
-#define MAX_TRACELOG_SIZE (MAX_TRACE_ITEMS * 256)
 #define MAX_TRACELOG_COLUMNS (64)
 
 typedef struct {
@@ -66,7 +65,7 @@ typedef struct {
 #if defined(CHIP_6502)
 #define UI_TRACELOG_NUM_COLUMNS (19)
 static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] = {
-    { "Cycle/h", ImGuiTableColumnFlags_None, 6 },
+    { "Cycle/h", ImGuiTableColumnFlags_None, 7 },
     { "SYNC", ImGuiTableColumnFlags_NoClip, 4 },
     { "RW", ImGuiTableColumnFlags_NoClip, 2 },
     { "AB", ImGuiTableColumnFlags_NoClip, 4 },
@@ -78,7 +77,7 @@ static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] =
     { "Y", ImGuiTableColumnFlags_NoClip, 2 },
     { "S", ImGuiTableColumnFlags_NoClip, 2 },
     { "P", ImGuiTableColumnFlags_NoClip, 2 },
-    { "Watch", ImGuiTableColumnFlags_NoClip, 4 },
+    { "Watch", ImGuiTableColumnFlags_NoClip, 5 },
     { "Flags", ImGuiTableColumnFlags_NoClip, 8 },
     { "IRQ", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
     { "NMI", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
@@ -89,7 +88,7 @@ static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] =
 #elif defined(CHIP_Z80)
 #define UI_TRACELOG_NUM_COLUMNS (33)
 static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] = {
-    { "Cycle/h", ImGuiTableColumnFlags_None, 6 },
+    { "Cycle/h", ImGuiTableColumnFlags_None, 7 },
     { "M1", ImGuiTableColumnFlags_NoClip, 2 },
     { "MREQ", ImGuiTableColumnFlags_NoClip, 4 },
     { "IORQ", ImGuiTableColumnFlags_NoClip, 4 },
@@ -119,11 +118,13 @@ static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] =
     { "I", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2 },
     { "R", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2 },
     { "IFF1", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
-    { "Watch", ImGuiTableColumnFlags_NoClip, 4 },
+    { "Watch", ImGuiTableColumnFlags_NoClip, 5 },
     { "Flags", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 8 },
     { "Asm", ImGuiTableColumnFlags_NoClip, 12 }
 };
 #endif
+
+#define MAX_TRACEDUMP_SIZE ((MAX_TRACE_ITEMS+2) * UI_TRACELOG_NUM_COLUMNS * 16)
 
 static struct {
     bool valid;
@@ -177,7 +178,10 @@ static struct {
     } explorer;
     bool link_hovered;
     char link_url[MAX_LINKURL_SIZE];
-    char tracelog[MAX_TRACELOG_SIZE];
+    struct {
+        int pos;
+        char buf[MAX_TRACEDUMP_SIZE];
+    } tracedump;
 } ui;
 
 static void ui_menu(void);
@@ -520,7 +524,7 @@ bool ui_handle_input(const sapp_event* ev) {
         ui.menu.save_binary_hovered = false;
     }
     if (test_click(ev, ui.menu.save_tracelog_hovered)) {
-        util_html5_download_string("tracelog.txt", ui_trace_get_log());
+        util_html5_download_string("tracelog.txt", ui_trace_get_dump());
         ui.menu.save_tracelog_hovered = false;
     }
     if (test_ctrl(ev, SAPP_KEYCODE_Z) || test_ctrl(ev, SAPP_KEYCODE_Y)) {
@@ -597,6 +601,7 @@ static void ui_menu(void) {
     ui.menu.save_source_hovered = false;
     ui.menu.save_binary_hovered = false;
     ui.menu.save_listing_hovered = false;
+    ui.menu.save_tracelog_hovered = false;
     if (ImGui::BeginMainMenuBar()) {
         bool is_osx = util_is_osx();
         if (ImGui::BeginMenu("File")) {
@@ -1033,128 +1038,84 @@ static void ui_tracelog_timingdiagram_end() {
 }
 
 #if defined(CHIP_6502)
-static void ui_tracelog_table_row(int trace_index) {
+static int ui_tracelog_print_item(int trace_index, int col_index, char* buf, size_t buf_size) {
     const uint32_t cur_cycle = trace_get_cycle(trace_index);
-    ImGui::TableSetColumnIndex(0);
-    ImGui::Text("%5d/%d", cur_cycle >> 1, cur_cycle & 1);
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_6502_get_sync(trace_index)?"SYNC":"    ");
-    ImGui::TableNextColumn();
-    ImGui::Text("%c", trace_6502_get_rw(trace_index)?'R':'W');
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_get_addr(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%02X", trace_get_data(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_get_pc(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%02X", trace_6502_get_ir(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%02X", trace_6502_get_a(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%02X", trace_6502_get_x(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%02X", trace_6502_get_y(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%02X", trace_6502_get_sp(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%02X", trace_get_flags(trace_index));
-    ImGui::TableNextColumn();
-    if (ui.trace.watch_node_valid) {
-        ImGui::Text("%c", trace_is_node_high(trace_index, ui.trace.watch_node_index) ? '1':'0');
-    }
-    else {
-        ImGui::Text("%s", "??");
-    }
-    ImGui::TableNextColumn();
     char p_buf[9];
-    ImGui::Text("%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), p_buf, sizeof(p_buf)));
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_6502_get_irq(trace_index)?"   ":"IRQ");
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_6502_get_nmi(trace_index)?"   ":"NMI");
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_6502_get_res(trace_index)?"   ":"RES");
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_6502_get_rdy(trace_index)?"   ":"RDY");
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_get_disasm(trace_index));
+    switch (col_index) {
+        case 0: return snprintf(buf, buf_size, "%5d/%d", cur_cycle >> 1, cur_cycle & 1);
+        case 1: return snprintf(buf, buf_size, "%s", trace_6502_get_sync(trace_index)?"SYNC":"    ");
+        case 2: return snprintf(buf, buf_size, "%c", trace_6502_get_rw(trace_index)?'R':'W');
+        case 3: return snprintf(buf, buf_size, "%04X", trace_get_addr(trace_index));
+        case 4: return snprintf(buf, buf_size, "%02X", trace_get_data(trace_index));
+        case 5: return snprintf(buf, buf_size, "%04X", trace_get_pc(trace_index));
+        case 6: return snprintf(buf, buf_size, "%02X", trace_6502_get_ir(trace_index));
+        case 7: return snprintf(buf, buf_size, "%02X", trace_6502_get_a(trace_index));
+        case 8: return snprintf(buf, buf_size, "%02X", trace_6502_get_x(trace_index));
+        case 9: return snprintf(buf, buf_size, "%02X", trace_6502_get_y(trace_index));
+        case 10: return snprintf(buf, buf_size, "%02X", trace_6502_get_sp(trace_index));
+        case 11: return snprintf(buf, buf_size, "%02X", trace_get_flags(trace_index));
+        case 12:
+            if (ui.trace.watch_node_valid) {
+                return snprintf(buf, buf_size, "%c", trace_is_node_high(trace_index, ui.trace.watch_node_index) ? '1':'0');
+            }
+            else {
+                return snprintf(buf, buf_size, "%s", "??");
+            }
+        case 13: return snprintf(buf, buf_size, "%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), p_buf, sizeof(p_buf)));
+        case 14: return snprintf(buf, buf_size, "%s", trace_6502_get_irq(trace_index)?"   ":"IRQ");
+        case 15: return snprintf(buf, buf_size, "%s", trace_6502_get_nmi(trace_index)?"   ":"NMI");
+        case 16: return snprintf(buf, buf_size, "%s", trace_6502_get_res(trace_index)?"   ":"RES");
+        case 17: return snprintf(buf, buf_size, "%s", trace_6502_get_rdy(trace_index)?"   ":"RDY");
+        case 18: return snprintf(buf, buf_size, "%s", trace_get_disasm(trace_index));
+        default: return snprintf(buf, buf_size, "%s", "???");
+    }
 }
 #elif defined(CHIP_Z80)
-static void ui_tracelog_table_row(int trace_index) {
+static int ui_tracelog_print_item(int trace_index, int col_index, char* buf, size_t buf_size) {
     const uint32_t cur_cycle = trace_get_cycle(trace_index);
-    ImGui::TableSetColumnIndex(0);
-    ImGui::Text("%5d/%d", cur_cycle >> 1, cur_cycle & 1);
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_z80_get_m1(trace_index)?"":"M1");
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_z80_get_mreq(trace_index)?"":"MREQ");
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_z80_get_ioreq(trace_index)?"":"IORQ");
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_z80_get_rfsh(trace_index)?"":"RFSH");
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_z80_get_rd(trace_index)?"":"RD");
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_z80_get_wr(trace_index)?"":"WR");
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_z80_get_int(trace_index)?"":"INT");
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_z80_get_nmi(trace_index)?"":"NMI");
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_z80_get_wait(trace_index)?"":"WAIT");
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_z80_get_halt(trace_index)?"":"HALT");
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_get_addr(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%02X", trace_get_data(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_get_pc(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%02X", trace_z80_get_ir(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_z80_get_af(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_z80_get_bc(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_z80_get_de(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_z80_get_hl(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_z80_get_af2(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_z80_get_bc2(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_z80_get_de2(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_z80_get_hl2(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_z80_get_ix(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_z80_get_iy(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_z80_get_sp(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%04X", trace_z80_get_wz(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%02X", trace_z80_get_i(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%02X", trace_z80_get_r(trace_index));
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_z80_get_iff1(trace_index) ? "IFF1":"    ");
-    ImGui::TableNextColumn();
-    if (ui.trace.watch_node_valid) {
-        ImGui::Text("%c", trace_is_node_high(trace_index, ui.trace.watch_node_index) ? '1':'0');
-    }
-    else {
-        ImGui::Text("%s", "??");
-    }
-    ImGui::TableNextColumn();
     char f_buf[9];
-    ImGui::Text("%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), f_buf, sizeof(f_buf)));
-    ImGui::TableNextColumn();
-    ImGui::Text("%s", trace_get_disasm(trace_index));
+    switch (col_index) {
+        case 0: return snprintf(buf, buf_size, "%5d/%d", cur_cycle >> 1, cur_cycle & 1);
+        case 1: return snprintf(buf, buf_size, "%s", trace_z80_get_m1(trace_index)?"":"M1");
+        case 2: return snprintf(buf, buf_size, "%s", trace_z80_get_mreq(trace_index)?"":"MREQ");
+        case 3: return snprintf(buf, buf_size, "%s", trace_z80_get_ioreq(trace_index)?"":"IORQ");
+        case 4: return snprintf(buf, buf_size, "%s", trace_z80_get_rfsh(trace_index)?"":"RFSH");
+        case 5: return snprintf(buf, buf_size, "%s", trace_z80_get_rd(trace_index)?"":"RD");
+        case 6: return snprintf(buf, buf_size, "%s", trace_z80_get_wr(trace_index)?"":"WR");
+        case 7: return snprintf(buf, buf_size, "%s", trace_z80_get_int(trace_index)?"":"INT");
+        case 8: return snprintf(buf, buf_size, "%s", trace_z80_get_nmi(trace_index)?"":"NMI");
+        case 9: return snprintf(buf, buf_size, "%s", trace_z80_get_wait(trace_index)?"":"WAIT");
+        case 10: return snprintf(buf, buf_size, "%s", trace_z80_get_halt(trace_index)?"":"HALT");
+        case 11: return snprintf(buf, buf_size, "%04X", trace_get_addr(trace_index));
+        case 12: return snprintf(buf, buf_size, "%02X", trace_get_data(trace_index));
+        case 13: return snprintf(buf, buf_size, "%04X", trace_get_pc(trace_index));
+        case 14: return snprintf(buf, buf_size, "%02X", trace_z80_get_ir(trace_index));
+        case 15: return snprintf(buf, buf_size, "%04X", trace_z80_get_af(trace_index));
+        case 16: return snprintf(buf, buf_size, "%04X", trace_z80_get_bc(trace_index));
+        case 17: return snprintf(buf, buf_size, "%04X", trace_z80_get_de(trace_index));
+        case 18: return snprintf(buf, buf_size, "%04X", trace_z80_get_hl(trace_index));
+        case 19: return snprintf(buf, buf_size, "%04X", trace_z80_get_af2(trace_index));
+        case 20: return snprintf(buf, buf_size, "%04X", trace_z80_get_bc2(trace_index));
+        case 21: return snprintf(buf, buf_size, "%04X", trace_z80_get_de2(trace_index));
+        case 22: return snprintf(buf, buf_size, "%04X", trace_z80_get_hl2(trace_index));
+        case 23: return snprintf(buf, buf_size, "%04X", trace_z80_get_ix(trace_index));
+        case 24: return snprintf(buf, buf_size, "%04X", trace_z80_get_iy(trace_index));
+        case 25: return snprintf(buf, buf_size, "%04X", trace_z80_get_sp(trace_index));
+        case 26: return snprintf(buf, buf_size, "%04X", trace_z80_get_wz(trace_index));
+        case 27: return snprintf(buf, buf_size, "%02X", trace_z80_get_i(trace_index));
+        case 28: return snprintf(buf, buf_size, "%02X", trace_z80_get_r(trace_index));
+        case 29: return snprintf(buf, buf_size, "%s", trace_z80_get_iff1(trace_index) ? "IFF1":"    ");
+        case 30:
+            if (ui.trace.watch_node_valid) {
+                return snprintf(buf, buf_size, "%c", trace_is_node_high(trace_index, ui.trace.watch_node_index) ? '1':'0');
+            }
+            else {
+                return snprintf(buf, buf_size, "%s", "??");
+            }
+        case 31: return snprintf(buf, buf_size, "%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), f_buf, sizeof(f_buf)));
+        case 32: return snprintf(buf, buf_size, "%s", trace_get_disasm(trace_index));
+        default: return snprintf(buf, buf_size, "%s", "???");
+    }
 }
 #endif
 
@@ -1231,7 +1192,12 @@ static void ui_tracelog(void) {
                     }
                     ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, bg_color);
                     const ImVec2 min_p = ImGui::GetCursorScreenPos();
-                    ui_tracelog_table_row(trace_index);
+                    for (int col_index = 0; col_index < UI_TRACELOG_NUM_COLUMNS; col_index++) {
+                        ImGui::TableSetColumnIndex(col_index);
+                        char buf[32];
+                        ui_tracelog_print_item(trace_index, col_index, buf, sizeof(buf));
+                        ImGui::Text("%s", buf);
+                    }
                     ImVec2 max_p = ImGui::GetCursorScreenPos();
                     max_p.x = min_p.x + ImGui::GetWindowContentRegionWidth();
                     const bool hovered = ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(min_p, max_p, false);
@@ -1299,8 +1265,98 @@ static void ui_tracelog(void) {
     }
 }
 
-const char* ui_trace_get_log(void) {
-    return "FIXME";
+static void ui_tracedump_append(const char* str) {
+    char c;
+    while ((ui.tracedump.pos < (MAX_TRACEDUMP_SIZE-1)) && ((c = *str++) != 0)) {
+        ui.tracedump.buf[ui.tracedump.pos++] = c;
+    }
+}
+
+static void ui_tracedump_begin(void) {
+    // see: https://unicode.org/charts/nameslist/n_2500.html
+    char buf[64];
+    ui.tracedump.pos = 0;
+    bool first = true;
+    for (int col_index = 0; col_index < UI_TRACELOG_NUM_COLUMNS; col_index++) {
+        if (ui.trace.column_visible[col_index]) {
+            if (first) {
+                first = false;
+                ui_tracedump_append("\u250C\u2500");
+            }
+            else {
+                ui_tracedump_append("\u252C\u2500");
+            }
+            for (int i = 0; i < ui_tracelog_columns[col_index].width; i++) {
+                ui_tracedump_append("\u2500");
+            }
+            ui_tracedump_append("\u2500");
+        }
+    }
+    ui_tracedump_append("\u2510\n");
+    for (int col_index = 0; col_index < UI_TRACELOG_NUM_COLUMNS; col_index++) {
+        if (ui.trace.column_visible[col_index]) {
+            const ui_tracelog_column_t* col = &ui_tracelog_columns[col_index];
+            ui_tracedump_append("\u2502 ");
+            int pos = snprintf(buf, sizeof(buf), "%s", col->label);
+            for (; pos < col->width; pos++) {
+                buf[pos] = ' ';
+            }
+            buf[pos] = 0;
+            ui_tracedump_append(buf);
+            ui_tracedump_append(" ");
+        }
+    }
+    ui_tracedump_append("\u2502\n");
+    first = true;
+    for (int col_index = 0; col_index < UI_TRACELOG_NUM_COLUMNS; col_index++) {
+        if (ui.trace.column_visible[col_index]) {
+            if (first) {
+                first = false;
+                ui_tracedump_append("\u251C\u2500");
+            }
+            else {
+                ui_tracedump_append("\u253C\u2500");
+            }
+            for (int i = 0; i < ui_tracelog_columns[col_index].width; i++) {
+                ui_tracedump_append("\u2500");
+            }
+            ui_tracedump_append("\u2500");
+        }
+    }
+    ui_tracedump_append("\u2524\n");
+}
+
+static void ui_tracedump_row(int trace_index) {
+    char buf[64];
+    for (int col_index = 0; col_index < UI_TRACELOG_NUM_COLUMNS; col_index++) {
+        if (ui.trace.column_visible[col_index]) {
+            ui_tracedump_append("\u2502 ");
+            int pos = ui_tracelog_print_item(trace_index, col_index, buf, sizeof(buf));
+            for (; pos < (ui_tracelog_columns[col_index].width); pos++) {
+                buf[pos] = ' ';
+            }
+            buf[pos] = 0;
+            ui_tracedump_append(buf);
+            ui_tracedump_append(" ");
+        }
+    }
+    ui_tracedump_append("\u2502\n");
+}
+
+static void ui_tracedump_end(void) {
+    assert(ui.tracedump.pos < MAX_TRACEDUMP_SIZE);
+    ui.tracedump.buf[ui.tracedump.pos] = 0;
+}
+
+const char* ui_trace_get_dump(void) {
+    const int num_rows = trace_num_items();
+    ui_tracedump_begin();
+    for (int row_index = 0; row_index < num_rows; row_index++) {
+        const int trace_index = num_rows - 1 - row_index;
+        ui_tracedump_row(trace_index);
+    }
+    ui_tracedump_end();
+    return ui.tracedump.buf;
 }
 
 #if defined(CHIP_6502)
