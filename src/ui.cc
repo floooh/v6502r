@@ -54,6 +54,76 @@ static const ImU32 ui_notfound_text_color = 0xFF4488FF;
 
 #define MAX_NODEEXPLORER_TOKENBUFFER_SIZE (1024)
 #define MAX_NODEEXPLORER_HOVERED_NODES (32)
+#define MAX_TRACELOG_SIZE (MAX_TRACE_ITEMS * 256)
+#define MAX_TRACELOG_COLUMNS (64)
+
+typedef struct {
+    const char* label;
+    ImGuiTableColumnFlags flags;
+    int width;
+} ui_tracelog_column_t;
+
+#if defined(CHIP_6502)
+#define UI_TRACELOG_NUM_COLUMNS (19)
+static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] = {
+    { "Cycle/h", ImGuiTableColumnFlags_None, 6 },
+    { "SYNC", ImGuiTableColumnFlags_NoClip, 4 },
+    { "RW", ImGuiTableColumnFlags_NoClip, 2 },
+    { "AB", ImGuiTableColumnFlags_NoClip, 4 },
+    { "DB", ImGuiTableColumnFlags_NoClip, 2 },
+    { "PC", ImGuiTableColumnFlags_NoClip, 4 },
+    { "IR", ImGuiTableColumnFlags_NoClip, 2 },
+    { "A", ImGuiTableColumnFlags_NoClip, 2 },
+    { "X", ImGuiTableColumnFlags_NoClip, 2 },
+    { "Y", ImGuiTableColumnFlags_NoClip, 2 },
+    { "S", ImGuiTableColumnFlags_NoClip, 2 },
+    { "P", ImGuiTableColumnFlags_NoClip, 2 },
+    { "Watch", ImGuiTableColumnFlags_NoClip, 4 },
+    { "Flags", ImGuiTableColumnFlags_NoClip, 8 },
+    { "IRQ", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
+    { "NMI", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
+    { "RES", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
+    { "RDY", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
+    { "Asm", ImGuiTableColumnFlags_NoClip, 8 },
+};
+#elif defined(CHIP_Z80)
+#define UI_TRACELOG_NUM_COLUMNS (33)
+static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] = {
+    { "Cycle/h", ImGuiTableColumnFlags_None, 6 },
+    { "M1", ImGuiTableColumnFlags_NoClip, 2 },
+    { "MREQ", ImGuiTableColumnFlags_NoClip, 4 },
+    { "IORQ", ImGuiTableColumnFlags_NoClip, 4 },
+    { "RFSH", ImGuiTableColumnFlags_NoClip, 4 },
+    { "RD", ImGuiTableColumnFlags_NoClip, 2 },
+    { "WR", ImGuiTableColumnFlags_NoClip, 2 },
+    { "INT", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
+    { "NMI", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
+    { "WAIT", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "HALT", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "AB", ImGuiTableColumnFlags_NoClip, 4 },
+    { "DB", ImGuiTableColumnFlags_NoClip, 2 },
+    { "PC", ImGuiTableColumnFlags_NoClip, 4 },
+    { "IR", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2 },
+    { "AF", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "BC", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "DE", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "HL", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "AF'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "BC'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "DE'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "HL'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "IX", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "IY", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "SP", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "WZ", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "I", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2 },
+    { "R", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2 },
+    { "IFF1", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "Watch", ImGuiTableColumnFlags_NoClip, 4 },
+    { "Flags", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 8 },
+    { "Asm", ImGuiTableColumnFlags_NoClip, 12 }
+};
+#endif
 
 static struct {
     bool valid;
@@ -79,6 +149,7 @@ static struct {
         bool save_source_hovered;
         bool save_binary_hovered;
         bool save_listing_hovered;
+        bool save_tracelog_hovered;
         bool cut_hovered;
         bool copy_hovered;
     } menu;
@@ -93,6 +164,7 @@ static struct {
         bool watch_node_valid;
         char watch_str[32];
         uint32_t watch_node_index;
+        bool column_visible[UI_TRACELOG_NUM_COLUMNS];
     } trace;
     struct {
         TextEditor* editor;
@@ -105,6 +177,7 @@ static struct {
     } explorer;
     bool link_hovered;
     char link_url[MAX_LINKURL_SIZE];
+    char tracelog[MAX_TRACELOG_SIZE];
 } ui;
 
 static void ui_menu(void);
@@ -434,17 +507,21 @@ bool ui_handle_input(const sapp_event* ev) {
         sapp_consume_event();
     }
     if (test_click(ev, ui.menu.save_source_hovered) || test_ctrl_shift(ev, SAPP_KEYCODE_S)) {
-        util_html5_download_string("v6502r.asm", ui_asm_source());
+        util_html5_download_string("source.asm", ui_asm_source());
         ui.menu.save_source_hovered = false;
         sapp_consume_event();
     }
     if (test_click(ev, ui.menu.save_listing_hovered)) {
-        util_html5_download_string("v6502r.lst", asm_listing());
+        util_html5_download_string("listing.lst", asm_listing());
         ui.menu.save_listing_hovered = false;
     }
     if (test_click(ev, ui.menu.save_binary_hovered)) {
-        util_html5_download_binary("v6502r.bin", ui_asm_get_binary());
+        util_html5_download_binary("binary.bin", ui_asm_get_binary());
         ui.menu.save_binary_hovered = false;
+    }
+    if (test_click(ev, ui.menu.save_tracelog_hovered)) {
+        util_html5_download_string("tracelog.txt", ui_trace_get_log());
+        ui.menu.save_tracelog_hovered = false;
     }
     if (test_ctrl(ev, SAPP_KEYCODE_Z) || test_ctrl(ev, SAPP_KEYCODE_Y)) {
         ui_undo();
@@ -533,6 +610,8 @@ static void ui_menu(void) {
             ui.menu.save_binary_hovered = ImGui::IsItemHovered();
             ImGui::MenuItem("Save Listing...", 0);
             ui.menu.save_listing_hovered = ImGui::IsItemHovered();
+            ImGui::MenuItem("Save Tracelog...", 0);
+            ui.menu.save_tracelog_hovered = ImGui::IsItemHovered();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
@@ -954,31 +1033,6 @@ static void ui_tracelog_timingdiagram_end() {
 }
 
 #if defined(CHIP_6502)
-static const int ui_tracelog_table_num_columns = 19;
-
-static void ui_tracelog_table_setup_columns(void) {
-    const float char_width = 8.0f;
-    ImGui::TableSetupColumn("Cycle/h", ImGuiTableColumnFlags_None, 6*char_width);
-    ImGui::TableSetupColumn("SYNC", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("RW", ImGuiTableColumnFlags_NoClip, 2*char_width);
-    ImGui::TableSetupColumn("AB", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("DB", ImGuiTableColumnFlags_NoClip, 2*char_width);
-    ImGui::TableSetupColumn("PC", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("IR", ImGuiTableColumnFlags_NoClip, 2*char_width);
-    ImGui::TableSetupColumn("A", ImGuiTableColumnFlags_NoClip, 2*char_width);
-    ImGui::TableSetupColumn("X", ImGuiTableColumnFlags_NoClip, 2*char_width);
-    ImGui::TableSetupColumn("Y", ImGuiTableColumnFlags_NoClip, 2*char_width);
-    ImGui::TableSetupColumn("S", ImGuiTableColumnFlags_NoClip, 2*char_width);
-    ImGui::TableSetupColumn("P", ImGuiTableColumnFlags_NoClip, 2*char_width);
-    ImGui::TableSetupColumn("Watch", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_NoClip, 8*char_width);
-    ImGui::TableSetupColumn("IRQ", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3*char_width);
-    ImGui::TableSetupColumn("NMI", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3*char_width);
-    ImGui::TableSetupColumn("RES", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3*char_width);
-    ImGui::TableSetupColumn("RDY", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3*char_width);
-    ImGui::TableSetupColumn("Asm", ImGuiTableColumnFlags_NoClip, 8*char_width);
-}
-
 static void ui_tracelog_table_row(int trace_index) {
     const uint32_t cur_cycle = trace_get_cycle(trace_index);
     ImGui::TableSetColumnIndex(0);
@@ -1027,41 +1081,6 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::Text("%s", trace_get_disasm(trace_index));
 }
 #elif defined(CHIP_Z80)
-static const int ui_tracelog_table_num_columns = 29;
-
-static void ui_tracelog_table_setup_columns(void) {
-    const float char_width = 8.0f;
-    ImGui::TableSetupColumn("Cycle/h", ImGuiTableColumnFlags_None, 6*char_width);
-    ImGui::TableSetupColumn("M1", ImGuiTableColumnFlags_NoClip, 2*char_width);
-    ImGui::TableSetupColumn("MREQ", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("IORQ", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("RFSH", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("RD", ImGuiTableColumnFlags_NoClip, 2*char_width);
-    ImGui::TableSetupColumn("WR", ImGuiTableColumnFlags_NoClip, 2*char_width);
-    ImGui::TableSetupColumn("AB", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("DB", ImGuiTableColumnFlags_NoClip, 2*char_width);
-    ImGui::TableSetupColumn("PC", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("IR", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2*char_width);
-    ImGui::TableSetupColumn("AF", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("BC", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("DE", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("HL", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("AF'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("BC'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("DE'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("HL'", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("IX", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("IY", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("SP", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("WZ", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("I", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2*char_width);
-    ImGui::TableSetupColumn("R", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2*char_width);
-    ImGui::TableSetupColumn("IFF1", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4*char_width);
-    ImGui::TableSetupColumn("Watch", ImGuiTableColumnFlags_NoClip, 4*char_width);
-    ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 8*char_width);
-    ImGui::TableSetupColumn("Asm", ImGuiTableColumnFlags_NoClip, 12*char_width);
-}
-
 static void ui_tracelog_table_row(int trace_index) {
     const uint32_t cur_cycle = trace_get_cycle(trace_index);
     ImGui::TableSetColumnIndex(0);
@@ -1078,6 +1097,14 @@ static void ui_tracelog_table_row(int trace_index) {
     ImGui::Text("%s", trace_z80_get_rd(trace_index)?"":"RD");
     ImGui::TableNextColumn();
     ImGui::Text("%s", trace_z80_get_wr(trace_index)?"":"WR");
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_z80_get_int(trace_index)?"":"INT");
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_z80_get_nmi(trace_index)?"":"NMI");
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_z80_get_wait(trace_index)?"":"WAIT");
+    ImGui::TableNextColumn();
+    ImGui::Text("%s", trace_z80_get_halt(trace_index)?"":"HALT");
     ImGui::TableNextColumn();
     ImGui::Text("%04X", trace_get_addr(trace_index));
     ImGui::TableNextColumn();
@@ -1131,6 +1158,14 @@ static void ui_tracelog_table_row(int trace_index) {
 }
 #endif
 
+static void ui_tracelog_table_setup_columns(void) {
+    const float char_width = 8.0f;
+    for (int i = 0; i < UI_TRACELOG_NUM_COLUMNS; i++) {
+        const ui_tracelog_column_t* col = &ui_tracelog_columns[i];
+        ImGui::TableSetupColumn(col->label, col->flags, col->width * char_width);
+    }
+}
+
 static uint32_t ui_trace_bgcolor(uint32_t flipbits) {
     return ui_trace_bg_colors[flipbits & 3];
 }
@@ -1165,7 +1200,7 @@ static void ui_tracelog(void) {
             ImGuiTableFlags_BordersOuter |
             ImGuiTableFlags_BordersV |
             ImGuiTableFlags_SizingFixedFit;
-        if (ImGui::BeginTable("##trace_data", ui_tracelog_table_num_columns, table_flags, {0.0f, -footer_h})) {
+        if (ImGui::BeginTable("##trace_data", UI_TRACELOG_NUM_COLUMNS, table_flags, {0.0f, -footer_h})) {
             ImGui::TableSetupScrollFreeze(1, 1); // top and left row always visible
             ui_tracelog_table_setup_columns();
             ImGui::TableHeadersRow();
@@ -1221,6 +1256,10 @@ static void ui_tracelog(void) {
             if (trace_ui_get_scroll_to_end()) {
                 ImGui::SetScrollHereY();
             }
+            // record the current column visibility status
+            for (int i = 0; i < UI_TRACELOG_NUM_COLUMNS; i++) {
+                ui.trace.column_visible[i] = 0 != (ImGui::TableGetColumnFlags(i) & ImGuiTableColumnFlags_IsVisible);
+            }
             ImGui::EndTable();
             ImGui::Separator();
 
@@ -1258,6 +1297,10 @@ static void ui_tracelog(void) {
     if (!any_hovered) {
         ui.trace.hovered_flags &= ~TRACELOG_HOVERED;
     }
+}
+
+const char* ui_trace_get_log(void) {
+    return "FIXME";
 }
 
 #if defined(CHIP_6502)

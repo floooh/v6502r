@@ -264,6 +264,22 @@ bool trace_z80_get_wr(uint32_t index) {
     return is_node_high(index, pz80__wr);
 }
 
+bool trace_z80_get_int(uint32_t index) {
+    return is_node_high(index, pz80__int);
+}
+
+bool trace_z80_get_nmi(uint32_t index) {
+    return is_node_high(index, pz80__nmi);
+}
+
+bool trace_z80_get_wait(uint32_t index) {
+    return is_node_high(index, pz80__wait);
+}
+
+bool trace_z80_get_halt(uint32_t index) {
+    return is_node_high(index, pz80__halt);
+}
+
 bool trace_z80_get_iff1(uint32_t index) {
     return is_node_high(index, 181);
 }
