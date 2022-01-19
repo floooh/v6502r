@@ -564,7 +564,7 @@ bool ui_handle_input(const sapp_event* ev) {
 void ui_frame() {
     assert(ui.valid);
     ui.link_hovered = false;
-    simgui_new_frame(sapp_width(), sapp_height(), 1.0/60.0);
+    simgui_new_frame({ sapp_width(), sapp_height(), sapp_frame_duration(), sapp_dpi_scale() });
     ui_menu();
     ui_picking();
     ui_memedit_draw(&ui.memedit);
