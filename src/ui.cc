@@ -37,6 +37,10 @@
 #include <math.h>   // sinf, fmodf
 #include <string.h> // strncpy
 
+#ifdef _MSC_VER
+#pragma warning (disable: 4566) // character represented by universal-character-name '\u...' cannot be represented in the current code page
+#endif
+
 enum {
     TRACELOG_HOVERED = (1<<0),
     TIMINGDIAGRAM_HOVERED = (1<<1),
