@@ -241,7 +241,7 @@ void ui_init() {
     // setup sokol-imgui
     simgui_desc_t simgui_desc = { };
     simgui_desc.no_default_font = true;
-    simgui_desc.disable_hotkeys = true;
+    simgui_desc.disable_paste_override = true;
     simgui_setup(&simgui_desc);
     auto& style = ImGui::GetStyle();
     style.WindowRounding = 0.0f;
