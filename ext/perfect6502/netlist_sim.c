@@ -60,6 +60,8 @@ typedef struct {
 } list_t;
 
 typedef struct {
+    BOOL charge_sharing;
+
 	nodenum_t nodes;
 	nodenum_t transistors;
 	nodenum_t vss;
@@ -379,6 +381,32 @@ getGroupValue(state_t *state)
 	}
 }
 
+static inline BOOL
+getGroupValueChargeSharing(state_t *state)
+{
+	switch (state->group_contains_value) {
+		case contains_vcc:
+		case contains_pullup:
+			return YES;
+		case contains_vss:
+		case contains_pulldown:
+			return NO;
+		default:
+			break;
+	}
+	BOOL max_state = NO;
+	int max_connections = 0;
+	for (int i = 0; i < group_count(state); i++) {
+		nodenum_t nn = group_get(state, i);
+		int connections = state->nodes_gatecount[nn] + state->nodes_c1c2count[nn];
+		if (connections > max_connections) {
+			max_connections = connections;
+			max_state = get_nodes_value(state, nn);
+		}
+	}
+	return max_state;
+}
+
 static inline void
 recalcNode(state_t *state, nodenum_t node)
 {
@@ -389,7 +417,7 @@ recalcNode(state_t *state, nodenum_t node)
 	addAllNodesToGroup(state, node);
 
 	/* get the state of the group */
-	BOOL newv = getGroupValue(state);
+	BOOL newv = state->charge_sharing ? getGroupValueChargeSharing(state) : getGroupValue(state);
 
 	/*
 	 * - set all nodes to the group state
@@ -456,6 +484,12 @@ recalcNodeList(state_t *state)
  *
  ************************************************************/
 
+void
+modelChargeSharing(state_t *state, BOOL enabled)
+{
+   state->charge_sharing = enabled;
+}
+
 static inline void
 add_nodes_dependant(state_t *state, nodenum_t a, nodenum_t b)
 {
@@ -481,6 +515,7 @@ setupNodesAndTransistors(netlist_transdefs *transdefs, BOOL *node_is_pullup, nod
 {
 	/* allocate state */
 	state_t *state = malloc(sizeof(state_t));
+    state->charge_sharing = NO;
 	state->nodes = nodes;
 	state->transistors = transistors;
 	state->vss = vss;
