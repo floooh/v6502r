@@ -202,7 +202,7 @@ uint8_t trace_6502_get_sp(uint32_t index) {
     return read_nodes(index, 8, nodegroup_sp);
 }
 
-uint8_t trace_6502_get_ir(uint32_t index) {
+uint8_t trace_6502_get_op(uint32_t index) {
     return ~read_nodes(index, 8, nodegroup_ir);
 }
 
@@ -284,8 +284,17 @@ bool trace_z80_get_iff1(uint32_t index) {
     return is_node_high(index, 231);
 }
 
-uint8_t trace_z80_get_ir(uint32_t index) {
+uint8_t trace_z80_get_op(uint32_t index) {
     return read_nodes(index, 8, nodegroup_ir);
+}
+
+// see https://github.com/floooh/v6502r/issues/3
+uint8_t trace_z80_get_im(uint32_t index) {
+    uint8_t im = (is_node_high(index, 205) ? 1:0) | (is_node_high(index, 179) ? 2:0);
+    if (im > 0) {
+        im -= 1;
+    }
+    return im;
 }
 
 uint8_t trace_z80_get_a(uint32_t index) {

@@ -75,7 +75,7 @@ static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] =
     { "AB", ImGuiTableColumnFlags_NoClip, 4 },
     { "DB", ImGuiTableColumnFlags_NoClip, 2 },
     { "PC", ImGuiTableColumnFlags_NoClip, 4 },
-    { "IR", ImGuiTableColumnFlags_NoClip, 2 },
+    { "OP", ImGuiTableColumnFlags_NoClip, 2 },
     { "A", ImGuiTableColumnFlags_NoClip, 2 },
     { "X", ImGuiTableColumnFlags_NoClip, 2 },
     { "Y", ImGuiTableColumnFlags_NoClip, 2 },
@@ -90,7 +90,7 @@ static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] =
     { "Asm", ImGuiTableColumnFlags_NoClip, 8 },
 };
 #elif defined(CHIP_Z80)
-#define UI_TRACELOG_NUM_COLUMNS (33)
+#define UI_TRACELOG_NUM_COLUMNS (34)
 static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] = {
     { "Cycle/h", ImGuiTableColumnFlags_None, 7 },
     { "M1", ImGuiTableColumnFlags_NoClip, 2 },
@@ -106,7 +106,7 @@ static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] =
     { "AB", ImGuiTableColumnFlags_NoClip, 4 },
     { "DB", ImGuiTableColumnFlags_NoClip, 2 },
     { "PC", ImGuiTableColumnFlags_NoClip, 4 },
-    { "IR", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2 },
+    { "OP", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2 },
     { "AF", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
     { "BC", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
     { "DE", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
@@ -121,6 +121,7 @@ static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] =
     { "WZ", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
     { "I", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2 },
     { "R", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2 },
+    { "IM", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2 },
     { "IFF1", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
     { "Watch", ImGuiTableColumnFlags_NoClip, 5 },
     { "Flags", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 8 },
@@ -784,13 +785,13 @@ static const char* ui_cpu_flags_as_string(uint8_t flags, char* buf, size_t buf_s
 
 #if defined(CHIP_6502)
 static void ui_cpu_status_panel(void) {
-    const uint8_t ir = sim_6502_get_ir();
+    const uint8_t ir = sim_6502_get_op();
     const uint8_t p = sim_get_flags();
     ImGui::Text("A:%02X X:%02X Y:%02X SP:%02X PC:%04X",
         sim_6502_get_a(), sim_6502_get_x(), sim_6502_get_y(), sim_6502_get_sp(), sim_get_pc());
     char p_buf[9];
     ImGui::Text("P:%02X (%s) Cycle: %d", p, ui_cpu_flags_as_string(sim_get_flags(), p_buf, sizeof(p_buf)), sim_get_cycle()>>1);
-    ImGui::Text("IR:%02X [%s]\n", ir, trace_get_disasm(0));
+    ImGui::Text("OP:%02X [%s]\n", ir, trace_get_disasm(0));
     ImGui::Text("Data:%02X Addr:%04X %s %s %s",
         sim_get_data(), sim_get_addr(),
         sim_6502_get_rw()?"R":"W",
@@ -829,8 +830,8 @@ static void ui_cpu_status_panel(void) {
     ImGui::Text("AF'%04X  BC'%04X  DE'%04X  HL'%04X", sim_z80_get_af2(), sim_z80_get_bc2(), sim_z80_get_de2(), sim_z80_get_hl2());
     ImGui::Text("IX:%04X  IY:%04X  SP:%04X  PC:%04X", sim_z80_get_ix(), sim_z80_get_iy(), sim_z80_get_sp(), sim_z80_get_pc());
     char f_buf[9];
-    ImGui::Text("WZ:%04X  I:%02X  R:%02X F:%s", sim_z80_get_wz(), sim_z80_get_i(), sim_z80_get_r(), ui_cpu_flags_as_string(sim_z80_get_f(), f_buf, sizeof(f_buf)));
-    ImGui::Text("IR:%02X [%s]", sim_z80_get_ir(), trace_get_disasm(0));
+    ImGui::Text("WZ:%04X  IR:%02X%02X  IM:%X  F:%s", sim_z80_get_wz(), sim_z80_get_i(), sim_z80_get_r(), sim_z80_get_im(), ui_cpu_flags_as_string(sim_z80_get_f(), f_buf, sizeof(f_buf)));
+    ImGui::Text("OP:%02X [%s]", sim_z80_get_op(), trace_get_disasm(0));
     const char* m_str = "??";
     const char* t_str = "??";
     switch (sim_z80_get_m()) {
@@ -1052,7 +1053,7 @@ static int ui_tracelog_print_item(int trace_index, int col_index, char* buf, siz
         case 3: return snprintf(buf, buf_size, "%04X", trace_get_addr(trace_index));
         case 4: return snprintf(buf, buf_size, "%02X", trace_get_data(trace_index));
         case 5: return snprintf(buf, buf_size, "%04X", trace_get_pc(trace_index));
-        case 6: return snprintf(buf, buf_size, "%02X", trace_6502_get_ir(trace_index));
+        case 6: return snprintf(buf, buf_size, "%02X", trace_6502_get_op(trace_index));
         case 7: return snprintf(buf, buf_size, "%02X", trace_6502_get_a(trace_index));
         case 8: return snprintf(buf, buf_size, "%02X", trace_6502_get_x(trace_index));
         case 9: return snprintf(buf, buf_size, "%02X", trace_6502_get_y(trace_index));
@@ -1093,7 +1094,7 @@ static int ui_tracelog_print_item(int trace_index, int col_index, char* buf, siz
         case 11: return snprintf(buf, buf_size, "%04X", trace_get_addr(trace_index));
         case 12: return snprintf(buf, buf_size, "%02X", trace_get_data(trace_index));
         case 13: return snprintf(buf, buf_size, "%04X", trace_get_pc(trace_index));
-        case 14: return snprintf(buf, buf_size, "%02X", trace_z80_get_ir(trace_index));
+        case 14: return snprintf(buf, buf_size, "%02X", trace_z80_get_op(trace_index));
         case 15: return snprintf(buf, buf_size, "%04X", trace_z80_get_af(trace_index));
         case 16: return snprintf(buf, buf_size, "%04X", trace_z80_get_bc(trace_index));
         case 17: return snprintf(buf, buf_size, "%04X", trace_z80_get_de(trace_index));
@@ -1108,16 +1109,17 @@ static int ui_tracelog_print_item(int trace_index, int col_index, char* buf, siz
         case 26: return snprintf(buf, buf_size, "%04X", trace_z80_get_wz(trace_index));
         case 27: return snprintf(buf, buf_size, "%02X", trace_z80_get_i(trace_index));
         case 28: return snprintf(buf, buf_size, "%02X", trace_z80_get_r(trace_index));
-        case 29: return snprintf(buf, buf_size, "%s", trace_z80_get_iff1(trace_index) ? "IFF1":"    ");
-        case 30:
+        case 29: return snprintf(buf, buf_size, "%01X", trace_z80_get_im(trace_index));
+        case 30: return snprintf(buf, buf_size, "%s", trace_z80_get_iff1(trace_index) ? "IFF1":"    ");
+        case 31:
             if (ui.trace.watch_node_valid) {
                 return snprintf(buf, buf_size, "%c", trace_is_node_high(trace_index, ui.trace.watch_node_index) ? '1':'0');
             }
             else {
                 return snprintf(buf, buf_size, "%s", "??");
             }
-        case 31: return snprintf(buf, buf_size, "%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), f_buf, sizeof(f_buf)));
-        case 32: return snprintf(buf, buf_size, "%s", trace_get_disasm(trace_index));
+        case 32: return snprintf(buf, buf_size, "%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), f_buf, sizeof(f_buf)));
+        case 33: return snprintf(buf, buf_size, "%s", trace_get_disasm(trace_index));
         default: return snprintf(buf, buf_size, "%s", "???");
     }
 }

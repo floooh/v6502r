@@ -294,7 +294,7 @@ uint8_t sim_6502_get_sp(void) {
     return cpu_readSP(sim.cpu_state);
 }
 
-uint8_t sim_6502_get_ir(void) {
+uint8_t sim_6502_get_op(void) {
     return cpu_readIR(sim.cpu_state);
 }
 
@@ -408,8 +408,17 @@ uint8_t sim_z80_get_i(void) {
     return cpu_readI(sim.cpu_state);
 }
 
-uint8_t sim_z80_get_ir(void) {
+uint8_t sim_z80_get_op(void) {
     return cpu_readIR(sim.cpu_state);
+}
+
+// see https://github.com/floooh/v6502r/issues/3
+uint8_t sim_z80_get_im(void) {
+    uint8_t im = (cpu_read_node(sim.cpu_state, 205) ? 1:0) | (cpu_read_node(sim.cpu_state, 179) ? 2:0);
+    if (im > 0) {
+        im -= 1;
+    }
+    return im;
 }
 
 uint8_t sim_z80_get_r(void) {
