@@ -4,4 +4,7 @@ fips_begin_lib(texteditor)
     fips_deps(imgui)
 fips_end_lib()
 target_include_directories(texteditor INTERFACE .)
+if (FIPS_CLANG)
+    target_compile_options(texteditor PRIVATE -Wno-unused-but-set-variable)
+endif()
 
