@@ -13,7 +13,6 @@ else()
 endif()
 
 fips_begin_lib(common)
-    fips_vs_warning_level(3)
     fips_files(dummy.c)
     sokol_shader(gfx.glsl ${slang})
     fips_dir(res)
@@ -38,7 +37,6 @@ set(SOURCES
 )
 
 fips_begin_app(v6502r windowed)
-    fips_vs_warning_level(3)
     fips_files(${SOURCES})
     fips_dir(m6502)
     fips_files(segdefs.c segdefs.h)
@@ -52,7 +50,6 @@ if (FIPS_EMSCRIPTEN)
 endif()
 
 fips_begin_app(vz80r windowed)
-    fips_vs_warning_level(3)
     fips_files(${SOURCES})
     fips_dir(z80)
     fips_files(segdefs.c segdefs.h)

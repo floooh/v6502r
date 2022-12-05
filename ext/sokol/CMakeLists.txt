@@ -1,5 +1,4 @@
 fips_begin_lib(sokol)
-    fips_vs_warning_level(3)
     fips_files(sokol.cc)
     fips_deps(imgui)
     if (FIPS_OSX)

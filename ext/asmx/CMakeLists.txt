@@ -1,5 +1,4 @@
 fips_begin_lib(asmx_6502)
-    fips_vs_warning_level(3)
     fips_dir(src)
     fips_files(asmx.c asmx.h asm6502.c)
 fips_end_lib()
@@ -7,7 +6,6 @@ target_include_directories(asmx_6502 INTERFACE src)
 target_compile_definitions(asmx_6502 PUBLIC ASMX_6502)
 
 fips_begin_lib(asmx_z80)
-    fips_vs_warning_level(3)
     fips_dir(src)
     fips_files(asmx.c asmx.h asmz80.c)
 fips_end_lib()
