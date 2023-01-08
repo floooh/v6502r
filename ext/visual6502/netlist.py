@@ -5,6 +5,7 @@
 #===============================================================================
 
 import os
+import re
 
 MAX_NODES = 8192
 
@@ -52,6 +53,19 @@ def parse_transdefs(src_dir, remap_index):
             c2 = remap_index(int(c2))
         TRANSDEFS.append([gate, c1, c2])
 
+allnames = set()
+def fixname(nodename):
+    if re.match(r'^[0-9]', nodename):
+        nodename = '_' + nodename
+    newnodename = re.sub(r'[^a-zA-Z0-9_]', '_', nodename)
+    if newnodename in allnames:
+        index = 0
+        while newnodename + str(index) in allnames:
+            index += 1
+        newnodename += str(index)
+    allnames.add(newnodename)
+    return newnodename
+
 # write the perfect6502 netlist header
 def write_header(dst_path, cpu_name, nodenames):
     fp = open(dst_path, 'w')
@@ -60,7 +74,7 @@ def write_header(dst_path, cpu_name, nodenames):
     fp.write("enum {\n")
     for i,nodename in enumerate(nodenames):
         if nodename is not None:
-            fp.write("  {} = {},\n".format(nodename.strip('"'), i))
+            fp.write("  {} = {},\n".format(fixname(nodename), i))
     fp.write("};\n\n");
     fp.write("BOOL netlist_{}_node_is_pullup[{}] = {{".format(cpu_name, NUM_NODEPULLUP))
     for i in range(0, NUM_NODEPULLUP):
