@@ -131,6 +131,118 @@ void sim_z80_set_intvec(uint8_t val);
 uint8_t sim_z80_get_intvec(void);
 #endif
 
+#if defined(CHIP_2A03)
+uint8_t sim_2a03_get_a(void);
+uint8_t sim_2a03_get_x(void);
+uint8_t sim_2a03_get_y(void);
+uint8_t sim_2a03_get_sp(void);
+uint8_t sim_2a03_get_op(void);
+bool sim_2a03_get_clk0(void);
+bool sim_2a03_get_rw(void);
+bool sim_2a03_get_sync(void);
+void sim_2a03_set_rdy(bool high);
+void sim_2a03_set_irq(bool high);
+void sim_2a03_set_nmi(bool high);
+void sim_2a03_set_res(bool high);
+bool sim_2a03_get_irq(void);
+bool sim_2a03_get_nmi(void);
+bool sim_2a03_get_res(void);
+bool sim_2a03_get_rdy(void);
+
+uint16_t sim_2a03_get_frm_t(void);
+
+uint8_t sim_2a03_get_sq0_out(void);
+uint8_t sim_2a03_get_sq1_out(void);
+uint8_t sim_2a03_get_tri_out(void);
+uint8_t sim_2a03_get_noi_out(void);
+uint8_t sim_2a03_get_pcm_out(void);
+
+uint16_t sim_2a03_get_sq0_p(void);
+uint16_t sim_2a03_get_sq0_t(void);
+uint8_t sim_2a03_get_sq0_c(void);
+uint8_t sim_2a03_get_sq0_swpb(void);
+bool sim_2a03_get_sq0_swpdir(void);
+uint8_t sim_2a03_get_sq0_swpp(void);
+bool sim_2a03_get_sq0_swpen(void);
+uint8_t sim_2a03_get_sq0_swpt(void);
+uint8_t sim_2a03_get_sq0_envp(void);
+bool sim_2a03_get_sq0_envmode(void);
+bool sim_2a03_get_sq0_lenhalt(void);
+uint8_t sim_2a03_get_sq0_duty(void);
+uint8_t sim_2a03_get_sq0_envt(void);
+uint8_t sim_2a03_get_sq0_envc(void);
+uint8_t sim_2a03_get_sq0_len(void);
+bool sim_2a03_get_sq0_en(void);
+bool sim_2a03_get_sq0_on(void);
+bool sim_2a03_get_sq0_len_reload(void);
+bool sim_2a03_get_sq0_silence(void);
+
+uint16_t sim_2a03_get_sq1_p(void);
+uint16_t sim_2a03_get_sq1_t(void);
+uint8_t sim_2a03_get_sq1_c(void);
+uint8_t sim_2a03_get_sq1_swpb(void);
+bool sim_2a03_get_sq1_swpdir(void);
+uint8_t sim_2a03_get_sq1_swpp(void);
+bool sim_2a03_get_sq1_swpen(void);
+uint8_t sim_2a03_get_sq1_swpt(void);
+uint8_t sim_2a03_get_sq1_envp(void);
+bool sim_2a03_get_sq1_envmode(void);
+bool sim_2a03_get_sq1_lenhalt(void);
+uint8_t sim_2a03_get_sq1_duty(void);
+uint8_t sim_2a03_get_sq1_envt(void);
+uint8_t sim_2a03_get_sq1_envc(void);
+uint8_t sim_2a03_get_sq1_len(void);
+bool sim_2a03_get_sq1_en(void);
+bool sim_2a03_get_sq1_on(void);
+bool sim_2a03_get_sq1_len_reload(void);
+bool sim_2a03_get_sq1_silence(void);
+
+uint8_t sim_2a03_get_tri_lin(void);
+bool sim_2a03_get_tri_lin_en(void);
+uint8_t sim_2a03_get_tri_lc(void);
+uint16_t sim_2a03_get_tri_p(void);
+uint16_t sim_2a03_get_tri_t(void);
+uint8_t sim_2a03_get_tri_c(void);
+uint8_t sim_2a03_get_tri_len(void);
+bool sim_2a03_get_tri_en(void);
+bool sim_2a03_get_tri_on(void);
+bool sim_2a03_get_tri_len_reload(void);
+bool sim_2a03_get_tri_silence(void);
+
+uint8_t sim_2a03_get_noi_freq(void);
+bool sim_2a03_get_noi_lfsrmode(void);
+uint16_t sim_2a03_get_noi_t(void);
+uint16_t sim_2a03_get_noi_c(void);
+uint8_t sim_2a03_get_noi_envp(void);
+bool sim_2a03_get_noi_envmode(void);
+bool sim_2a03_get_noi_lenhalt(void);
+uint8_t sim_2a03_get_noi_envt(void);
+uint8_t sim_2a03_get_noi_envc(void);
+uint8_t sim_2a03_get_noi_len(void);
+bool sim_2a03_get_noi_en(void);
+bool sim_2a03_get_noi_on(void);
+bool sim_2a03_get_noi_len_reload(void);
+bool sim_2a03_get_noi_silence(void);
+
+uint8_t sim_2a03_get_pcm_bits(void);
+bool sim_2a03_get_pcm_bits_overflow(void);
+uint8_t sim_2a03_get_pcm_buf(void);
+bool sim_2a03_get_pcm_loadbuf(void);
+uint8_t sim_2a03_get_pcm_sr(void);
+bool sim_2a03_get_pcm_loadsr(void);
+bool sim_2a03_get_pcm_shiftsr(void);
+uint8_t sim_2a03_get_pcm_freq(void);
+bool sim_2a03_get_pcm_loop(void);
+bool sim_2a03_get_pcm_irqen(void);
+uint16_t sim_2a03_get_pcm_t(void);
+uint8_t sim_2a03_get_pcm_sa(void);
+uint16_t sim_2a03_get_pcm_a(void);
+uint8_t sim_2a03_get_pcm_l(void);
+uint16_t sim_2a03_get_pcm_lc(void);
+bool sim_2a03_get_pcm_en(void);
+bool sim_2a03_get_pcm_rd_active(void);
+#endif
+
 #if defined(__cplusplus)
 } // extern "C"
 #endif

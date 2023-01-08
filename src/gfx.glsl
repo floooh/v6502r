@@ -21,7 +21,7 @@ void main() {
     vec2 p = (pos - half_size) + offset;
     p *= scale;
     gl_Position = vec4(p, 0.5, 1.0);
-    float u = ((uv.x*65535.0) + 0.5f) / 4096.0;
+    float u = ((uv.x*65535.0) + 0.5f) / 8192.0;
     float r = texture(palette_tex, vec2(u, 0.5)).r;
     color = vec4(color0.xyz, r);
 }

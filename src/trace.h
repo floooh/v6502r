@@ -35,7 +35,7 @@ bool trace_6502_get_irq(uint32_t index);
 bool trace_6502_get_nmi(uint32_t index);
 bool trace_6502_get_res(uint32_t index);
 bool trace_6502_get_rdy(uint32_t index);
-#else
+#elif defined(CHIP_Z80)
 bool trace_z80_get_clk(uint32_t index);
 bool trace_z80_get_m1(uint32_t index);
 bool trace_z80_get_mreq(uint32_t index);
@@ -82,6 +82,24 @@ uint16_t trace_z80_get_ix(uint32_t index);
 uint16_t trace_z80_get_iy(uint32_t index);
 uint16_t trace_z80_get_sp(uint32_t index);
 uint16_t trace_z80_get_wz(uint32_t index);
+#elif defined(CHIP_2A03)
+uint8_t trace_2a03_get_a(uint32_t index);
+uint8_t trace_2a03_get_x(uint32_t index);
+uint8_t trace_2a03_get_y(uint32_t index);
+uint8_t trace_2a03_get_sp(uint32_t index);
+uint8_t trace_2a03_get_op(uint32_t index);
+bool trace_2a03_get_clk0(uint32_t index);
+bool trace_2a03_get_rw(uint32_t index);
+bool trace_2a03_get_sync(uint32_t index);
+bool trace_2a03_get_irq(uint32_t index);
+bool trace_2a03_get_nmi(uint32_t index);
+bool trace_2a03_get_res(uint32_t index);
+bool trace_2a03_get_rdy(uint32_t index);
+uint8_t trace_2a03_get_sq0_out(uint32_t index);
+uint8_t trace_2a03_get_sq1_out(uint32_t index);
+uint8_t trace_2a03_get_tri_out(uint32_t index);
+uint8_t trace_2a03_get_noi_out(uint32_t index);
+uint8_t trace_2a03_get_pcm_out(uint32_t index);
 #endif
 
 void trace_ui_set_scroll_to_end(bool b);

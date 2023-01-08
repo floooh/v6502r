@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define MAX_LAYERS (6)
-#define MAX_NODES (4096)    // NOTE: ALSO CHANGE IN SHADER!
+#define MAX_NODES (8192)    // NOTE: ALSO CHANGE IN SHADER!
 #define MAX_TRACE_ITEMS (256)
 #define MAX_BINARY_SIZE ((1<<16)+2)
 #define MAX_LINKURL_SIZE (128)
@@ -19,6 +19,8 @@
 #define WINDOW_TITLE "Visual 6502 Remix"
 #elif defined(CHIP_Z80)
 #define WINDOW_TITLE "Visual Z80 Remix"
+#elif defined(CHIP_2A03)
+#define WINDOW_TITLE "Visual 2A03 Remix"
 #endif
 
 static const uint8_t gfx_visual_node_inactive = 48;
