@@ -1170,49 +1170,50 @@ static void ui_cassette_deck_controls(void) {
 }
 
 static void ui_controls(void) {
-    if (!ui.window_open.cpu_controls) {
-        return;
-    }
-    ImGui::SetNextWindowPos({ ImGui::GetIO().DisplaySize.x - 300, 50 }, ImGuiCond_Once);
-    ImGui::SetNextWindowSize({ 270, 480 }, ImGuiCond_Once);
-    #if defined(CHIP_6502)
-    const char* cpu_name = "MOS 6502";
-    #elif defined(CHIP_Z80)
-    const char* cpu_name = "Zilog Z80";
-    #elif defined(CHIP_2A03)
-    const char* cpu_name = "Ricoh 2A03";
-    #endif
-    if (ImGui::Begin(cpu_name, &ui.window_open.cpu_controls, ImGuiWindowFlags_None)) {
-        /* cassette deck controls */
-        ui_cassette_deck_controls();
-        ImGui::Separator();
+    if (ui.window_open.cpu_controls) {
+        ImGui::SetNextWindowPos({ ImGui::GetIO().DisplaySize.x - 300, 50 }, ImGuiCond_Once);
+        ImGui::SetNextWindowSize({ 270, 480 }, ImGuiCond_Once);
+        #if defined(CHIP_6502)
+        const char* cpu_name = "MOS 6502";
+        #elif defined(CHIP_Z80)
+        const char* cpu_name = "Zilog Z80";
+        #elif defined(CHIP_2A03)
+        const char* cpu_name = "Ricoh 2A03";
+        #endif
+        if (ImGui::Begin(cpu_name, &ui.window_open.cpu_controls, ImGuiWindowFlags_None)) {
+            /* cassette deck controls */
+            ui_cassette_deck_controls();
+            ImGui::Separator();
 
-        /* CPU state */
-        ui_cpu_status_panel();
-        ImGui::Separator();
+            /* CPU state */
+            ui_cpu_status_panel();
+            ImGui::Separator();
 
-        /* memory dump */
-        if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None)) {
-            if (ImGui::BeginTabItem("Memory")) {
-                ui_memedit_draw_content(&ui.memedit_integrated);
-                ImGui::EndTabItem();
+            /* memory dump */
+            if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None)) {
+                if (ImGui::BeginTabItem("Memory")) {
+                    ui_memedit_draw_content(&ui.memedit_integrated);
+                    ImGui::EndTabItem();
+                }
+                #if defined(CHIP_Z80)
+                if (ImGui::BeginTabItem("IO")) {
+                    ui_memedit_draw_content(&ui.ioedit_integrated);
+                    ImGui::EndTabItem();
+                }
+                #endif
+                ImGui::EndTabBar();
             }
-            #if defined(CHIP_Z80)
-            if (ImGui::BeginTabItem("IO")) {
-                ui_memedit_draw_content(&ui.ioedit_integrated);
-                ImGui::EndTabItem();
-            }
-            #endif
-            ImGui::EndTabBar();
         }
+        ImGui::End();
     }
-    ImGui::End();
 
     #if defined(CHIP_2A03)
-    if (ImGui::Begin("Audio", &ui.window_open.audio_controls, ImGuiWindowFlags_None)) {
-        ui_audio_status_panel();
+    if (ui.window_open.audio_controls) {
+        if (ImGui::Begin("Audio", &ui.window_open.audio_controls, ImGuiWindowFlags_None)) {
+            ui_audio_status_panel();
+        }
+        ImGui::End();
     }
-    ImGui::End();
     #endif
 }
 
