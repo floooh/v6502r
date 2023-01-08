@@ -6,7 +6,7 @@
 
 import os
 
-MAX_NODES = 4096
+MAX_NODES = 8192
 
 NUM_NODEPULLUP = 0
 

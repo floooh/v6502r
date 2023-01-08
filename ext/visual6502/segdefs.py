@@ -28,7 +28,7 @@ SEGMENTS = [[] for i in range(0, MAX_LAYERS)]
 # sparse array of nodes (== collection of related segments)
 # the dictionary's key is the node index, and the value is an
 # array of [layer, start_segment, num_segments] triples
-MAX_NODES = 3600
+MAX_NODES = 8192
 NODES = [[0,0,0] for i in range(0, MAX_NODES)]
 
 # picking grid, each cell is a list of triangle indices

@@ -1,6 +1,6 @@
 import os
 
-MAX_NODES = 4096
+MAX_NODES = 8192
 NUM_NODES = 0
 NODENAMES = [None for i in range(0,MAX_NODES)]
 
