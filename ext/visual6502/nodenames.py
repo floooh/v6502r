@@ -5,7 +5,7 @@ NUM_NODES = 0
 NODENAMES = [None for i in range(0,MAX_NODES)]
 
 #===============================================================================
-def parse_nodenames(src_dir):
+def parse_nodenames(src_dir, remap_index):
     global NUM_NODES
 
     fp = open(src_dir + '/nodenames.js', 'r')
@@ -21,6 +21,8 @@ def parse_nodenames(src_dir):
         tokens[0] = tokens[0].strip(' \"')
         tokens[1] = tokens[1].strip(' \"')
         node_index = int(tokens[1])
+        if remap_index:
+            node_index = remap_index(node_index)
         if (node_index+1) > NUM_NODES:
             NUM_NODES = node_index+1
         if (node_index != -1) and (NODENAMES[node_index] is None):
@@ -59,8 +61,8 @@ def write_source(dst_dir):
     fp.close()
 
 #-------------------------------------------------------------------------------
-def dump(src_dir, dst_dir, node_prefix):
-    parse_nodenames(src_dir)
+def dump(src_dir, dst_dir, node_prefix, remap_index=None):
+    parse_nodenames(src_dir, remap_index)
     write_header(dst_dir, node_prefix)
     write_source(dst_dir)
 

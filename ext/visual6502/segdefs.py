@@ -44,7 +44,7 @@ VERTEXBUFFERS = [[] for i in range(0, MAX_LAYERS)]
 # read the segdefs.js file and extract vertex-, segment- and node-data
 # into VERTICES, SEGMENTS and NODES
 #
-def parse_segdef(src_dir, scale):
+def parse_segdef(src_dir, scale, remap_index):
     global MAX_X, MAX_Y, MIN_X, MIN_Y
     fp = open(src_dir + '/segdefs.js', 'r')
     lines = fp.readlines()
@@ -54,6 +54,8 @@ def parse_segdef(src_dir, scale):
             continue
         tokens = line.lstrip('[ ').rstrip('],\n\r').split(',')
         node_index = int(tokens[0])
+        if remap_index:
+            node_index = remap_index(node_index)
         pullup = tokens[1]
         layer = int(tokens[2])
         verts = []
@@ -176,8 +178,8 @@ def write_source(dst_dir):
     fp.close()
 
 #-------------------------------------------------------------------------------
-def dump(src_dir, dst_dir, scale):
-    parse_segdef(src_dir, scale)
+def dump(src_dir, dst_dir, scale, remap_index=None):
+    parse_segdef(src_dir, scale, remap_index)
     gen_triangles()
     flatten_picking_grid()
     write_header(dst_dir)

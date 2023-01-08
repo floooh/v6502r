@@ -14,7 +14,7 @@ NODEPULLUP = [0 for i in range(0, MAX_NODES)]
 TRANSDEFS  = []
 
 # read segdefs.js and extract the node pullup state
-def parse_nodepullup(src_dir):
+def parse_nodepullup(src_dir, remap_index):
     global NUM_NODEPULLUP
     fp = open(src_dir + '/segdefs.js', 'r')
     lines = fp.readlines()
@@ -24,6 +24,8 @@ def parse_nodepullup(src_dir):
             continue
         tokens = line.lstrip('[ ').rstrip('],\n\r').split(',')
         node_index = int(tokens[0])
+        if remap_index:
+            node_index = remap_index(node_index)
         if (node_index + 1) > NUM_NODEPULLUP:
             NUM_NODEPULLUP = node_index + 1
         pullup = tokens[1]
@@ -31,7 +33,7 @@ def parse_nodepullup(src_dir):
             NODEPULLUP[node_index] = 1
 
 # read transdefs.js and extract the transistor triples
-def parse_transdefs(src_dir):
+def parse_transdefs(src_dir, remap_index):
     fp = open(src_dir + '/transdefs.js', 'r')
     lines = fp.readlines()
     fp.close()
@@ -44,6 +46,10 @@ def parse_transdefs(src_dir):
         gate = tokens[1]
         c1 = tokens[2]
         c2 = tokens[3]
+        if remap_index:
+            gate = remap_index(int(gate))
+            c1 = remap_index(int(c1))
+            c2 = remap_index(int(c2))
         TRANSDEFS.append([gate, c1, c2])
 
 # write the perfect6502 netlist header
@@ -68,9 +74,9 @@ def write_header(dst_path, cpu_name, nodenames):
     fp.write("};\n")
 
 #-------------------------------------------------------------------------------
-def dump(src_dir, dst_path, cpu_name, nodenames):
-    parse_nodepullup(src_dir)
-    parse_transdefs(src_dir)
+def dump(src_dir, dst_path, cpu_name, nodenames, remap_index=None):
+    parse_nodepullup(src_dir, remap_index)
+    parse_transdefs(src_dir, remap_index)
     write_header(dst_path, cpu_name, nodenames)
 
 
