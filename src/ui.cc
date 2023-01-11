@@ -970,129 +970,130 @@ static void ui_cpu_status_panel(void) {
 }
 
 static void ui_audio_status_panel(void) {
-  uint16_t frm_t = sim_2a03_get_frm_t();
-  ImGui::Text("frm: t:|%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c| (%04x)",
-              frm_t & 0x4000 ? '1' : ' ', frm_t & 0x2000 ? '1' : ' ',
-              frm_t & 0x1000 ? '1' : ' ', frm_t & 0x0800 ? '1' : ' ',
-              frm_t & 0x0400 ? '1' : ' ', frm_t & 0x0200 ? '1' : ' ',
-              frm_t & 0x0100 ? '1' : ' ', frm_t & 0x0080 ? '1' : ' ',
-              frm_t & 0x0040 ? '1' : ' ', frm_t & 0x0020 ? '1' : ' ',
-              frm_t & 0x0010 ? '1' : ' ', frm_t & 0x0008 ? '1' : ' ',
-              frm_t & 0x0004 ? '1' : ' ', frm_t & 0x0002 ? '1' : ' ',
-              frm_t & 0x0001 ? '1' : ' ', frm_t);
+    uint16_t frm_t = sim_2a03_get_frm_t();
+    ImGui::Text("frm: t:|%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c| (%04x)",
+        frm_t & 0x4000 ? '1' : ' ', frm_t & 0x2000 ? '1' : ' ',
+        frm_t & 0x1000 ? '1' : ' ', frm_t & 0x0800 ? '1' : ' ',
+        frm_t & 0x0400 ? '1' : ' ', frm_t & 0x0200 ? '1' : ' ',
+        frm_t & 0x0100 ? '1' : ' ', frm_t & 0x0080 ? '1' : ' ',
+        frm_t & 0x0040 ? '1' : ' ', frm_t & 0x0020 ? '1' : ' ',
+        frm_t & 0x0010 ? '1' : ' ', frm_t & 0x0008 ? '1' : ' ',
+        frm_t & 0x0004 ? '1' : ' ', frm_t & 0x0002 ? '1' : ' ',
+        frm_t & 0x0001 ? '1' : ' ', frm_t);
 
-  ImGui::Text("Sq0:%u Sq1:%u Tri:%u Noi:%u Pcm:%u", sim_2a03_get_sq0_out(),
-              sim_2a03_get_sq1_out(), sim_2a03_get_tri_out(),
-              sim_2a03_get_noi_out(), sim_2a03_get_pcm_out());
+    ImGui::Text("Sq0:%u Sq1:%u Tri:%u Noi:%u Pcm:%u", sim_2a03_get_sq0_out(),
+            sim_2a03_get_sq1_out(), sim_2a03_get_tri_out(),
+          sim_2a03_get_noi_out(), sim_2a03_get_pcm_out());
 
-  if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None)) {
-      if (ImGui::BeginTabItem("Square0")) {
-          ImGui::Text("$4000:\n  duty:%u halt:%u c:%u env:%2u\n  timer:%2u "
-                      "cycle:%u vol:%u",
-                      sim_2a03_get_sq0_duty(), sim_2a03_get_sq0_lenhalt(),
-                      sim_2a03_get_sq0_envmode(), sim_2a03_get_sq0_envp(),
-                      sim_2a03_get_sq0_envt(), sim_2a03_get_sq0_c(),
-                      sim_2a03_get_sq0_envc());
-          ImGui::Text("$4001:\n  en:%u period:%2u neg:%u shift:%2u\n  timer:%2u",
-                      sim_2a03_get_sq0_swpen(), sim_2a03_get_sq0_swpp(),
-                      sim_2a03_get_sq0_swpdir(), sim_2a03_get_sq0_swpb(),
-                      sim_2a03_get_sq0_swpt());
-          ImGui::Text("$4002:\n  period:%u\n  timer:%u", sim_2a03_get_sq0_p(),
-                      sim_2a03_get_sq0_t());
-          ImGui::Text("$4003:\n  len:%3u\n  en:%u on:%u len_reload:%u silence:%u",
-                      sim_2a03_get_sq0_len(), sim_2a03_get_sq0_en(),
-                      sim_2a03_get_sq0_on(), sim_2a03_get_sq0_len_reload(),
-                      sim_2a03_get_sq0_silence());
-          ImGui::EndTabItem();
-      }
+    if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None)) {
+        if (ImGui::BeginTabItem("Square0")) {
+            ImGui::Text("$4000:\n  duty:%u halt:%u c:%u env:%2u\n  timer:%2u "
+                        "cycle:%u vol:%u",
+                        sim_2a03_get_sq0_duty(), sim_2a03_get_sq0_lenhalt(),
+                        sim_2a03_get_sq0_envmode(), sim_2a03_get_sq0_envp(),
+                        sim_2a03_get_sq0_envt(), sim_2a03_get_sq0_c(),
+                        sim_2a03_get_sq0_envc());
+            ImGui::Text("$4001:\n  en:%u period:%2u neg:%u shift:%2u\n  timer:%2u",
+                        sim_2a03_get_sq0_swpen(), sim_2a03_get_sq0_swpp(),
+                        sim_2a03_get_sq0_swpdir(), sim_2a03_get_sq0_swpb(),
+                        sim_2a03_get_sq0_swpt());
+            ImGui::Text("$4002:\n  period:%u\n  timer:%u", sim_2a03_get_sq0_p(),
+                        sim_2a03_get_sq0_t());
+            ImGui::Text("$4003:\n  len:%3u\n  en:%u on:%u len_reload:%u silence:%u",
+                        sim_2a03_get_sq0_len(), sim_2a03_get_sq0_en(),
+                        sim_2a03_get_sq0_on(), sim_2a03_get_sq0_len_reload(),
+                        sim_2a03_get_sq0_silence());
+            ImGui::EndTabItem();
+        }
 
-      if (ImGui::BeginTabItem("Square1")) {
-          ImGui::Text("$4004:\n  duty:%u halt:%u c:%u env:%2u\n  timer:%2u "
-                      "cycle:%u vol:%u",
-                      sim_2a03_get_sq1_duty(), sim_2a03_get_sq1_lenhalt(),
-                      sim_2a03_get_sq1_envmode(), sim_2a03_get_sq1_envp(),
-                      sim_2a03_get_sq1_envt(), sim_2a03_get_sq1_c(),
-                      sim_2a03_get_sq1_envc());
-          ImGui::Text("$4005:\n  en:%u period:%2u neg:%u shift:%2u\n  timer:%2u",
-                      sim_2a03_get_sq1_swpen(), sim_2a03_get_sq1_swpp(),
-                      sim_2a03_get_sq1_swpdir(), sim_2a03_get_sq1_swpb(),
-                      sim_2a03_get_sq1_swpt());
-          ImGui::Text("$4006:\n  period:%u\n  timer:%u", sim_2a03_get_sq1_p(),
-                      sim_2a03_get_sq1_t());
-          ImGui::Text("$4007:\n  len:%3u\n  en:%u on:%u len_reload:%u silence:%u",
-                      sim_2a03_get_sq1_len(), sim_2a03_get_sq1_en(),
-                      sim_2a03_get_sq1_on(), sim_2a03_get_sq1_len_reload(),
-                      sim_2a03_get_sq1_silence());
-          ImGui::EndTabItem();
-      }
+        if (ImGui::BeginTabItem("Square1")) {
+            ImGui::Text("$4004:\n  duty:%u halt:%u c:%u env:%2u\n  timer:%2u "
+                        "cycle:%u vol:%u",
+                        sim_2a03_get_sq1_duty(), sim_2a03_get_sq1_lenhalt(),
+                        sim_2a03_get_sq1_envmode(), sim_2a03_get_sq1_envp(),
+                        sim_2a03_get_sq1_envt(), sim_2a03_get_sq1_c(),
+                        sim_2a03_get_sq1_envc());
+            ImGui::Text("$4005:\n  en:%u period:%2u neg:%u shift:%2u\n  timer:%2u",
+                        sim_2a03_get_sq1_swpen(), sim_2a03_get_sq1_swpp(),
+                        sim_2a03_get_sq1_swpdir(), sim_2a03_get_sq1_swpb(),
+                        sim_2a03_get_sq1_swpt());
+            ImGui::Text("$4006:\n  period:%u\n  timer:%u", sim_2a03_get_sq1_p(),
+                        sim_2a03_get_sq1_t());
+            ImGui::Text("$4007:\n  len:%3u\n  en:%u on:%u len_reload:%u silence:%u",
+                        sim_2a03_get_sq1_len(), sim_2a03_get_sq1_en(),
+                        sim_2a03_get_sq1_on(), sim_2a03_get_sq1_len_reload(),
+                        sim_2a03_get_sq1_silence());
+            ImGui::EndTabItem();
+        }
 
-      if (ImGui::BeginTabItem("Triangle")) {
-          ImGui::Text("$4008:\n  en:%u linear:%u\n  lin.counter:%u cycle:%u",
-                      sim_2a03_get_tri_lin_en(), sim_2a03_get_tri_lin(),
-                      sim_2a03_get_tri_lc(), sim_2a03_get_tri_c());
-          ImGui::Text("$400a:\n  period:%u\n  timer:%u", sim_2a03_get_tri_p(),
-                      sim_2a03_get_tri_t());
-          ImGui::Text("$400b:\n  len:%3u\n  en:%u on:%u len_reload:%u silence:%u",
-                      sim_2a03_get_tri_len(), sim_2a03_get_tri_en(),
-                      sim_2a03_get_tri_on(), sim_2a03_get_tri_len_reload(),
-                      sim_2a03_get_tri_silence());
-          ImGui::EndTabItem();
-      }
+        if (ImGui::BeginTabItem("Triangle")) {
+            ImGui::Text("$4008:\n  en:%u linear:%u\n  lin.counter:%u cycle:%u",
+                        sim_2a03_get_tri_lin_en(), sim_2a03_get_tri_lin(),
+                        sim_2a03_get_tri_lc(), sim_2a03_get_tri_c());
+            ImGui::Text("$400a:\n  period:%u\n  timer:%u", sim_2a03_get_tri_p(),
+                        sim_2a03_get_tri_t());
+            ImGui::Text("$400b:\n  len:%3u\n  en:%u on:%u len_reload:%u silence:%u",
+                        sim_2a03_get_tri_len(), sim_2a03_get_tri_en(),
+                        sim_2a03_get_tri_on(), sim_2a03_get_tri_len_reload(),
+                        sim_2a03_get_tri_silence());
+            ImGui::EndTabItem();
+        }
 
-      if (ImGui::BeginTabItem("Noise")) {
-          uint16_t noi_c = sim_2a03_get_noi_c();
-          ImGui::Text("$400c:\n  halt:%u c:%u env:%2u\n  timer:%2u vol:%u\n  "
-                      "cycle:|%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c| (%04x)",
-                      sim_2a03_get_noi_lenhalt(), sim_2a03_get_noi_envmode(),
-                      sim_2a03_get_noi_envp(), sim_2a03_get_noi_envt(),
-                      sim_2a03_get_noi_envc(), noi_c & 0x4000 ? '1' : ' ',
-                      noi_c & 0x2000 ? '1' : ' ', noi_c & 0x1000 ? '1' : ' ',
-                      noi_c & 0x0800 ? '1' : ' ', noi_c & 0x0400 ? '1' : ' ',
-                      noi_c & 0x0200 ? '1' : ' ', noi_c & 0x0100 ? '1' : ' ',
-                      noi_c & 0x0080 ? '1' : ' ', noi_c & 0x0040 ? '1' : ' ',
-                      noi_c & 0x0020 ? '1' : ' ', noi_c & 0x0010 ? '1' : ' ',
-                      noi_c & 0x0008 ? '1' : ' ', noi_c & 0x0004 ? '1' : ' ',
-                      noi_c & 0x0002 ? '1' : ' ', noi_c & 0x0001 ? '1' : ' ',
-                      noi_c);
-          uint16_t noi_t = sim_2a03_get_noi_t();
-          ImGui::Text("$400e:\n  mode:%u period:%u\n  "
-                      "timer:|%c%c%c%c%c%c%c%c%c%c%c| (%04x)",
-                      sim_2a03_get_noi_lfsrmode(), sim_2a03_get_noi_freq(),
-                      noi_t & 0x0400 ? '1' : ' ', noi_t & 0x0200 ? '1' : ' ',
-                      noi_t & 0x0100 ? '1' : ' ', noi_t & 0x0080 ? '1' : ' ',
-                      noi_t & 0x0040 ? '1' : ' ', noi_t & 0x0020 ? '1' : ' ',
-                      noi_t & 0x0010 ? '1' : ' ', noi_t & 0x0008 ? '1' : ' ',
-                      noi_t & 0x0004 ? '1' : ' ', noi_t & 0x0002 ? '1' : ' ',
-                      noi_t & 0x0001 ? '1' : ' ', noi_t);
-          ImGui::Text("$400f:\n  len:%3u\n  en:%u on:%u len_reload:%u silence:%u",
-                      sim_2a03_get_noi_len(), sim_2a03_get_noi_en(),
-                      sim_2a03_get_noi_on(), sim_2a03_get_noi_len_reload(),
-                      sim_2a03_get_noi_silence());
-          ImGui::EndTabItem();
-      }
+        if (ImGui::BeginTabItem("Noise")) {
+            uint16_t noi_c = sim_2a03_get_noi_c();
+            ImGui::Text("$400c:\n  halt:%u c:%u env:%2u\n  timer:%2u vol:%u\n  "
+                        "cycle:|%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c| (%04x)",
+                        sim_2a03_get_noi_lenhalt(), sim_2a03_get_noi_envmode(),
+                        sim_2a03_get_noi_envp(), sim_2a03_get_noi_envt(),
+                        sim_2a03_get_noi_envc(), noi_c & 0x4000 ? '1' : ' ',
+                        noi_c & 0x2000 ? '1' : ' ', noi_c & 0x1000 ? '1' : ' ',
+                        noi_c & 0x0800 ? '1' : ' ', noi_c & 0x0400 ? '1' : ' ',
+                        noi_c & 0x0200 ? '1' : ' ', noi_c & 0x0100 ? '1' : ' ',
+                        noi_c & 0x0080 ? '1' : ' ', noi_c & 0x0040 ? '1' : ' ',
+                        noi_c & 0x0020 ? '1' : ' ', noi_c & 0x0010 ? '1' : ' ',
+                        noi_c & 0x0008 ? '1' : ' ', noi_c & 0x0004 ? '1' : ' ',
+                        noi_c & 0x0002 ? '1' : ' ', noi_c & 0x0001 ? '1' : ' ',
+                        noi_c);
+            uint16_t noi_t = sim_2a03_get_noi_t();
+            ImGui::Text("$400e:\n  mode:%u period:%u\n  "
+                        "timer:|%c%c%c%c%c%c%c%c%c%c%c| (%04x)",
+                        sim_2a03_get_noi_lfsrmode(), sim_2a03_get_noi_freq(),
+                        noi_t & 0x0400 ? '1' : ' ', noi_t & 0x0200 ? '1' : ' ',
+                        noi_t & 0x0100 ? '1' : ' ', noi_t & 0x0080 ? '1' : ' ',
+                        noi_t & 0x0040 ? '1' : ' ', noi_t & 0x0020 ? '1' : ' ',
+                        noi_t & 0x0010 ? '1' : ' ', noi_t & 0x0008 ? '1' : ' ',
+                        noi_t & 0x0004 ? '1' : ' ', noi_t & 0x0002 ? '1' : ' ',
+                        noi_t & 0x0001 ? '1' : ' ', noi_t);
+            ImGui::Text("$400f:\n  len:%3u\n  en:%u on:%u len_reload:%u silence:%u",
+                        sim_2a03_get_noi_len(), sim_2a03_get_noi_en(),
+                        sim_2a03_get_noi_on(), sim_2a03_get_noi_len_reload(),
+                        sim_2a03_get_noi_silence());
+            ImGui::EndTabItem();
+        }
 
-      if (ImGui::BeginTabItem("DMC")) {
-          uint16_t pcm_t = sim_2a03_get_pcm_t();
-          ImGui::Text("$4010:\n  irqen:%u loop:%u freq:%2u\n  "
-                      "timer:|%c%c%c%c%c%c%c%c%c| (%03x)",
-                      sim_2a03_get_pcm_irqen(), sim_2a03_get_pcm_loop(),
-                      sim_2a03_get_pcm_freq(), pcm_t & 0x0100 ? '1' : ' ',
-                      pcm_t & 0x0080 ? '1' : ' ', pcm_t & 0x0040 ? '1' : ' ',
-                      pcm_t & 0x0020 ? '1' : ' ', pcm_t & 0x0010 ? '1' : ' ',
-                      pcm_t & 0x0008 ? '1' : ' ', pcm_t & 0x0004 ? '1' : ' ',
-                      pcm_t & 0x0002 ? '1' : ' ', pcm_t & 0x0001 ? '1' : ' ', pcm_t);
-          ImGui::Text("$4012:\n  saddr:%02x addr:%04x\n  buf:%02x load:%u\n  "
-                      "sr:%02x load:%u shift:%u",
-                      sim_2a03_get_pcm_sa(), sim_2a03_get_pcm_a(),
-                      sim_2a03_get_pcm_buf(), sim_2a03_get_pcm_loadbuf(),
-                      sim_2a03_get_pcm_sr(), sim_2a03_get_pcm_loadsr(),
-                      sim_2a03_get_pcm_shiftsr());
-          ImGui::Text("$4013:\n  len:%3u\n  counter:%u\n  en:%u rd_active:%u",
-                      sim_2a03_get_pcm_l(), sim_2a03_get_pcm_lc(),
-                      sim_2a03_get_pcm_en(), sim_2a03_get_pcm_rd_active());
-          ImGui::EndTabItem();
-      }
-  }
+        if (ImGui::BeginTabItem("DMC")) {
+            uint16_t pcm_t = sim_2a03_get_pcm_t();
+            ImGui::Text("$4010:\n  irqen:%u loop:%u freq:%2u\n  "
+                        "timer:|%c%c%c%c%c%c%c%c%c| (%03x)",
+                        sim_2a03_get_pcm_irqen(), sim_2a03_get_pcm_loop(),
+                        sim_2a03_get_pcm_freq(), pcm_t & 0x0100 ? '1' : ' ',
+                        pcm_t & 0x0080 ? '1' : ' ', pcm_t & 0x0040 ? '1' : ' ',
+                        pcm_t & 0x0020 ? '1' : ' ', pcm_t & 0x0010 ? '1' : ' ',
+                        pcm_t & 0x0008 ? '1' : ' ', pcm_t & 0x0004 ? '1' : ' ',
+                        pcm_t & 0x0002 ? '1' : ' ', pcm_t & 0x0001 ? '1' : ' ', pcm_t);
+            ImGui::Text("$4012:\n  saddr:%02x addr:%04x\n  buf:%02x load:%u\n  "
+                        "sr:%02x load:%u shift:%u",
+                        sim_2a03_get_pcm_sa(), sim_2a03_get_pcm_a(),
+                        sim_2a03_get_pcm_buf(), sim_2a03_get_pcm_loadbuf(),
+                        sim_2a03_get_pcm_sr(), sim_2a03_get_pcm_loadsr(),
+                        sim_2a03_get_pcm_shiftsr());
+            ImGui::Text("$4013:\n  len:%3u\n  counter:%u\n  en:%u rd_active:%u",
+                        sim_2a03_get_pcm_l(), sim_2a03_get_pcm_lc(),
+                        sim_2a03_get_pcm_en(), sim_2a03_get_pcm_rd_active());
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabItem();
+    }
 }
 #endif
 
