@@ -6,9 +6,28 @@
 extern "C" {
 #endif
 
+#define GFX_CSSRGB(c,a) {((c>>16)&0xFF)/255.0f, ((c>>8)&0xFF)/255.0f, (c&0xFF)/255.0f, a}
+
+static const uint8_t gfx_visual_node_inactive = 100;
+static const uint8_t gfx_visual_node_active = 190;
+static const uint8_t gfx_visual_node_highlighted = 255;
+
 typedef struct {
     float4_t colors[MAX_LAYERS];
+    float4_t background;
 } gfx_palette_t;
+
+static const gfx_palette_t gfx_default_palette = {
+    .colors = {
+        GFX_CSSRGB(0xf50057, 1.0f),
+        GFX_CSSRGB(0xffeb3b, 1.0f),
+        GFX_CSSRGB(0xff5252, 1.0f),   // unused?
+        GFX_CSSRGB(0x7e57c2, 0.7f),
+        GFX_CSSRGB(0xfb8c00, 0.7f),
+        GFX_CSSRGB(0x00b0ff, 1.0f),
+    },
+    .background = { 0.1f, 0.1f, 0.15f, 1.0f }
+};
 
 typedef struct {
     sg_range seg_vertices[MAX_LAYERS];

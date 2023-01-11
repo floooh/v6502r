@@ -1,5 +1,6 @@
 import os, yaml, shutil, subprocess, glob
 from mod import log, util, project
+from mod.tools import httpserver
 
 BuildConfig = 'wasm-ninja-release'
 
@@ -31,28 +32,7 @@ def build_deploy_webpage(fips_dir, proj_dir):
 def serve_webpage(fips_dir, proj_dir, tgt) :
     ws_dir = util.get_workspace_dir(fips_dir)
     webpage_dir = '{}/fips-deploy/{}-webpage'.format(ws_dir, tgt)
-    p = util.get_host_platform()
-    if p == 'osx' :
-        try :
-            subprocess.call(
-                'open http://localhost:8000 ; python3 {}/mod/httpserver.py'.format(fips_dir),
-                cwd = webpage_dir, shell=True)
-        except KeyboardInterrupt :
-            pass
-    elif p == 'win':
-        try:
-            subprocess.call(
-                'cmd /c start http://localhost:8000 && python3 {}/mod/httpserver.py'.format(fips_dir),
-                cwd = webpage_dir, shell=True)
-        except KeyboardInterrupt:
-            pass
-    elif p == 'linux':
-        try:
-            subprocess.call(
-                'xdg-open http://localhost:8000; python3 {}/mod/httpserver.py'.format(fips_dir),
-                cwd = webpage_dir, shell=True)
-        except KeyboardInterrupt:
-            pass
+    httpserver.run(fips_dir, proj_dir, tgt, webpage_dir);
 
 #-------------------------------------------------------------------------------
 def run(fips_dir, proj_dir, args) :

@@ -14,6 +14,7 @@
 #include "nodegroups.h"
 #include "sim.h"
 #include "trace.h"
+#include "gfx.h"
 #include <stdlib.h> // qsort, bsearch, strtol
 #include <ctype.h>  // isdigit
 

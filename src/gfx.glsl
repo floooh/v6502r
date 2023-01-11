@@ -23,7 +23,7 @@ void main() {
     gl_Position = vec4(p, 0.5, 1.0);
     float u = ((uv.x*65535.0) + 0.5f) / 8192.0;
     float r = texture(palette_tex, vec2(u, 0.5)).r;
-    color = vec4(color0.xyz, r);
+    color = vec4(color0.xyz * r, color0.w);
 }
 @end
 

@@ -9,15 +9,6 @@
 #include "gfx.h"
 #include "gfx.glsl.h"
 
-static const gfx_palette_t default_palette = { {
-    { 1.0f, 0.0f, 0.0f, 0.5f },
-    { 0.0f, 1.0f, 0.0f, 0.5f },
-    { 0.0f, 0.0f, 1.0f, 0.5f },
-    { 1.0f, 1.0f, 0.0f, 0.5f },
-    { 0.0f, 1.0f, 1.0f, 0.5f },
-    { 1.0f, 0.0f, 1.0f, 0.5f },
-} };
-
 static struct {
     bool valid;
     struct {
@@ -37,7 +28,7 @@ static struct {
     float2_t scale_pivot;
     float2_t offset;
     bool use_additive_blend;
-    gfx_palette_t layer_palette;
+    gfx_palette_t palette;
     bool layer_visible[MAX_LAYERS];
     uint8_t node_state[MAX_NODES];
 } gfx;
@@ -64,7 +55,7 @@ void gfx_init(const gfx_desc_t* desc) {
     gfx.aspect = 1.0f;
     gfx.scale = 7.0f;
     gfx.offset = (float2_t) { -0.05f, 0.0f };
-    gfx.layer_palette = default_palette;
+    gfx.palette = gfx_default_palette;
     for (int i = 0; i < MAX_LAYERS; i++) {
         gfx.layer_visible[i] = true;
     }
@@ -141,7 +132,15 @@ void gfx_new_frame(float disp_width, float disp_height) {
 void gfx_begin(void) {
     assert(gfx.valid);
     sg_pass_action pass_action = {
-        .colors[0] = { .action = SG_ACTION_CLEAR, .value = { 0.0f, 0.0f, 0.0f, 1.0f }}
+        .colors[0] = {
+            .action = SG_ACTION_CLEAR,
+            .value = {
+                .r = gfx.palette.background.x,
+                .g = gfx.palette.background.y,
+                .b = gfx.palette.background.z,
+                .a = 1.0f,
+            },
+        },
     };
     sg_begin_default_pass(&pass_action, sapp_width(), sapp_height());
 }
@@ -165,7 +164,7 @@ void gfx_draw(void) {
         sg_apply_pipeline(gfx.pip_alpha);
     }
     for (int i = 0; i < MAX_LAYERS; i++) {
-        vs_params.color0 = gfx.layer_palette.colors[i];
+        vs_params.color0 = gfx.palette.colors[i];
         if (gfx.layer_visible[i] && (gfx.layers[i].vb.id != SG_INVALID_ID)) {
             sg_apply_bindings(&(sg_bindings){
                 .vertex_buffers[0] = gfx.layers[i].vb,
@@ -240,11 +239,10 @@ bool gfx_get_layer_visibility(int layer_index) {
 void gfx_set_layer_palette(bool use_additive_blend, gfx_palette_t palette) {
     assert(gfx.valid);
     gfx.use_additive_blend = use_additive_blend;
-    gfx.layer_palette = palette;
+    gfx.palette = palette;
 }
 
 range_t gfx_get_nodestate_buffer(void) {
     assert(gfx.valid);
     return (range_t){ .ptr = gfx.node_state, .size = sizeof(gfx.node_state) };
 }
-

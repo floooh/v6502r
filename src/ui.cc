@@ -728,16 +728,7 @@ static void ui_menu(void) {
         }
         if (ImGui::BeginMenu("Theme")) {
             if (ImGui::MenuItem("Default")) {
-                gfx_set_layer_palette(false, {
-                    {
-                        { 1.0f, 0.0f, 0.0f, 1.0f },
-                        { 0.0f, 1.0f, 0.0f, 1.0f },
-                        { 0.0f, 0.0f, 1.0f, 1.0f },
-                        { 1.0f, 1.0f, 0.0f, 1.0f },
-                        { 0.0f, 1.0f, 1.0f, 1.0f },
-                        { 1.0f, 0.0f, 1.0f, 1.0f },
-                    }
-                });
+                gfx_set_layer_palette(false, gfx_default_palette);
             }
             if (ImGui::MenuItem("Visual6502")) {
                 gfx_set_layer_palette(false, {
@@ -748,7 +739,8 @@ static void ui_menu(void) {
                         { 0.3f, 1.0f, 0.3f, 1.0f },
                         { 1.0f, 0.3f, 0.3f, 1.0f },
                         { 0.5f, 0.1f, 0.75f, 1.0f },
-                    }
+                    },
+                    { 0.0f, 0.0f, 0.0f, 0.0f }
                 });
             }
             if (ImGui::MenuItem("Matrix")) {
@@ -760,7 +752,8 @@ static void ui_menu(void) {
                         { 0.0f, 0.5f, 0.0f, 1.0f },
                         { 0.0f, 0.5f, 0.0f, 1.0f },
                         { 0.0f, 0.5f, 0.0f, 1.0f },
-                    }
+                    },
+                    { 0.0f, 0.0f, 0.0f, 0.0f }
                 });
             }
             if (ImGui::MenuItem("X-Ray")) {
@@ -772,7 +765,8 @@ static void ui_menu(void) {
                         { 0.5f, 0.5f, 0.5f, 1.0f },
                         { 0.5f, 0.5f, 0.5f, 1.0f },
                         { 0.5f, 0.5f, 0.5f, 1.0f },
-                    }
+                    },
+                    { 0.0f, 0.0f, 0.0f, 0.0f }
                 });
             }
             ImGui::EndMenu();
