@@ -15,6 +15,9 @@ void stabilizeChip(state_t *state);
 // Z80 specific extension (see https://stardot.org.uk/forums/viewtopic.php?p=349760#p349760)
 void modelChargeSharing(state_t *state, BOOL enabled);
 
+// 2A03 specific extension
+void initializePoweredTransistors(state_t *state);
+
 // v6502r additions
 int read_node_values(state_t* state, uint8_t* ptr, int max_bytes);
 int read_transistor_on(state_t* state, uint8_t* ptr, int max_bytes);

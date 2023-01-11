@@ -775,3 +775,9 @@ int write_transistor_on(state_t* state, const uint8_t* ptr, int max_bytes) {
         return 0;
     }
 }
+
+void initializePoweredTransistors(state_t *state) {
+    for (transnum_t tn = 0; tn < state->transistors; tn++) {
+        set_transistors_on(state, tn, state->transistors_gate[tn] == state->vcc);
+    }
+}

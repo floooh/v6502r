@@ -409,7 +409,7 @@ static bool asm_has_warnings(void) {
 
 asm_result_t asm_assemble(void) {
     assert(0 == state.alloc_pos);
-    #if defined(CHIP_6502)
+    #if defined(CHIP_6502) || defined(CHIP_2A03)
     const char* cpu_type = "6502";
     #else
     const char* cpu_type = "Z80";

@@ -35,6 +35,17 @@ const char* init_src =
     "\tret\n"
     "data:\tdb 40h\n"
     "stack:\torg 30h\n";
+#elif defined(CHIP_2A03)
+    "\tlda #0\n"
+    "loop:\tjsr func\n"
+    "\tjmp loop\n"
+    "func:\tinx\n"
+    "\tdey\n"
+    "\tinc data\n"
+    "\tsec\n"
+    "\tadc #2\n"
+    "\trts\n"
+    "data:\tdb $40\n\n";
 #endif
 
 static void app_init(void) {

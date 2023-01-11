@@ -12,7 +12,7 @@
 #include "sokol_imgui.h"
 
 #define CHIPS_IMPL
-#if defined(CHIP_6502)
+#if defined(CHIP_6502) || defined(CHIP_2A03)
 #define UI_DASM_USE_M6502
 #include "chips/m6502dasm.h"
 #elif defined(CHIP_Z80)
@@ -127,6 +127,34 @@ static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] =
     { "Flags", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 8 },
     { "Asm", ImGuiTableColumnFlags_NoClip, 12 }
 };
+#elif defined(CHIP_2A03)
+#define UI_TRACELOG_NUM_COLUMNS (24)
+static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] = {
+    { "Cycle/h", ImGuiTableColumnFlags_None, 7 },
+    { "SYNC", ImGuiTableColumnFlags_NoClip, 4 },
+    { "RW", ImGuiTableColumnFlags_NoClip, 2 },
+    { "AB", ImGuiTableColumnFlags_NoClip, 4 },
+    { "DB", ImGuiTableColumnFlags_NoClip, 2 },
+    { "PC", ImGuiTableColumnFlags_NoClip, 4 },
+    { "OP", ImGuiTableColumnFlags_NoClip, 2 },
+    { "A", ImGuiTableColumnFlags_NoClip, 2 },
+    { "X", ImGuiTableColumnFlags_NoClip, 2 },
+    { "Y", ImGuiTableColumnFlags_NoClip, 2 },
+    { "S", ImGuiTableColumnFlags_NoClip, 2 },
+    { "P", ImGuiTableColumnFlags_NoClip, 2 },
+    { "Watch", ImGuiTableColumnFlags_NoClip, 5 },
+    { "Flags", ImGuiTableColumnFlags_NoClip, 8 },
+    { "IRQ", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
+    { "NMI", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
+    { "RES", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
+    { "RDY", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
+    { "Asm", ImGuiTableColumnFlags_NoClip, 8 },
+    { "Sq0", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
+    { "Sq1", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
+    { "Tri", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
+    { "Noi", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
+    { "Pcm", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 3 },
+};
 #endif
 
 #define MAX_TRACEDUMP_SIZE ((MAX_TRACE_ITEMS+2) * UI_TRACELOG_NUM_COLUMNS * 16)
@@ -142,6 +170,9 @@ static struct {
     ui_dasm_t dasm;
     struct {
         bool cpu_controls;
+        #if defined(CHIP_2A03)
+        bool audio_controls;
+        #endif
         bool tracelog;
         bool timingdiagram;
         bool nodeexplorer;
@@ -322,7 +353,7 @@ void ui_init() {
         ui_dasm_desc_t desc = { };
         desc.title = "Disassembler";
         desc.open = false;
-        #if defined(CHIP_6502)
+        #if defined(CHIP_6502) || defined(CHIP_2A03)
         desc.cpu_type = UI_DASM_CPUTYPE_M6502;
         #elif defined(CHIP_Z80)
         desc.cpu_type = UI_DASM_CPUTYPE_Z80;
@@ -650,6 +681,9 @@ static void ui_menu(void) {
         }
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("Controls", "Alt+C", &ui.window_open.cpu_controls);
+            #if defined(CHIP_2A03)
+            ImGui::MenuItem("Audio", nullptr, &ui.window_open.audio_controls);
+            #endif
             ImGui::MenuItem("Node Explorer", "Alt+E", &ui.window_open.nodeexplorer);
             ImGui::MenuItem("Trace Log", "Alt+T", &ui.window_open.tracelog);
             ImGui::MenuItem("Timing Diagram", nullptr, &ui.window_open.timingdiagram);
@@ -753,7 +787,7 @@ static void ui_menu(void) {
     }
 }
 
-#if defined(CHIP_6502)
+#if defined(CHIP_6502) || defined(CHIP_2A03)
 static void ui_input_6502_vec(const char* label, const char* id, uint16_t addr) {
     ImGui::AlignTextToFramePadding();
     ImGui::Text("%s", label); ImGui::SameLine();
@@ -771,9 +805,9 @@ static void ui_input_z80_intvec(const char* label, const char* id) {
 
 static const char* ui_cpu_flags_as_string(uint8_t flags, char* buf, size_t buf_size) {
     assert(buf && (buf_size >= 9)); (void)buf_size;
-    #if defined(CHIP_6502)
+    #if defined(CHIP_6502) || defined(CHIP_2A03)
     const char* chrs[2] = { "czidbxvn", "CZIDBXVN" };
-    #else
+    #elif defined(CHIP_Z80)
     const char* chrs[2] = { "cnvxhyzs", "CNVXHYZS" };
     #endif
     for (int i = 0; i < 8; i++) {
@@ -895,6 +929,174 @@ static void ui_cpu_status_panel(void) {
 }
 #endif
 
+#if defined(CHIP_2A03)
+static void ui_cpu_status_panel(void) {
+    const uint8_t ir = sim_2a03_get_op();
+    const uint8_t p = sim_get_flags();
+    ImGui::Text("A:%02X X:%02X Y:%02X SP:%02X PC:%04X",
+        sim_2a03_get_a(), sim_2a03_get_x(), sim_2a03_get_y(), sim_2a03_get_sp(), sim_get_pc());
+    char p_buf[9];
+    ImGui::Text("P:%02X (%s) Cycle: %d", p, ui_cpu_flags_as_string(sim_get_flags(), p_buf, sizeof(p_buf)), sim_get_cycle()>>1);
+    ImGui::Text("OP:%02X [%s]\n", ir, trace_get_disasm(0));
+    ImGui::Text("Data:%02X Addr:%04X %s %s %s",
+        sim_get_data(), sim_get_addr(),
+        sim_2a03_get_rw()?"R":"W",
+        sim_2a03_get_clk0()?"CLK0":"clk0",
+        sim_2a03_get_sync()?"SYNC":"sync");
+    ImGui::Separator();
+    ui_input_6502_vec("NMI vector (FFFA): ", "##nmi_vec", 0xFFFA);
+    ui_input_6502_vec("RES vector (FFFC): ", "##res_vec", 0xFFFC);
+    ui_input_6502_vec("IRQ vector (FFFE): ", "##irq_vec", 0xFFFE);
+    ImGui::Separator();
+    bool rdy_active = !sim_2a03_get_rdy();
+    if (ImGui::Checkbox("RDY", &rdy_active)) {
+        sim_2a03_set_rdy(!rdy_active);
+    }
+    ImGui::SameLine();
+    bool irq_active = !sim_2a03_get_irq();
+    if (ImGui::Checkbox("IRQ", &irq_active)) {
+        sim_2a03_set_irq(!irq_active);
+    }
+    ImGui::SameLine();
+    bool nmi_active = !sim_2a03_get_nmi();
+    if (ImGui::Checkbox("NMI", &nmi_active)) {
+        sim_2a03_set_nmi(!nmi_active);
+    }
+    ImGui::SameLine();
+    bool res_active = !sim_2a03_get_res();
+    if (ImGui::Checkbox("RES", &res_active)) {
+        sim_2a03_set_res(!res_active);
+    }
+}
+
+static void ui_audio_status_panel(void) {
+    uint16_t frm_t = sim_2a03_get_frm_t();
+    ImGui::Text("frm: t:|%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c| (%04x)",
+        frm_t & 0x4000 ? '1' : ' ', frm_t & 0x2000 ? '1' : ' ',
+        frm_t & 0x1000 ? '1' : ' ', frm_t & 0x0800 ? '1' : ' ',
+        frm_t & 0x0400 ? '1' : ' ', frm_t & 0x0200 ? '1' : ' ',
+        frm_t & 0x0100 ? '1' : ' ', frm_t & 0x0080 ? '1' : ' ',
+        frm_t & 0x0040 ? '1' : ' ', frm_t & 0x0020 ? '1' : ' ',
+        frm_t & 0x0010 ? '1' : ' ', frm_t & 0x0008 ? '1' : ' ',
+        frm_t & 0x0004 ? '1' : ' ', frm_t & 0x0002 ? '1' : ' ',
+        frm_t & 0x0001 ? '1' : ' ', frm_t);
+
+    ImGui::Text("Sq0:%u Sq1:%u Tri:%u Noi:%u Pcm:%u", sim_2a03_get_sq0_out(),
+            sim_2a03_get_sq1_out(), sim_2a03_get_tri_out(),
+          sim_2a03_get_noi_out(), sim_2a03_get_pcm_out());
+
+    if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None)) {
+        if (ImGui::BeginTabItem("Square0")) {
+            ImGui::Text("$4000:\n  duty:%u halt:%u c:%u env:%2u\n  timer:%2u "
+                        "cycle:%u vol:%u",
+                        sim_2a03_get_sq0_duty(), sim_2a03_get_sq0_lenhalt(),
+                        sim_2a03_get_sq0_envmode(), sim_2a03_get_sq0_envp(),
+                        sim_2a03_get_sq0_envt(), sim_2a03_get_sq0_c(),
+                        sim_2a03_get_sq0_envc());
+            ImGui::Text("$4001:\n  en:%u period:%2u neg:%u shift:%2u\n  timer:%2u",
+                        sim_2a03_get_sq0_swpen(), sim_2a03_get_sq0_swpp(),
+                        sim_2a03_get_sq0_swpdir(), sim_2a03_get_sq0_swpb(),
+                        sim_2a03_get_sq0_swpt());
+            ImGui::Text("$4002:\n  period:%u\n  timer:%u", sim_2a03_get_sq0_p(),
+                        sim_2a03_get_sq0_t());
+            ImGui::Text("$4003:\n  len:%3u\n  en:%u on:%u len_reload:%u silence:%u",
+                        sim_2a03_get_sq0_len(), sim_2a03_get_sq0_en(),
+                        sim_2a03_get_sq0_on(), sim_2a03_get_sq0_len_reload(),
+                        sim_2a03_get_sq0_silence());
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Square1")) {
+            ImGui::Text("$4004:\n  duty:%u halt:%u c:%u env:%2u\n  timer:%2u "
+                        "cycle:%u vol:%u",
+                        sim_2a03_get_sq1_duty(), sim_2a03_get_sq1_lenhalt(),
+                        sim_2a03_get_sq1_envmode(), sim_2a03_get_sq1_envp(),
+                        sim_2a03_get_sq1_envt(), sim_2a03_get_sq1_c(),
+                        sim_2a03_get_sq1_envc());
+            ImGui::Text("$4005:\n  en:%u period:%2u neg:%u shift:%2u\n  timer:%2u",
+                        sim_2a03_get_sq1_swpen(), sim_2a03_get_sq1_swpp(),
+                        sim_2a03_get_sq1_swpdir(), sim_2a03_get_sq1_swpb(),
+                        sim_2a03_get_sq1_swpt());
+            ImGui::Text("$4006:\n  period:%u\n  timer:%u", sim_2a03_get_sq1_p(),
+                        sim_2a03_get_sq1_t());
+            ImGui::Text("$4007:\n  len:%3u\n  en:%u on:%u len_reload:%u silence:%u",
+                        sim_2a03_get_sq1_len(), sim_2a03_get_sq1_en(),
+                        sim_2a03_get_sq1_on(), sim_2a03_get_sq1_len_reload(),
+                        sim_2a03_get_sq1_silence());
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Triangle")) {
+            ImGui::Text("$4008:\n  en:%u linear:%u\n  lin.counter:%u cycle:%u",
+                        sim_2a03_get_tri_lin_en(), sim_2a03_get_tri_lin(),
+                        sim_2a03_get_tri_lc(), sim_2a03_get_tri_c());
+            ImGui::Text("$400a:\n  period:%u\n  timer:%u", sim_2a03_get_tri_p(),
+                        sim_2a03_get_tri_t());
+            ImGui::Text("$400b:\n  len:%3u\n  en:%u on:%u len_reload:%u silence:%u",
+                        sim_2a03_get_tri_len(), sim_2a03_get_tri_en(),
+                        sim_2a03_get_tri_on(), sim_2a03_get_tri_len_reload(),
+                        sim_2a03_get_tri_silence());
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Noise")) {
+            uint16_t noi_c = sim_2a03_get_noi_c();
+            ImGui::Text("$400c:\n  halt:%u c:%u env:%2u\n  timer:%2u vol:%u\n  "
+                        "cycle:|%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c| (%04x)",
+                        sim_2a03_get_noi_lenhalt(), sim_2a03_get_noi_envmode(),
+                        sim_2a03_get_noi_envp(), sim_2a03_get_noi_envt(),
+                        sim_2a03_get_noi_envc(), noi_c & 0x4000 ? '1' : ' ',
+                        noi_c & 0x2000 ? '1' : ' ', noi_c & 0x1000 ? '1' : ' ',
+                        noi_c & 0x0800 ? '1' : ' ', noi_c & 0x0400 ? '1' : ' ',
+                        noi_c & 0x0200 ? '1' : ' ', noi_c & 0x0100 ? '1' : ' ',
+                        noi_c & 0x0080 ? '1' : ' ', noi_c & 0x0040 ? '1' : ' ',
+                        noi_c & 0x0020 ? '1' : ' ', noi_c & 0x0010 ? '1' : ' ',
+                        noi_c & 0x0008 ? '1' : ' ', noi_c & 0x0004 ? '1' : ' ',
+                        noi_c & 0x0002 ? '1' : ' ', noi_c & 0x0001 ? '1' : ' ',
+                        noi_c);
+            uint16_t noi_t = sim_2a03_get_noi_t();
+            ImGui::Text("$400e:\n  mode:%u period:%u\n  "
+                        "timer:|%c%c%c%c%c%c%c%c%c%c%c| (%04x)",
+                        sim_2a03_get_noi_lfsrmode(), sim_2a03_get_noi_freq(),
+                        noi_t & 0x0400 ? '1' : ' ', noi_t & 0x0200 ? '1' : ' ',
+                        noi_t & 0x0100 ? '1' : ' ', noi_t & 0x0080 ? '1' : ' ',
+                        noi_t & 0x0040 ? '1' : ' ', noi_t & 0x0020 ? '1' : ' ',
+                        noi_t & 0x0010 ? '1' : ' ', noi_t & 0x0008 ? '1' : ' ',
+                        noi_t & 0x0004 ? '1' : ' ', noi_t & 0x0002 ? '1' : ' ',
+                        noi_t & 0x0001 ? '1' : ' ', noi_t);
+            ImGui::Text("$400f:\n  len:%3u\n  en:%u on:%u len_reload:%u silence:%u",
+                        sim_2a03_get_noi_len(), sim_2a03_get_noi_en(),
+                        sim_2a03_get_noi_on(), sim_2a03_get_noi_len_reload(),
+                        sim_2a03_get_noi_silence());
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("DMC")) {
+            uint16_t pcm_t = sim_2a03_get_pcm_t();
+            ImGui::Text("$4010:\n  irqen:%u loop:%u freq:%2u\n  "
+                        "timer:|%c%c%c%c%c%c%c%c%c| (%03x)",
+                        sim_2a03_get_pcm_irqen(), sim_2a03_get_pcm_loop(),
+                        sim_2a03_get_pcm_freq(), pcm_t & 0x0100 ? '1' : ' ',
+                        pcm_t & 0x0080 ? '1' : ' ', pcm_t & 0x0040 ? '1' : ' ',
+                        pcm_t & 0x0020 ? '1' : ' ', pcm_t & 0x0010 ? '1' : ' ',
+                        pcm_t & 0x0008 ? '1' : ' ', pcm_t & 0x0004 ? '1' : ' ',
+                        pcm_t & 0x0002 ? '1' : ' ', pcm_t & 0x0001 ? '1' : ' ', pcm_t);
+            ImGui::Text("$4012:\n  saddr:%02x addr:%04x\n  buf:%02x load:%u\n  "
+                        "sr:%02x load:%u shift:%u",
+                        sim_2a03_get_pcm_sa(), sim_2a03_get_pcm_a(),
+                        sim_2a03_get_pcm_buf(), sim_2a03_get_pcm_loadbuf(),
+                        sim_2a03_get_pcm_sr(), sim_2a03_get_pcm_loadsr(),
+                        sim_2a03_get_pcm_shiftsr());
+            ImGui::Text("$4013:\n  len:%3u\n  counter:%u\n  en:%u rd_active:%u",
+                        sim_2a03_get_pcm_l(), sim_2a03_get_pcm_lc(),
+                        sim_2a03_get_pcm_en(), sim_2a03_get_pcm_rd_active());
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabItem();
+    }
+}
+#endif
+
 static void ui_cassette_deck_controls(void) {
     const char* tooltip = 0;
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
@@ -969,41 +1171,51 @@ static void ui_cassette_deck_controls(void) {
 }
 
 static void ui_controls(void) {
-    if (!ui.window_open.cpu_controls) {
-        return;
-    }
-    ImGui::SetNextWindowPos({ ImGui::GetIO().DisplaySize.x - 300, 50 }, ImGuiCond_Once);
-    ImGui::SetNextWindowSize({ 270, 480 }, ImGuiCond_Once);
-    #if defined(CHIP_6502)
-    const char* cpu_name = "MOS 6502";
-    #else
-    const char* cpu_name = "Zilog Z80";
-    #endif
-    if (ImGui::Begin(cpu_name, &ui.window_open.cpu_controls, ImGuiWindowFlags_None)) {
-        /* cassette deck controls */
-        ui_cassette_deck_controls();
-        ImGui::Separator();
+    if (ui.window_open.cpu_controls) {
+        ImGui::SetNextWindowPos({ ImGui::GetIO().DisplaySize.x - 300, 50 }, ImGuiCond_Once);
+        ImGui::SetNextWindowSize({ 270, 480 }, ImGuiCond_Once);
+        #if defined(CHIP_6502)
+        const char* cpu_name = "MOS 6502";
+        #elif defined(CHIP_Z80)
+        const char* cpu_name = "Zilog Z80";
+        #elif defined(CHIP_2A03)
+        const char* cpu_name = "Ricoh 2A03";
+        #endif
+        if (ImGui::Begin(cpu_name, &ui.window_open.cpu_controls, ImGuiWindowFlags_None)) {
+            /* cassette deck controls */
+            ui_cassette_deck_controls();
+            ImGui::Separator();
 
-        /* CPU state */
-        ui_cpu_status_panel();
-        ImGui::Separator();
+            /* CPU state */
+            ui_cpu_status_panel();
+            ImGui::Separator();
 
-        /* memory dump */
-        if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None)) {
-            if (ImGui::BeginTabItem("Memory")) {
-                ui_memedit_draw_content(&ui.memedit_integrated);
-                ImGui::EndTabItem();
+            /* memory dump */
+            if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None)) {
+                if (ImGui::BeginTabItem("Memory")) {
+                    ui_memedit_draw_content(&ui.memedit_integrated);
+                    ImGui::EndTabItem();
+                }
+                #if defined(CHIP_Z80)
+                if (ImGui::BeginTabItem("IO")) {
+                    ui_memedit_draw_content(&ui.ioedit_integrated);
+                    ImGui::EndTabItem();
+                }
+                #endif
+                ImGui::EndTabBar();
             }
-            #if defined(CHIP_Z80)
-            if (ImGui::BeginTabItem("IO")) {
-                ui_memedit_draw_content(&ui.ioedit_integrated);
-                ImGui::EndTabItem();
-            }
-            #endif
-            ImGui::EndTabBar();
         }
+        ImGui::End();
     }
-    ImGui::End();
+
+    #if defined(CHIP_2A03)
+    if (ui.window_open.audio_controls) {
+        if (ImGui::Begin("Audio", &ui.window_open.audio_controls, ImGuiWindowFlags_None)) {
+            ui_audio_status_panel();
+        }
+        ImGui::End();
+    }
+    #endif
 }
 
 static void ui_listing(void) {
@@ -1120,6 +1332,45 @@ static int ui_tracelog_print_item(int trace_index, int col_index, char* buf, siz
             }
         case 32: return snprintf(buf, buf_size, "%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), f_buf, sizeof(f_buf)));
         case 33: return snprintf(buf, buf_size, "%s", trace_get_disasm(trace_index));
+        default: return snprintf(buf, buf_size, "%s", "???");
+    }
+}
+#elif defined(CHIP_2A03)
+static int ui_tracelog_print_item(int trace_index, int col_index, char* buf, size_t buf_size) {
+    const uint32_t cur_cycle = trace_get_cycle(trace_index);
+    char p_buf[9];
+    switch (col_index) {
+        case 0: return snprintf(buf, buf_size, "%5d/%d", cur_cycle >> 1, cur_cycle & 1);
+        case 1: return snprintf(buf, buf_size, "%s", trace_2a03_get_sync(trace_index)?"SYNC":"    ");
+        case 2: return snprintf(buf, buf_size, "%c", trace_2a03_get_rw(trace_index)?'R':'W');
+        case 3: return snprintf(buf, buf_size, "%04X", trace_get_addr(trace_index));
+        case 4: return snprintf(buf, buf_size, "%02X", trace_get_data(trace_index));
+        case 5: return snprintf(buf, buf_size, "%04X", trace_get_pc(trace_index));
+        case 6: return snprintf(buf, buf_size, "%02X", trace_2a03_get_op(trace_index));
+        case 7: return snprintf(buf, buf_size, "%02X", trace_2a03_get_a(trace_index));
+        case 8: return snprintf(buf, buf_size, "%02X", trace_2a03_get_x(trace_index));
+        case 9: return snprintf(buf, buf_size, "%02X", trace_2a03_get_y(trace_index));
+        case 10: return snprintf(buf, buf_size, "%02X", trace_2a03_get_sp(trace_index));
+        case 11: return snprintf(buf, buf_size, "%02X", trace_get_flags(trace_index));
+        case 12:
+            if (ui.trace.watch_node_valid) {
+                return snprintf(buf, buf_size, "%c", trace_is_node_high(trace_index, ui.trace.watch_node_index) ? '1':'0');
+            }
+            else {
+                return snprintf(buf, buf_size, "%s", "??");
+            }
+        case 13: return snprintf(buf, buf_size, "%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), p_buf, sizeof(p_buf)));
+        case 14: return snprintf(buf, buf_size, "%s", trace_2a03_get_irq(trace_index)?"   ":"IRQ");
+        case 15: return snprintf(buf, buf_size, "%s", trace_2a03_get_nmi(trace_index)?"   ":"NMI");
+        case 16: return snprintf(buf, buf_size, "%s", trace_2a03_get_res(trace_index)?"   ":"RES");
+        case 17: return snprintf(buf, buf_size, "%s", trace_2a03_get_rdy(trace_index)?"   ":"RDY");
+        case 18: return snprintf(buf, buf_size, "%s", trace_get_disasm(trace_index));
+        case 19: return snprintf(buf, buf_size, "%u", trace_2a03_get_sq0_out(trace_index));
+        case 20: return snprintf(buf, buf_size, "%u", trace_2a03_get_sq1_out(trace_index));
+        case 21: return snprintf(buf, buf_size, "%u", trace_2a03_get_tri_out(trace_index));
+        case 22: return snprintf(buf, buf_size, "%u", trace_2a03_get_noi_out(trace_index));
+        case 23: return snprintf(buf, buf_size, "%u", trace_2a03_get_pcm_out(trace_index));
+
         default: return snprintf(buf, buf_size, "%s", "???");
     }
 }
@@ -1394,6 +1645,17 @@ static struct { uint32_t node; const char* name; bool active_low; } time_diagram
     { pz80__busrq, "BUSRQ", true },
     { pz80__busak, "BUSAK", true },
     { 1278, "IFF1", false },
+};
+#elif defined(CHIP_2A03)
+static const int num_time_diagram_nodes = 7;
+static struct { uint32_t node; const char* name; bool active_low; } time_diagram_nodes[num_time_diagram_nodes] = {
+    { p2a03_clk0, "CLK0", false },
+    { p2a03_sync, "SYNC", false },
+    { p2a03_rw, "RW", false },
+    { p2a03_irq, "IRQ", true },
+    { p2a03_nmi, "NMI", true },
+    { p2a03_res, "RES", true },
+    { p2a03_rdy, "RDY", false },
 };
 #endif
 
@@ -1935,6 +2197,8 @@ static ImVec2 draw_header(ImVec2 c_pos, float win_width) {
         const char* title = "*** VISUAL 6502 ***";
     #elif defined(CHIP_Z80)
         const char* title = "*** VISUALZ80 ***";
+    #elif defined(CHIP_2A03)
+        const char* title = "*** VISUAL 2A03 ***";
     #endif
     const char* subtitle = "*** remix ***";
     ImVec2 pos = { (c_pos.x + (win_width - ((float)strlen(title)) * d * 8.0f) * 0.5f), c_pos.y + 10.0f };
@@ -1953,6 +2217,9 @@ static const char* footers[NUM_FOOTERS] = {
     #elif defined(CHIP_Z80)
     "a 2021 production",
     "VISUAL Z80 REMIX",
+    #elif defined(CHIP_2A03)
+    "a 2023 production",
+    "VISUAL 2A03 REMIX",
     #endif
     "Built with:",
     "visual6502",
@@ -1981,6 +2248,8 @@ static const char* footers[NUM_FOOTERS] = {
     "6502 4EVER!!!",
     #elif defined(CHIP_Z80)
     "Z80 4EVER!!!",
+    #elif defined(CHIP_2A03)
+    "2A03 4EVER!!!",
     #endif
 };
 

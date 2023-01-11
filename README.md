@@ -22,6 +22,10 @@ Z80 simulation:
 
 ![Z80 screenshot](screenshots/vz80r.jpg)
 
+2A03 simulation:
+
+![2A03 screenshot](screenshots/v2a03r.jpg)
+
 Log CPU state and revert to a previous cycle:
 
 ![Tracelog](screenshots/tracelog.jpg)
@@ -63,6 +67,7 @@ To build and run the native version, run:
 ...
 > ./fips run v6502r
 > ./fips run vz80r
+> ./fips run v2a03r
 ```
 
 Linux may require additional development packages for X11 and OpenGL development.
@@ -75,6 +80,7 @@ To build the WASM version:
 > ./fips build
 > ./fips run v6502r
 > ./fips run vz80r
+> ./fips run v2a03r
 ```
 
 ## Software used in this project:
@@ -92,6 +98,7 @@ Many thanks to:
 - **Tripy**: https://github.com/linuxlewis/tripy
 - **IconFontCppHeaders**: https://github.com/juliettef/IconFontCppHeaders
 - **Font Awesome 4**: https://github.com/FortAwesome/Font-Awesome/tree/fa-4
+- **visual2a03**: http://www.qmtpro.com/~nes/chipimages/visual2a03/
 
 Please be aware of the various licenses in the respective
 github repositories, subdirectories and files.

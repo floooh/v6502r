@@ -61,7 +61,7 @@ void ui_asm_init(void) {
     // language definition for 6502 asm
     static TextEditor::LanguageDefinition def;
     static const char* keywords[] = {
-        #if defined(CHIP_6502)
+        #if defined(CHIP_6502) || defined(CHIP_2A03)
         "ADC", "AND", "ASL", "BCC", "BCS", "BEQ", "BIT", "BMI", "BNE", "BPL", "BRK",
         "BVC", "BVS", "CLC", "CLD", "CLI", "CLV", "CMP", "CPX", "CPY", "DEC", "DEX",
         "DEY", "EOR", "INC", "INX", "INY", "JMP", "JSR", "LDA", "LDX", "LDY", "LSR",
