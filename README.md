@@ -1,5 +1,7 @@
 # v6502r
 
+[![build](https://github.com/floooh/v6502r/actions/workflows/build.yml/badge.svg)](https://github.com/floooh/v6502r/actions/workflows/build.yml)
+
 Visual6502 and VisualZ80 Remixed
 
 WASM Version for 6502: https://floooh.github.io/visual6502remix/
