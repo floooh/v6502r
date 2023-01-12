@@ -14,7 +14,7 @@ def build_deploy_webpage(fips_dir, proj_dir):
     project.gen(fips_dir, proj_dir, BuildConfig)
     project.build(fips_dir, proj_dir, BuildConfig)
 
-    for tgt in ['v6502r', 'vz80r']:
+    for tgt in ['v6502r', 'vz80r', 'v2a03r']:
         webpage_dir = '{}/fips-deploy/{}-webpage'.format(ws_dir, tgt)
         if not os.path.isdir(webpage_dir) :
             os.makedirs(webpage_dir)
@@ -32,7 +32,7 @@ def build_deploy_webpage(fips_dir, proj_dir):
 def serve_webpage(fips_dir, proj_dir, tgt) :
     ws_dir = util.get_workspace_dir(fips_dir)
     webpage_dir = '{}/fips-deploy/{}-webpage'.format(ws_dir, tgt)
-    httpserver.run(fips_dir, proj_dir, tgt, webpage_dir);
+    httpserver.run(fips_dir, proj_dir, 'index', webpage_dir);
 
 #-------------------------------------------------------------------------------
 def run(fips_dir, proj_dir, args) :
@@ -50,6 +50,6 @@ def run(fips_dir, proj_dir, args) :
 def help() :
     log.info(log.YELLOW +
              'fips webpage build\n' +
-             'fips webpage serve [v6502r|vz80r]\n' +
+             'fips webpage serve [v6502r|vz80r|v2a03r]\n' +
              log.DEF +
              '    build the visual6502remix webpage')
