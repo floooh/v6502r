@@ -18,7 +18,7 @@ typedef struct {
 } gfx_palette_t;
 
 static const gfx_palette_t gfx_default_palette = {
-    .colors = {
+    {
         GFX_CSSRGB(0xf50057, 1.0f),
         GFX_CSSRGB(0xffeb3b, 1.0f),
         GFX_CSSRGB(0xff5252, 1.0f),   // unused?
@@ -26,7 +26,7 @@ static const gfx_palette_t gfx_default_palette = {
         GFX_CSSRGB(0xfb8c00, 0.7f),
         GFX_CSSRGB(0x00b0ff, 1.0f),
     },
-    .background = { 0.1f, 0.1f, 0.15f, 1.0f }
+    { 0.1f, 0.1f, 0.15f, 1.0f }
 };
 
 typedef struct {
