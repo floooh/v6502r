@@ -262,6 +262,10 @@ static void ui_io_write(int /*layer*/, uint16_t addr, uint8_t data, void* /*user
 }
 #endif
 
+static const ImVec4 dim(const ImVec4 c, float d) {
+    return ImVec4(c.x*d, c.y*d, c.z*d, c.w);
+}
+
 void ui_init() {
     assert(!ui.valid);
 
@@ -279,6 +283,14 @@ void ui_init() {
     style.WindowRounding = 0.0f;
     style.WindowBorderSize = 1.0f;
     style.Alpha = 1.0f;
+
+    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.15f, 1.0f);
+    style.Colors[ImGuiCol_TitleBg] = style.Colors[ImGuiCol_WindowBg];
+    style.Colors[ImGuiCol_Border] = dim(style.Colors[ImGuiCol_TitleBgActive], 0.75f);
+    style.Colors[ImGuiCol_MenuBarBg] = style.Colors[ImGuiCol_WindowBg];
+    style.Colors[ImGuiCol_ChildBg] = style.Colors[ImGuiCol_WindowBg];
+    style.Colors[ImGuiCol_PopupBg] = style.Colors[ImGuiCol_WindowBg];
+    style.Colors[ImGuiCol_ScrollbarBg] = dim(style.Colors[ImGuiCol_WindowBg], 0.85f);
 
     // setup ImGui font with custom icons
     auto& io = ImGui::GetIO();
@@ -727,7 +739,7 @@ static void ui_menu(void) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Theme")) {
-            if (ImGui::MenuItem("Default")) {
+            if (ImGui::MenuItem("Remix")) {
                 gfx_set_layer_palette(false, gfx_default_palette);
             }
             if (ImGui::MenuItem("Visual6502")) {
