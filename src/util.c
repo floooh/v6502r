@@ -9,7 +9,6 @@
 static struct {
     bool valid;
     bool is_osx;
-    bool cursor_is_pointer;
 } util;
 
 #if defined(__EMSCRIPTEN__)
@@ -99,14 +98,6 @@ EM_JS(void, emsc_js_open_link, (const char* c_url), {
     window.open(url);
 });
 
-EM_JS(void, emsc_js_cursor_to_pointer, (void), {
-    document.getElementById('canvas').style.cursor = 'pointer';
-});
-
-EM_JS(void, emsc_js_cursor_to_default, (void), {
-    document.getElementById('canvas').style.cursor = 'default';
-});
-
 EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, uint8_t* data, int size) {
     ui_asm_put_source(name, (range_t){ .ptr=data, .size=(size_t)size });
     ui_asm_set_window_open(true);
@@ -171,24 +162,4 @@ void util_html5_open_link(const char* url) {
 bool util_is_osx(void) {
     assert(util.valid);
     return util.is_osx;
-}
-
-void util_html5_cursor_to_pointer(void) {
-    assert(util.valid);
-    #if defined(__EMSCRIPTEN__)
-    if (!util.cursor_is_pointer) {
-        util.cursor_is_pointer = true;
-        emsc_js_cursor_to_pointer();
-    }
-    #endif
-}
-
-void util_html5_cursor_to_default(void) {
-    assert(util.valid);
-    #if defined(__EMSCRIPTEN__)
-    if (util.cursor_is_pointer) {
-        util.cursor_is_pointer = false;
-        emsc_js_cursor_to_default();
-    }
-    #endif
 }

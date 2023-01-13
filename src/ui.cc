@@ -632,10 +632,7 @@ void ui_frame() {
     ui_help_opcodes();
     ui_help_about();
     if (ui.link_hovered) {
-        util_html5_cursor_to_pointer();
-    }
-    else {
-        util_html5_cursor_to_default();
+        sapp_set_mouse_cursor(SAPP_MOUSECURSOR_POINTING_HAND);
     }
 }
 
