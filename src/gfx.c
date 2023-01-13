@@ -97,10 +97,11 @@ void gfx_init(const gfx_desc_t* desc) {
     gfx.pip_alpha = sg_make_pipeline(&pip_desc_alpha);
     gfx.pip_add = sg_make_pipeline(&pip_desc_add);
 
-    // a 2048x1 dynamic palette texture
+    // a dynamic palette texture with one pixel per netlist node
+    assert((MAX_NODES & 255) == 0);
     gfx.img = sg_make_image(&(sg_image_desc){
-        .width = MAX_NODES,
-        .height = 1,
+        .width = 256,
+        .height = MAX_NODES / 256,
         .pixel_format = SG_PIXELFORMAT_R8,
         .min_filter = SG_FILTER_NEAREST,
         .mag_filter = SG_FILTER_NEAREST,
