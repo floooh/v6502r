@@ -10,6 +10,7 @@
 #include "sokol_app.h"
 #include "sokol_gfx.h"
 #include "sokol_imgui.h"
+#include "sokol_gfx_imgui.h"
 
 #define CHIPS_IMPL
 #if defined(CHIP_6502) || defined(CHIP_2A03)
@@ -218,6 +219,7 @@ static struct {
         int pos;
         char buf[MAX_TRACEDUMP_SIZE];
     } tracedump;
+    sg_imgui_t sgimgui;
 } ui;
 
 static void ui_menu(void);
@@ -268,6 +270,10 @@ static const ImVec4 dim(const ImVec4 c, float d) {
 
 void ui_init() {
     assert(!ui.valid);
+
+    // setup sokol-gfx debugging UI
+    const sg_imgui_desc_t sgimgui_desc = {};
+    sg_imgui_init(&ui.sgimgui, &sgimgui_desc);
 
     // default window open state
     ui.window_open.cpu_controls = true;
@@ -321,6 +327,7 @@ void ui_init() {
         desc.mag_filter = SG_FILTER_LINEAR;
         desc.data.subimage[0][0].ptr = font_pixels;
         desc.data.subimage[0][0].size = font_width * font_height * 4;
+        desc.label = "icon-font";
         io.Fonts->TexID = (ImTextureID)(uintptr_t) sg_make_image(&desc).id;
     }
 
@@ -392,6 +399,7 @@ void ui_init() {
 
 void ui_shutdown() {
     assert(ui.valid);
+    sg_imgui_discard(&ui.sgimgui);
     ui_nodeexplorer_discard();
     ui_asm_discard();
     ui_dasm_discard(&ui.dasm);
@@ -638,6 +646,7 @@ void ui_frame() {
 
 void ui_draw() {
     assert(ui.valid);
+    sg_imgui_draw(&ui.sgimgui);
     simgui_render();
 }
 
@@ -791,6 +800,16 @@ static void ui_menu(void) {
                     { 0.0f, 0.0f, 0.0f, 1.0f }
                 });
             }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Sokol")) {
+            ImGui::MenuItem("Capabilities...", 0, &ui.sgimgui.caps.open, true);
+            ImGui::MenuItem("Buffers...", 0, &ui.sgimgui.buffers.open, true);
+            ImGui::MenuItem("Images...", 0, &ui.sgimgui.images.open, true);
+            ImGui::MenuItem("Shaders...", 0, &ui.sgimgui.shaders.open, true);
+            ImGui::MenuItem("Pipelines...", 0, &ui.sgimgui.pipelines.open, true);
+            ImGui::MenuItem("Passes...", 0, &ui.sgimgui.passes.open, true);
+            ImGui::MenuItem("Calls...", 0, &ui.sgimgui.capture.open, true);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help")) {

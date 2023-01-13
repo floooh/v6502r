@@ -50,6 +50,8 @@ const char* init_src =
 
 static void app_init(void) {
     util_init();
+    gfx_preinit();
+    ui_init();
     gfx_init(&(gfx_desc_t){
         .seg_vertices = {
             [0] = SG_RANGE(seg_vertices_0),
@@ -67,7 +69,6 @@ static void app_init(void) {
         .seg_max_y = seg_max_y,
     });
     input_init();
-    ui_init();
     pick_init(&(pick_desc_t){
         .seg_min_x = seg_min_x,
         .seg_min_y = seg_min_y,

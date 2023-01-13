@@ -37,6 +37,7 @@ typedef struct {
     uint16_t seg_max_y;
 } gfx_desc_t;
 
+void gfx_preinit(void);
 void gfx_init(const gfx_desc_t* desc);
 void gfx_shutdown(void);
 

@@ -8,6 +8,7 @@
 #include "sokol_glue.h"
 #include "gfx.h"
 #include "gfx.glsl.h"
+#include <stdio.h>  // snprintf
 
 static struct {
     bool valid;
@@ -33,19 +34,20 @@ static struct {
     uint8_t node_state[MAX_NODES];
 } gfx;
 
-void gfx_init(const gfx_desc_t* desc) {
-    assert(!gfx.valid);
-    assert(desc);
-    assert(desc->seg_max_x > 0);
-    assert(desc->seg_max_y > 0);
-
-    // setup sokol-gfx
+void gfx_preinit(void) {
     sg_setup(&(sg_desc){
         .buffer_pool_size = 16,
         .image_pool_size = 8,
         .pipeline_pool_size = 8,
         .context = sapp_sgcontext()
     });
+}
+
+void gfx_init(const gfx_desc_t* desc) {
+    assert(!gfx.valid);
+    assert(desc);
+    assert(desc->seg_max_x > 0);
+    assert(desc->seg_max_y > 0);
 
     // default values
     gfx.seg_min_x = desc->seg_min_x;
@@ -63,8 +65,11 @@ void gfx_init(const gfx_desc_t* desc) {
     // create vertex buffer from offline-baked vertex data
     for (int i = 0; i < MAX_LAYERS; i++) {
         if (desc->seg_vertices[i].ptr && (desc->seg_vertices[i].size > 0)) {
+            char label[128];
+            snprintf(label, sizeof(label), "node-layer-%d", i);
             gfx.layers[i].vb = sg_make_buffer(&(sg_buffer_desc){
-                .data = desc->seg_vertices[i]
+                .data = desc->seg_vertices[i],
+                .label = label,
             });
             gfx.layers[i].num_elms = (int)(desc->seg_vertices[i].size / 8);
             assert(gfx.layers[i].num_elms > 0);
@@ -88,12 +93,14 @@ void gfx_init(const gfx_desc_t* desc) {
                 .src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA,
                 .dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA
             }
-        }
+        },
+        .label = "alpha-blend-pipeline",
     };
     sg_pipeline_desc pip_desc_add = pip_desc_alpha;
     pip_desc_add.shader = sg_make_shader(shd_add_shader_desc(sg_query_backend()));
     pip_desc_add.colors[0].blend.src_factor_rgb = SG_BLENDFACTOR_ONE;
     pip_desc_add.colors[0].blend.dst_factor_rgb = SG_BLENDFACTOR_ONE;
+    pip_desc_add.label = "additive-blend-pipeline";
     gfx.pip_alpha = sg_make_pipeline(&pip_desc_alpha);
     gfx.pip_add = sg_make_pipeline(&pip_desc_add);
 
@@ -107,7 +114,8 @@ void gfx_init(const gfx_desc_t* desc) {
         .mag_filter = SG_FILTER_NEAREST,
         .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
         .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
-        .usage = SG_USAGE_STREAM
+        .usage = SG_USAGE_STREAM,
+        .label = "node-texture",
     });
     gfx.valid = true;
 }
