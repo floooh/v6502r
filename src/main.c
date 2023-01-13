@@ -178,6 +178,7 @@ sapp_desc sokol_main(int argc, char* argv[]) {
         .window_title = WINDOW_TITLE,
         .enable_clipboard = true,
         .sample_count = 4,
+        .high_dpi = sargs_boolean("highdpi"),
         .clipboard_size = 16*1024,
         .icon = {
             .sokol_default = true
