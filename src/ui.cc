@@ -293,6 +293,9 @@ void ui_init() {
     style.Colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.15f, 1.0f);
     style.Colors[ImGuiCol_TitleBg] = style.Colors[ImGuiCol_WindowBg];
     style.Colors[ImGuiCol_Border] = dim(style.Colors[ImGuiCol_TitleBgActive], 0.75f);
+    style.Colors[ImGuiCol_Separator] = style.Colors[ImGuiCol_Border];
+    style.Colors[ImGuiCol_TableBorderLight] = style.Colors[ImGuiCol_Border];
+    style.Colors[ImGuiCol_TableBorderStrong] = style.Colors[ImGuiCol_Border];
     style.Colors[ImGuiCol_MenuBarBg] = style.Colors[ImGuiCol_WindowBg];
     style.Colors[ImGuiCol_ChildBg] = style.Colors[ImGuiCol_WindowBg];
     style.Colors[ImGuiCol_PopupBg] = style.Colors[ImGuiCol_WindowBg];
