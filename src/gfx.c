@@ -5,6 +5,7 @@
 //------------------------------------------------------------------------------
 #include "sokol_gfx.h"
 #include "sokol_app.h"
+#include "sokol_log.h"
 #include "sokol_glue.h"
 #include "gfx.h"
 #include "gfx.glsl.h"
@@ -39,7 +40,8 @@ void gfx_preinit(void) {
         .buffer_pool_size = 16,
         .image_pool_size = 8,
         .pipeline_pool_size = 8,
-        .context = sapp_sgcontext()
+        .context = sapp_sgcontext(),
+        .logger.func = slog_func,
     });
 }
 

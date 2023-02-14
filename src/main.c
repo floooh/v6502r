@@ -4,6 +4,7 @@
 //------------------------------------------------------------------------------
 #include "sokol_app.h"
 #include "sokol_args.h"
+#include "sokol_log.h"
 #include "util.h"
 #include "gfx.h"
 #include "input.h"
@@ -182,6 +183,9 @@ sapp_desc sokol_main(int argc, char* argv[]) {
         .clipboard_size = 16*1024,
         .icon = {
             .sokol_default = true
+        },
+        .logger = {
+            .func = slog_func,
         }
     };
 }
