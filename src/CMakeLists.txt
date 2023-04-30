@@ -1,5 +1,5 @@
 if (FIPS_EMSCRIPTEN)
-    set(slang "glsl100")
+    set(slang "glsl300es")
 elseif (FIPS_WINDOWS)
     set(slang "hlsl4:glsl330")
 elseif (FIPS_OSX)
@@ -74,4 +74,3 @@ target_include_directories(v2a03r PRIVATE 2a03)
 if (FIPS_EMSCRIPTEN)
     target_link_options(v2a03r PUBLIC --shell-file ${CMAKE_SOURCE_DIR}/src/2a03/shell.html -sLEGACY_RUNTIME=1)
 endif()
-
