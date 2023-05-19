@@ -144,8 +144,8 @@ void gfx_begin(void) {
     assert(gfx.valid);
     sg_pass_action pass_action = {
         .colors[0] = {
-            .action = SG_ACTION_CLEAR,
-            .value = {
+            .load_action = SG_LOADACTION_CLEAR,
+            .clear_value = {
                 .r = gfx.palette.background.x,
                 .g = gfx.palette.background.y,
                 .b = gfx.palette.background.z,
