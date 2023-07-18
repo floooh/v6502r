@@ -15,7 +15,8 @@ uniform vs_params {
 
 const float max_nodes = 8192.0;
 
-uniform sampler2D palette_tex;
+uniform texture2D palette_tex;
+uniform sampler palette_smp;
 in vec2 pos;
 in vec2 uv;
 out vec4 color;
@@ -26,7 +27,7 @@ void main() {
     gl_Position = vec4(p, 0.5, 1.0);
     float u = (floor(mod(uv.x * 65536.0, 256.0)) + 0.5) / 256.0;
     float v = (floor(uv.x * 256.0) + 0.5) / (max_nodes / 256.0);
-    float r = texture(palette_tex, vec2(u, v)).r;
+    float r = texture(sampler2D(palette_tex, palette_smp), vec2(u, v)).r;
     color = vec4(color0.xyz * r, color0.w);
 }
 @end

@@ -24,6 +24,7 @@ static struct {
     sg_pipeline pip_alpha;
     sg_pipeline pip_add;
     sg_image img;
+    sg_sampler smp;
     float2_t display_size;
     float aspect;
     float scale;
@@ -106,18 +107,20 @@ void gfx_init(const gfx_desc_t* desc) {
     gfx.pip_alpha = sg_make_pipeline(&pip_desc_alpha);
     gfx.pip_add = sg_make_pipeline(&pip_desc_add);
 
-    // a dynamic palette texture with one pixel per netlist node
+    // a dynamic palette texture with one pixel per netlist node, and a matching sampler
     assert((MAX_NODES & 255) == 0);
     gfx.img = sg_make_image(&(sg_image_desc){
         .width = 256,
         .height = MAX_NODES / 256,
         .pixel_format = SG_PIXELFORMAT_R8,
+        .usage = SG_USAGE_STREAM,
+        .label = "node-texture",
+    });
+    gfx.smp = sg_make_sampler(&(sg_sampler_desc){
         .min_filter = SG_FILTER_NEAREST,
         .mag_filter = SG_FILTER_NEAREST,
         .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
         .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
-        .usage = SG_USAGE_STREAM,
-        .label = "node-texture",
     });
     gfx.valid = true;
 }
@@ -130,6 +133,7 @@ void gfx_shutdown(void) {
     sg_destroy_pipeline(gfx.pip_alpha);
     sg_destroy_pipeline(gfx.pip_add);
     sg_destroy_image(gfx.img);
+    sg_destroy_sampler(gfx.smp);
     sg_shutdown();
     memset(&gfx, 0, sizeof(gfx));
 }
@@ -179,7 +183,10 @@ void gfx_draw(void) {
         if (gfx.layer_visible[i] && (gfx.layers[i].vb.id != SG_INVALID_ID)) {
             sg_apply_bindings(&(sg_bindings){
                 .vertex_buffers[0] = gfx.layers[i].vb,
-                .vs_images[SLOT_palette_tex] = gfx.img
+                .vs = {
+                    .images[SLOT_palette_tex] = gfx.img,
+                    .samplers[SLOT_palette_smp] = gfx.smp,
+                }
             });
             sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
             sg_draw(0, gfx.layers[i].num_elms, 1);

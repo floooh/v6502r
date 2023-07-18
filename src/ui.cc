@@ -324,14 +324,10 @@ void ui_init() {
         desc.width = font_width;
         desc.height = font_height;
         desc.pixel_format = SG_PIXELFORMAT_RGBA8;
-        desc.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
-        desc.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
-        desc.min_filter = SG_FILTER_LINEAR;
-        desc.mag_filter = SG_FILTER_LINEAR;
         desc.data.subimage[0][0].ptr = font_pixels;
         desc.data.subimage[0][0].size = font_width * font_height * 4;
         desc.label = "icon-font";
-        io.Fonts->TexID = (ImTextureID)(uintptr_t) sg_make_image(&desc).id;
+        io.Fonts->TexID = simgui_imtextureid(sg_make_image(&desc));
     }
 
     // initialize helper windows from the chips projects
