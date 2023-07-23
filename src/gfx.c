@@ -121,6 +121,7 @@ void gfx_init(const gfx_desc_t* desc) {
         .mag_filter = SG_FILTER_NEAREST,
         .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
         .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
+        .label = "node-sampler",
     });
     gfx.valid = true;
 }

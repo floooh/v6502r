@@ -320,14 +320,19 @@ void ui_init() {
     int font_width, font_height;
     io.Fonts->GetTexDataAsRGBA32(&font_pixels, &font_width, &font_height);
     {
-        sg_image_desc desc = { };
-        desc.width = font_width;
-        desc.height = font_height;
-        desc.pixel_format = SG_PIXELFORMAT_RGBA8;
-        desc.data.subimage[0][0].ptr = font_pixels;
-        desc.data.subimage[0][0].size = font_width * font_height * 4;
-        desc.label = "icon-font";
-        io.Fonts->TexID = simgui_imtextureid(sg_make_image(&desc));
+        sg_image_desc img_desc = { };
+        img_desc.width = font_width;
+        img_desc.height = font_height;
+        img_desc.pixel_format = SG_PIXELFORMAT_RGBA8;
+        img_desc.data.subimage[0][0].ptr = font_pixels;
+        img_desc.data.subimage[0][0].size = font_width * font_height * 4;
+        img_desc.label = "icon-font";
+        sg_image img = sg_make_image(&img_desc);
+
+        simgui_image_desc_t ui_img_desc = { };
+        ui_img_desc.image = img;
+
+        io.Fonts->TexID = simgui_imtextureid(simgui_make_image(&ui_img_desc));
     }
 
     // initialize helper windows from the chips projects
@@ -805,6 +810,7 @@ static void ui_menu(void) {
             ImGui::MenuItem("Capabilities...", 0, &ui.sgimgui.caps.open, true);
             ImGui::MenuItem("Buffers...", 0, &ui.sgimgui.buffers.open, true);
             ImGui::MenuItem("Images...", 0, &ui.sgimgui.images.open, true);
+            ImGui::MenuItem("Samplers...", 0, &ui.sgimgui.samplers.open, true);
             ImGui::MenuItem("Shaders...", 0, &ui.sgimgui.shaders.open, true);
             ImGui::MenuItem("Pipelines...", 0, &ui.sgimgui.pipelines.open, true);
             ImGui::MenuItem("Passes...", 0, &ui.sgimgui.passes.open, true);
