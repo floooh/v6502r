@@ -56,7 +56,6 @@ void ui_asm_init(void) {
     state.editor->SetPalette(TextEditor::GetRetroBluePalette());
     state.editor->SetShowWhitespaces(false);
     state.editor->SetTabSize(8);
-    state.editor->SetImGuiChildIgnored(true);
 
     // language definition for 6502 asm
     static TextEditor::LanguageDefinition def;
@@ -121,15 +120,11 @@ void ui_asm_draw(void) {
     }
     if (ImGui::Begin("Assembler", &state.window_open, ImGuiWindowFlags_None)) {
         bool is_active = ImGui::IsWindowFocused();
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(state.editor->GetPalette()[(int)TextEditor::PaletteIndex::Background]));
-        ImGui::BeginChild("##asm", {0,-footer_h}, false, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
-        state.editor->Render("Assembler");
+        state.editor->Render("Assembler", {0,-footer_h}, false);
         // set focus to text input field whenever the parent window is active
         if (is_active) {
             ImGui::SetFocusID(ImGui::GetCurrentWindow()->ID, ImGui::GetCurrentWindow());
         }
-        ImGui::EndChild();
-        ImGui::PopStyleColor();
         if (cur_error) {
             ImGui::PushStyleColor(ImGuiCol_Text, cur_error->warning ? 0xFF44FFFF : 0xFF4444FF);
             ImGui::Text("%s", cur_error->msg);
