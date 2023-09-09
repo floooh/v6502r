@@ -8,7 +8,7 @@
     ~~~C
     #define CHIPS_IMPL
     ~~~
-    before you include this file in *one* C++ file to create the 
+    before you include this file in *one* C++ file to create the
     implementation.
 
     Select the supported CPUs with the following macros (at least
@@ -18,7 +18,7 @@
     UI_DASM_USE_M6502
 
     Optionally provide the following macros with your own implementation
-    
+
     ~~~C
     CHIPS_ASSERT(c)
     ~~~
@@ -51,7 +51,7 @@
         2. Altered source versions must be plainly marked as such, and must not
         be misrepresented as being the original software.
         3. This notice may not be removed or altered from any source
-        distribution. 
+        distribution.
 #*/
 #include <stdint.h>
 #include <stdbool.h>
@@ -275,7 +275,7 @@ static bool _ui_dasm_jumptarget(ui_dasm_t* win, uint16_t pc, uint16_t* out_addr)
         else if (win->bin_pos == 2) {
             switch (win->bin_buf[0]) {
                 /* relative branch */
-                case 0x10: case 0x30: case 0x50: case 0x70: 
+                case 0x10: case 0x30: case 0x50: case 0x70:
                 case 0x90: case 0xB0: case 0xD0: case 0xF0:
                     *out_addr = pc + (int8_t)win->bin_buf[1];
                     return true;
@@ -418,7 +418,7 @@ static void _ui_dasm_draw_stack(ui_dasm_t* win) {
         win->stack_num = 0;
     }
     char buf[5] = { 0 };
-    if (ImGui::ListBoxHeader("##stack", ImVec2(-1,-1))) {
+    if (ImGui::BeginListBox("##stack", ImVec2(-1,-1))) {
         for (int i = 0; i < win->stack_num; i++) {
             snprintf(buf, sizeof(buf), "%04X", win->stack[i]);
             ImGui::PushID(i);
@@ -432,7 +432,7 @@ static void _ui_dasm_draw_stack(ui_dasm_t* win) {
             }
             ImGui::PopID();
         }
-        ImGui::ListBoxFooter();
+        ImGui::EndListBox();
     }
     ImGui::EndChild();
 }
