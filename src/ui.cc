@@ -806,17 +806,7 @@ static void ui_menu(void) {
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Sokol")) {
-            ImGui::MenuItem("Capabilities...", 0, &ui.sgimgui.caps.open, true);
-            ImGui::MenuItem("Buffers...", 0, &ui.sgimgui.buffers.open, true);
-            ImGui::MenuItem("Images...", 0, &ui.sgimgui.images.open, true);
-            ImGui::MenuItem("Samplers...", 0, &ui.sgimgui.samplers.open, true);
-            ImGui::MenuItem("Shaders...", 0, &ui.sgimgui.shaders.open, true);
-            ImGui::MenuItem("Pipelines...", 0, &ui.sgimgui.pipelines.open, true);
-            ImGui::MenuItem("Passes...", 0, &ui.sgimgui.passes.open, true);
-            ImGui::MenuItem("Calls...", 0, &ui.sgimgui.capture.open, true);
-            ImGui::EndMenu();
-        }
+        sg_imgui_draw_menu(&ui.sgimgui, "Sokol");
         if (ImGui::BeginMenu("Help")) {
             ImGui::MenuItem("Assembler", 0, &ui.window_open.help_asm);
             ImGui::MenuItem("Opcode Table", 0, &ui.window_open.help_opcodes);
