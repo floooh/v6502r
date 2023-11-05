@@ -13,6 +13,7 @@
 #include "sokol_gfx_imgui.h"
 
 #define CHIPS_IMPL
+#define CHIPS_UI_IMPL
 #if defined(CHIP_6502) || defined(CHIP_2A03)
 #define UI_DASM_USE_M6502
 #include "chips/m6502dasm.h"
@@ -340,7 +341,7 @@ void ui_init() {
         ui_memedit_desc_t desc = { };
         desc.title = "Memory Editor";
         desc.open = false;
-        desc.num_rows = 8;
+        desc.num_cols = 8;
         desc.h = 300;
         desc.x = 50;
         desc.y = 50;
@@ -358,7 +359,7 @@ void ui_init() {
         ui_memedit_desc_t desc = { };
         desc.title = "IO Editor";
         desc.open = false;
-        desc.num_rows = 8;
+        desc.num_cols = 8;
         desc.h = 300;
         desc.x = 60;
         desc.y = 60;
@@ -1211,7 +1212,7 @@ static void ui_controls(void) {
         #elif defined(CHIP_2A03)
         const char* cpu_name = "Ricoh 2A03";
         #endif
-        if (ImGui::Begin(cpu_name, &ui.window_open.cpu_controls, ImGuiWindowFlags_None)) {
+        if (ImGui::Begin(cpu_name, &ui.window_open.cpu_controls, ImGuiWindowFlags_NoScrollbar)) {
             /* cassette deck controls */
             ui_cassette_deck_controls();
             ImGui::Separator();
