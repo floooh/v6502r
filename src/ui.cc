@@ -1487,7 +1487,7 @@ static void ui_tracelog(void) {
                         ImGui::Text("%s", buf);
                     }
                     ImVec2 max_p = ImGui::GetCursorScreenPos();
-                    max_p.x = min_p.x + ImGui::GetWindowContentRegionWidth();
+                    max_p.x = min_p.x + ImGui::GetWindowContentRegionMax().x;
                     const bool hovered = ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(min_p, max_p, false);
                     if (hovered) {
                         any_hovered = true;
