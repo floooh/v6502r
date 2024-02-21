@@ -220,7 +220,7 @@ static struct {
         int pos;
         char buf[MAX_TRACEDUMP_SIZE];
     } tracedump;
-    sg_imgui_t sgimgui;
+    sgimgui_t sgimgui;
 } ui;
 
 static void ui_menu(void);
@@ -273,8 +273,8 @@ void ui_init() {
     assert(!ui.valid);
 
     // setup sokol-gfx debugging UI
-    const sg_imgui_desc_t sgimgui_desc = {};
-    sg_imgui_init(&ui.sgimgui, &sgimgui_desc);
+    const sgimgui_desc_t sgimgui_desc = {};
+    sgimgui_init(&ui.sgimgui, &sgimgui_desc);
 
     // default window open state
     ui.window_open.cpu_controls = true;
@@ -404,7 +404,7 @@ void ui_init() {
 
 void ui_shutdown() {
     assert(ui.valid);
-    sg_imgui_discard(&ui.sgimgui);
+    sgimgui_discard(&ui.sgimgui);
     ui_nodeexplorer_discard();
     ui_asm_discard();
     ui_dasm_discard(&ui.dasm);
@@ -651,7 +651,7 @@ void ui_frame() {
 
 void ui_draw() {
     assert(ui.valid);
-    sg_imgui_draw(&ui.sgimgui);
+    sgimgui_draw(&ui.sgimgui);
     simgui_render();
 }
 
@@ -807,7 +807,7 @@ static void ui_menu(void) {
             }
             ImGui::EndMenu();
         }
-        sg_imgui_draw_menu(&ui.sgimgui, "Sokol");
+        sgimgui_draw_menu(&ui.sgimgui, "Sokol");
         if (ImGui::BeginMenu("Help")) {
             ImGui::MenuItem("Assembler", 0, &ui.window_open.help_asm);
             ImGui::MenuItem("Opcode Table", 0, &ui.window_open.help_opcodes);

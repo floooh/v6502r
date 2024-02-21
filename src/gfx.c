@@ -41,7 +41,7 @@ void gfx_preinit(void) {
         .buffer_pool_size = 16,
         .image_pool_size = 8,
         .pipeline_pool_size = 8,
-        .context = sapp_sgcontext(),
+        .environment = sglue_environment(),
         .logger.func = slog_func,
     });
 }
@@ -147,18 +147,20 @@ void gfx_new_frame(float disp_width, float disp_height) {
 
 void gfx_begin(void) {
     assert(gfx.valid);
-    sg_pass_action pass_action = {
-        .colors[0] = {
-            .load_action = SG_LOADACTION_CLEAR,
-            .clear_value = {
-                .r = gfx.palette.background.x,
-                .g = gfx.palette.background.y,
-                .b = gfx.palette.background.z,
-                .a = 1.0f,
-            },
+    sg_begin_pass(&(sg_pass){
+        .action = {
+            .colors[0] = {
+                .load_action = SG_LOADACTION_CLEAR,
+                .clear_value = {
+                    .r = gfx.palette.background.x,
+                    .g = gfx.palette.background.y,
+                    .b = gfx.palette.background.z,
+                    .a = 1.0f,
+                },
+            }
         },
-    };
-    sg_begin_default_pass(&pass_action, sapp_width(), sapp_height());
+        .swapchain = sglue_swapchain()
+    });
 }
 
 void gfx_draw(void) {
