@@ -83,8 +83,8 @@ void gfx_init(const gfx_desc_t* desc) {
     sg_pipeline_desc pip_desc_alpha = {
         .layout = {
             .attrs = {
-                [ATTR_vs_pos] = { .format = SG_VERTEXFORMAT_USHORT2N },
-                [ATTR_vs_uv]  = { .format = SG_VERTEXFORMAT_USHORT2N }
+                [0] = { .format = SG_VERTEXFORMAT_USHORT2N },
+                [1]  = { .format = SG_VERTEXFORMAT_USHORT2N }
             },
         },
         .shader = sg_make_shader(shd_alpha_shader_desc(sg_query_backend())),
@@ -186,12 +186,10 @@ void gfx_draw(void) {
         if (gfx.layer_visible[i] && (gfx.layers[i].vb.id != SG_INVALID_ID)) {
             sg_apply_bindings(&(sg_bindings){
                 .vertex_buffers[0] = gfx.layers[i].vb,
-                .vs = {
-                    .images[SLOT_palette_tex] = gfx.img,
-                    .samplers[SLOT_palette_smp] = gfx.smp,
-                }
+                .images[IMG_palette_tex] = gfx.img,
+                .samplers[SMP_palette_smp] = gfx.smp,
             });
-            sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
+            sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
             sg_draw(0, gfx.layers[i].num_elms, 1);
         }
     }

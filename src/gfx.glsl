@@ -6,7 +6,7 @@
 @ctype vec2 float2_t
 
 @vs vs
-uniform vs_params {
+layout(binding=0) uniform vs_params {
     vec4 color0;
     vec2 half_size;
     vec2 offset;
@@ -15,10 +15,10 @@ uniform vs_params {
 
 const float max_nodes = 8192.0;
 
-uniform texture2D palette_tex;
-uniform sampler palette_smp;
-in vec2 pos;
-in vec2 uv;
+layout(binding=0) uniform texture2D palette_tex;
+layout(binding=0) uniform sampler palette_smp;
+layout(location=0) in vec2 pos;
+layout(location=1) in vec2 uv;
 out vec4 color;
 
 void main() {
