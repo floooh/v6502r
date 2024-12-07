@@ -12,6 +12,8 @@ static struct {
 } util;
 
 #if defined(__EMSCRIPTEN__)
+EM_JS_DEPS(v6502r, "$ccall");
+
 EM_JS(void, emsc_js_init, (void), {
     Module['emsc_js_onload'] = emsc_js_onload;
 });
