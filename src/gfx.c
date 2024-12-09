@@ -216,14 +216,26 @@ float2_t gfx_get_offset(void) {
     return gfx.offset;
 }
 
+float gfx_min_scale(void) {
+    return 1.0f;
+}
+
+float gfx_max_scale(void) {
+    return 100.0f;
+}
+
 void gfx_add_scale(float scale_add) {
     assert(gfx.valid);
-    gfx.scale += scale_add;
-    if (gfx.scale < 1.0f) {
-        gfx.scale = 1.0f;
+    gfx_set_scale(gfx.scale + scale_add);
+}
+
+void gfx_set_scale(float scale) {
+    gfx.scale = scale;
+    if (gfx.scale < gfx_min_scale()) {
+        gfx.scale = gfx_min_scale();
     }
-    else if (gfx.scale > 100.0f) {
-        gfx.scale = 100.0f;
+    else if (gfx.scale > gfx_max_scale()) {
+        gfx.scale = gfx_max_scale();
     }
 }
 

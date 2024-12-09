@@ -845,6 +845,10 @@ static void ui_floating_controls(void) {
                     pick_set_layer_enabled(i, false);
                 }
             }
+            float scale = gfx_get_scale();
+            if (ImGui::SliderFloat("Scale", &scale, gfx_min_scale(), gfx_max_scale(), "%.2f", ImGuiSliderFlags_Logarithmic)) {
+                gfx_set_scale(scale);
+            }
         }
         ImGui::End();
     }
