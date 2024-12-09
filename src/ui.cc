@@ -2,6 +2,7 @@
 //  ui.cc
 //------------------------------------------------------------------------------
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "res/fonts.h"
 #include "res/iconsfontawesome4_c.h"
 #include "res/markdown.h"
@@ -227,6 +228,7 @@ static struct {
     sgimgui_t sgimgui;
 } ui;
 
+static void ui_handle_docking(void);
 static void ui_menu(void);
 static void ui_picking(void);
 static void ui_floating_controls(void);
@@ -310,6 +312,7 @@ void ui_init() {
 
     // setup ImGui font with custom icons
     auto& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.Fonts->AddFontDefault();
     static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
     ImFontConfig icons_config;
@@ -636,6 +639,7 @@ void ui_frame() {
     assert(ui.valid);
     ui.link_hovered = false;
     simgui_new_frame({ sapp_width(), sapp_height(), sapp_frame_duration(), sapp_dpi_scale() });
+    ui_handle_docking();
     ui_menu();
     ui_floating_controls();
     ui_picking();
@@ -664,6 +668,25 @@ void ui_draw() {
     assert(ui.valid);
     sgimgui_draw(&ui.sgimgui);
     simgui_render();
+}
+
+static void ui_handle_docking(void) {
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    const ImGuiID dspace_id = ImGui::GetID("main_dockspace");
+    if (ImGui::DockBuilderGetNode(dspace_id) == nullptr) {
+        ImGui::DockBuilderRemoveNode(dspace_id);
+        ImGui::DockBuilderAddNode(dspace_id, ImGuiDockNodeFlags_CentralNode);
+        ImGui::DockBuilderSetNodeSize(dspace_id, viewport->WorkSize);
+
+        ImGuiID dock_id_left, dock_id_right, dock_id_down, dock_id_up;
+        ImGui::DockBuilderSplitNode(dspace_id, ImGuiDir_Down, 0.25f, &dock_id_down, &dock_id_up);
+        ImGui::DockBuilderSplitNode(dock_id_up, ImGuiDir_Right, 0.25f, &dock_id_right, &dock_id_left);
+        ImGui::DockBuilderSetNodeSize(dock_id_right, { 270, viewport->WorkSize.y });
+        ImGui::DockBuilderDockWindow("CPU Controls", dock_id_right);
+        ImGui::DockBuilderDockWindow("Trace Log", dock_id_down);
+        ImGui::DockBuilderFinish(dspace_id);
+    }
+    ImGui::DockSpaceOverViewport(dspace_id, viewport, ImGuiDockNodeFlags_NoDockingOverCentralNode | ImGuiDockNodeFlags_PassthruCentralNode);
 }
 
 static void ui_menu(void) {
@@ -833,7 +856,14 @@ static void ui_menu(void) {
 static void ui_floating_controls(void) {
     if (ui.window_open.floating_controls) {
         ImGui::SetNextWindowPos({ 10, 20 }, ImGuiCond_Once);
-        if (ImGui::Begin("##floating", &ui.window_open.floating_controls, ImGuiWindowFlags_NoDecoration|ImGuiWindowFlags_AlwaysAutoResize|ImGuiWindowFlags_NoBackground)) {
+        const ImGuiWindowFlags flags =
+            ImGuiWindowFlags_NoDocking |
+            ImGuiWindowFlags_NoDecoration |
+            ImGuiWindowFlags_AlwaysAutoResize |
+            ImGuiWindowFlags_NoBackground |
+            ImGuiWindowFlags_NoBringToFrontOnFocus |
+            ImGuiWindowFlags_NoFocusOnAppearing;
+        if (ImGui::Begin("##floating", &ui.window_open.floating_controls, flags)) {
             if (ImGui::SliderInt("Layers", &ui.menu.layer_slider, 0, MAX_LAYERS)) {
                 int i = 0;
                 for (; i < ui.menu.layer_slider; i++) {
@@ -1239,16 +1269,8 @@ static void ui_cassette_deck_controls(void) {
 
 static void ui_controls(void) {
     if (ui.window_open.cpu_controls) {
-        ImGui::SetNextWindowPos({ ImGui::GetIO().DisplaySize.x - 300, 50 }, ImGuiCond_Once);
-        ImGui::SetNextWindowSize({ 270, 480 }, ImGuiCond_Once);
-        #if defined(CHIP_6502)
-        const char* cpu_name = "MOS 6502";
-        #elif defined(CHIP_Z80)
-        const char* cpu_name = "Zilog Z80";
-        #elif defined(CHIP_2A03)
-        const char* cpu_name = "Ricoh 2A03";
-        #endif
-        if (ImGui::Begin(cpu_name, &ui.window_open.cpu_controls, ImGuiWindowFlags_NoScrollbar)) {
+        ImGui::SetNextWindowSize({ 270, 120 }, ImGuiCond_Once);
+        if (ImGui::Begin("CPU Controls", &ui.window_open.cpu_controls, ImGuiWindowFlags_NoScrollbar)) {
             /* cassette deck controls */
             ui_cassette_deck_controls();
             ImGui::Separator();
@@ -1472,10 +1494,7 @@ static void ui_tracelog(void) {
         ui.trace.diff_view_active = false;
         return;
     }
-    const float disp_w = ImGui::GetIO().DisplaySize.x;
-    const float disp_h = ImGui::GetIO().DisplaySize.y;
     const float footer_h = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
-    ImGui::SetNextWindowPos({ disp_w / 2, disp_h - 150 }, ImGuiCond_Once, { 0.5f, 0.0f });
     ImGui::SetNextWindowSize({ 600, 128 }, ImGuiCond_Once);
     bool any_hovered = false;
     if (ImGui::Begin("Trace Log", &ui.window_open.tracelog, ImGuiWindowFlags_None)) {

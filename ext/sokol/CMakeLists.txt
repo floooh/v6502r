@@ -1,6 +1,6 @@
 fips_begin_lib(sokol)
     fips_files(sokol.cc)
-    fips_deps(imgui)
+    fips_deps(imgui-docking)
     if (FIPS_OSX)
         fips_files(sokol.m)
         if (FIPS_IOS)

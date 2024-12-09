@@ -58,7 +58,7 @@ void gfx_init(const gfx_desc_t* desc) {
     gfx.seg_max_x = desc->seg_max_x;
     gfx.seg_max_y = desc->seg_max_y;
     gfx.aspect = 1.0f;
-    gfx.scale = 7.0f;
+    gfx.scale = 6.0f;
     gfx.offset = (float2_t) { -0.05f, 0.0f };
     gfx.palette = gfx_default_palette;
     for (int i = 0; i < MAX_LAYERS; i++) {

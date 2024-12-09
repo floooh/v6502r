@@ -1,6 +1,6 @@
 fips_begin_lib(texteditor)
     fips_files(TextEditor.cpp TextEditor.h)
-    fips_deps(imgui)
+    fips_deps(imgui-docking)
 fips_end_lib()
 target_include_directories(texteditor INTERFACE .)
 if (FIPS_CLANG)
