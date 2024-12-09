@@ -249,6 +249,12 @@ void gfx_toggle_layer_visibility(int layer_index) {
     gfx.layer_visible[layer_index] = !gfx.layer_visible[layer_index];
 }
 
+void gfx_set_layer_visibility(int layer_index, bool visible) {
+    assert(gfx.valid);
+    assert((layer_index >= 0) && (layer_index < MAX_LAYERS));
+    gfx.layer_visible[layer_index] = visible;
+}
+
 bool gfx_get_layer_visibility(int layer_index) {
     assert(gfx.valid);
     assert((layer_index >= 0) && (layer_index < MAX_LAYERS));

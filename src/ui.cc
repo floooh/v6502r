@@ -173,6 +173,7 @@ static struct {
     #endif
     ui_dasm_t dasm;
     struct {
+        bool floating_controls;
         bool cpu_controls;
         #if defined(CHIP_2A03)
         bool audio_controls;
@@ -193,6 +194,7 @@ static struct {
         bool save_tracelog_hovered;
         bool cut_hovered;
         bool copy_hovered;
+        int layer_slider;
     } menu;
     struct {
         int hovered_flags;
@@ -227,6 +229,7 @@ static struct {
 
 static void ui_menu(void);
 static void ui_picking(void);
+static void ui_floating_controls(void);
 static void ui_tracelog_timingdiagram_begin(void);
 static void ui_tracelog(void);
 static void ui_timingdiagram(void);
@@ -279,6 +282,7 @@ void ui_init() {
     sgimgui_init(&ui.sgimgui, &sgimgui_desc);
 
     // default window open state
+    ui.window_open.floating_controls = true;
     ui.window_open.cpu_controls = true;
     ui.window_open.tracelog = true;
     ui_nodeexplorer_init();
@@ -401,6 +405,7 @@ void ui_init() {
     md_conf.headingFormats[1].newline_below = false;
     md_conf.linkIcon = ICON_FA_LINK;
 
+    ui.menu.layer_slider = MAX_LAYERS;
     ui.valid = true;
 }
 
@@ -547,6 +552,9 @@ bool ui_handle_input(const sapp_event* ev) {
         gfx_toggle_layer_visibility(l);
         return true;
     }
+    if (test_alt(ev, SAPP_KEYCODE_F)) {
+        ui.window_open.floating_controls = !ui.window_open.floating_controls;
+    }
     if (test_alt(ev, SAPP_KEYCODE_C)) {
         ui.window_open.cpu_controls = !ui.window_open.cpu_controls;
     }
@@ -629,6 +637,7 @@ void ui_frame() {
     ui.link_hovered = false;
     simgui_new_frame({ sapp_width(), sapp_height(), sapp_frame_duration(), sapp_dpi_scale() });
     ui_menu();
+    ui_floating_controls();
     ui_picking();
     ui_memedit_draw(&ui.memedit);
     #if defined(CHIP_Z80)
@@ -705,7 +714,8 @@ static void ui_menu(void) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("Controls", "Alt+C", &ui.window_open.cpu_controls);
+            ImGui::MenuItem("Floating Controls", "Alt+F", &ui.window_open.floating_controls);
+            ImGui::MenuItem("CPU Controls", "Alt+C", &ui.window_open.cpu_controls);
             #if defined(CHIP_2A03)
             ImGui::MenuItem("Audio", nullptr, &ui.window_open.audio_controls);
             #endif
@@ -817,6 +827,26 @@ static void ui_menu(void) {
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
+    }
+}
+
+static void ui_floating_controls(void) {
+    if (ui.window_open.floating_controls) {
+        ImGui::SetNextWindowPos({ 10, 20 }, ImGuiCond_Once);
+        if (ImGui::Begin("##floating", &ui.window_open.floating_controls, ImGuiWindowFlags_NoDecoration|ImGuiWindowFlags_AlwaysAutoResize|ImGuiWindowFlags_NoBackground)) {
+            if (ImGui::SliderInt("Layers", &ui.menu.layer_slider, 0, MAX_LAYERS)) {
+                int i = 0;
+                for (; i < ui.menu.layer_slider; i++) {
+                    gfx_set_layer_visibility(i, true);
+                    pick_set_layer_enabled(i, true);
+                }
+                for (; i < MAX_LAYERS; i++) {
+                    gfx_set_layer_visibility(i, false);
+                    pick_set_layer_enabled(i, false);
+                }
+            }
+        }
+        ImGui::End();
     }
 }
 

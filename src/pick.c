@@ -46,6 +46,12 @@ bool pick_get_layer_enabled(int layer_index) {
     return pick.layer_enabled[layer_index];
 }
 
+void pick_set_layer_enabled(int layer_index, bool enabled) {
+    assert(pick.valid);
+    assert((layer_index >= 0) && (layer_index < MAX_LAYERS));
+    pick.layer_enabled[layer_index] = enabled;
+}
+
 void pick_toggle_layer_enabled(int layer_index) {
     assert(pick.valid);
     assert((layer_index >= 0) && (layer_index < MAX_LAYERS));
@@ -160,4 +166,3 @@ pick_result_t pick_get_last_result(void) {
     assert(pick.valid);
     return pick.result;
 }
-

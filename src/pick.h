@@ -53,6 +53,7 @@ typedef struct {
 
 void pick_init(const pick_desc_t* desc);
 void pick_shutdown(void);
+void pick_set_layer_enabled(int layer_index, bool enabled);
 bool pick_get_layer_enabled(int layer_index);
 void pick_toggle_layer_enabled(int layer_index);
 pick_result_t pick_dopick(float2_t mouse_pos, float2_t gfx_size, float2_t gfx_offset, float gfx_aspect, float gfx_scale);

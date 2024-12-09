@@ -54,6 +54,7 @@ float gfx_get_scale(void);
 float gfx_get_aspect(void);
 void gfx_highlight_node(int node_index);
 void gfx_toggle_layer_visibility(int layer_index);
+void gfx_set_layer_visibility(int layer_index, bool visible);
 bool gfx_get_layer_visibility(int layer_index);
 void gfx_set_layer_palette(bool use_additive_blend, gfx_palette_t palette);
 range_t gfx_get_nodestate_buffer(void);
