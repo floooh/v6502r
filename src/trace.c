@@ -429,7 +429,7 @@ uint8_t trace_z80_get_mcycle(uint32_t index) {
         case (1<<2): return 3;
         case (1<<3): return 4;
         case (1<<4): return 5;
-        default: return 0xFF;
+        default: return 0;
     }
 }
 
@@ -441,7 +441,7 @@ uint8_t trace_z80_get_tstate(uint32_t index) {
         case (1<<3): return 4;
         case (1<<4): return 5;
         case (1<<5): return 6;
-        default: return 0xFF;
+        default: return 0;
     }
 }
 
