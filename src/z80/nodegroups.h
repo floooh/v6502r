@@ -49,7 +49,8 @@ static uint32_t nodegroup_alulat[4] = { pz80_alulat0, pz80_alulat1, pz80_alulat2
 static uint32_t nodegroup_aluout[4] = { pz80_aluout0, pz80_aluout1, pz80_aluout2, pz80_aluout3 };
 static uint32_t nodegroup_dbus[8] = { pz80_dbus0, pz80_dbus1, pz80_dbus2, pz80_dbus3, pz80_dbus4, pz80_dbus5, pz80_dbus6, pz80_dbus7 };
 static uint32_t nodegroup_dlatch[8] = { pz80_dlatch0, pz80_dlatch1, pz80_dlatch2, pz80_dlatch3, pz80_dlatch4, pz80_dlatch5, pz80_dlatch6, pz80_dlatch7 };
-
+static uint32_t nodegroup_m[5] = { pz80_m1, pz80_m2, pz80_m3, pz80_m4, pz80_m5 };
+static uint32_t nodegroup_t[6] = { pz80_t1, pz80_t2, pz80_t3, pz80_t4, pz80_t5, pz80_t6 };
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif

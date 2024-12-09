@@ -70,6 +70,8 @@ uint8_t trace_z80_get_i(uint32_t index);
 uint8_t trace_z80_get_r(uint32_t index);
 uint8_t trace_z80_get_w(uint32_t index);
 uint8_t trace_z80_get_z(uint32_t index);
+uint8_t trace_z80_get_mcycle(uint32_t index);
+uint8_t trace_z80_get_tstate(uint32_t index);
 uint16_t trace_z80_get_af(uint32_t index);
 uint16_t trace_z80_get_af2(uint32_t index);
 uint16_t trace_z80_get_bc(uint32_t index);

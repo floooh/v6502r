@@ -92,9 +92,11 @@ static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] =
     { "Asm", ImGuiTableColumnFlags_NoClip, 8 },
 };
 #elif defined(CHIP_Z80)
-#define UI_TRACELOG_NUM_COLUMNS (34)
+#define UI_TRACELOG_NUM_COLUMNS (36)
 static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] = {
     { "Cycle/h", ImGuiTableColumnFlags_None, 7 },
+    { "M", ImGuiTableColumnFlags_DefaultHide, 2 },
+    { "T", ImGuiTableColumnFlags_DefaultHide, 2 },
     { "M1", ImGuiTableColumnFlags_NoClip, 2 },
     { "MREQ", ImGuiTableColumnFlags_NoClip, 4 },
     { "IORQ", ImGuiTableColumnFlags_NoClip, 4 },
@@ -1324,45 +1326,47 @@ static int ui_tracelog_print_item(int trace_index, int col_index, char* buf, siz
     char f_buf[9];
     switch (col_index) {
         case 0: return snprintf(buf, buf_size, "%5d/%d", cur_cycle >> 1, cur_cycle & 1);
-        case 1: return snprintf(buf, buf_size, "%s", trace_z80_get_m1(trace_index)?"":"M1");
-        case 2: return snprintf(buf, buf_size, "%s", trace_z80_get_mreq(trace_index)?"":"MREQ");
-        case 3: return snprintf(buf, buf_size, "%s", trace_z80_get_ioreq(trace_index)?"":"IORQ");
-        case 4: return snprintf(buf, buf_size, "%s", trace_z80_get_rfsh(trace_index)?"":"RFSH");
-        case 5: return snprintf(buf, buf_size, "%s", trace_z80_get_rd(trace_index)?"":"RD");
-        case 6: return snprintf(buf, buf_size, "%s", trace_z80_get_wr(trace_index)?"":"WR");
-        case 7: return snprintf(buf, buf_size, "%s", trace_z80_get_int(trace_index)?"":"INT");
-        case 8: return snprintf(buf, buf_size, "%s", trace_z80_get_nmi(trace_index)?"":"NMI");
-        case 9: return snprintf(buf, buf_size, "%s", trace_z80_get_wait(trace_index)?"":"WAIT");
-        case 10: return snprintf(buf, buf_size, "%s", trace_z80_get_halt(trace_index)?"":"HALT");
-        case 11: return snprintf(buf, buf_size, "%04X", trace_get_addr(trace_index));
-        case 12: return snprintf(buf, buf_size, "%02X", trace_get_data(trace_index));
-        case 13: return snprintf(buf, buf_size, "%04X", trace_get_pc(trace_index));
-        case 14: return snprintf(buf, buf_size, "%02X", trace_z80_get_op(trace_index));
-        case 15: return snprintf(buf, buf_size, "%04X", trace_z80_get_af(trace_index));
-        case 16: return snprintf(buf, buf_size, "%04X", trace_z80_get_bc(trace_index));
-        case 17: return snprintf(buf, buf_size, "%04X", trace_z80_get_de(trace_index));
-        case 18: return snprintf(buf, buf_size, "%04X", trace_z80_get_hl(trace_index));
-        case 19: return snprintf(buf, buf_size, "%04X", trace_z80_get_af2(trace_index));
-        case 20: return snprintf(buf, buf_size, "%04X", trace_z80_get_bc2(trace_index));
-        case 21: return snprintf(buf, buf_size, "%04X", trace_z80_get_de2(trace_index));
-        case 22: return snprintf(buf, buf_size, "%04X", trace_z80_get_hl2(trace_index));
-        case 23: return snprintf(buf, buf_size, "%04X", trace_z80_get_ix(trace_index));
-        case 24: return snprintf(buf, buf_size, "%04X", trace_z80_get_iy(trace_index));
-        case 25: return snprintf(buf, buf_size, "%04X", trace_z80_get_sp(trace_index));
-        case 26: return snprintf(buf, buf_size, "%04X", trace_z80_get_wz(trace_index));
-        case 27: return snprintf(buf, buf_size, "%02X", trace_z80_get_i(trace_index));
-        case 28: return snprintf(buf, buf_size, "%02X", trace_z80_get_r(trace_index));
-        case 29: return snprintf(buf, buf_size, "%01X", trace_z80_get_im(trace_index));
-        case 30: return snprintf(buf, buf_size, "%s", trace_z80_get_iff1(trace_index) ? "IFF1":"    ");
-        case 31:
+        case 1: return snprintf(buf, buf_size, "%d", trace_z80_get_mcycle(trace_index));
+        case 2: return snprintf(buf, buf_size, "%d", trace_z80_get_tstate(trace_index));
+        case 3: return snprintf(buf, buf_size, "%s", trace_z80_get_m1(trace_index)?"":"M1");
+        case 4: return snprintf(buf, buf_size, "%s", trace_z80_get_mreq(trace_index)?"":"MREQ");
+        case 5: return snprintf(buf, buf_size, "%s", trace_z80_get_ioreq(trace_index)?"":"IORQ");
+        case 6: return snprintf(buf, buf_size, "%s", trace_z80_get_rfsh(trace_index)?"":"RFSH");
+        case 7: return snprintf(buf, buf_size, "%s", trace_z80_get_rd(trace_index)?"":"RD");
+        case 8: return snprintf(buf, buf_size, "%s", trace_z80_get_wr(trace_index)?"":"WR");
+        case 9: return snprintf(buf, buf_size, "%s", trace_z80_get_int(trace_index)?"":"INT");
+        case 10: return snprintf(buf, buf_size, "%s", trace_z80_get_nmi(trace_index)?"":"NMI");
+        case 11: return snprintf(buf, buf_size, "%s", trace_z80_get_wait(trace_index)?"":"WAIT");
+        case 12: return snprintf(buf, buf_size, "%s", trace_z80_get_halt(trace_index)?"":"HALT");
+        case 13: return snprintf(buf, buf_size, "%04X", trace_get_addr(trace_index));
+        case 14: return snprintf(buf, buf_size, "%02X", trace_get_data(trace_index));
+        case 15: return snprintf(buf, buf_size, "%04X", trace_get_pc(trace_index));
+        case 16: return snprintf(buf, buf_size, "%02X", trace_z80_get_op(trace_index));
+        case 17: return snprintf(buf, buf_size, "%04X", trace_z80_get_af(trace_index));
+        case 18: return snprintf(buf, buf_size, "%04X", trace_z80_get_bc(trace_index));
+        case 19: return snprintf(buf, buf_size, "%04X", trace_z80_get_de(trace_index));
+        case 20: return snprintf(buf, buf_size, "%04X", trace_z80_get_hl(trace_index));
+        case 21: return snprintf(buf, buf_size, "%04X", trace_z80_get_af2(trace_index));
+        case 22: return snprintf(buf, buf_size, "%04X", trace_z80_get_bc2(trace_index));
+        case 23: return snprintf(buf, buf_size, "%04X", trace_z80_get_de2(trace_index));
+        case 24: return snprintf(buf, buf_size, "%04X", trace_z80_get_hl2(trace_index));
+        case 25: return snprintf(buf, buf_size, "%04X", trace_z80_get_ix(trace_index));
+        case 26: return snprintf(buf, buf_size, "%04X", trace_z80_get_iy(trace_index));
+        case 27: return snprintf(buf, buf_size, "%04X", trace_z80_get_sp(trace_index));
+        case 28: return snprintf(buf, buf_size, "%04X", trace_z80_get_wz(trace_index));
+        case 29: return snprintf(buf, buf_size, "%02X", trace_z80_get_i(trace_index));
+        case 30: return snprintf(buf, buf_size, "%02X", trace_z80_get_r(trace_index));
+        case 31: return snprintf(buf, buf_size, "%01X", trace_z80_get_im(trace_index));
+        case 32: return snprintf(buf, buf_size, "%s", trace_z80_get_iff1(trace_index) ? "IFF1":"    ");
+        case 33:
             if (ui.trace.watch_node_valid) {
                 return snprintf(buf, buf_size, "%c", trace_is_node_high(trace_index, ui.trace.watch_node_index) ? '1':'0');
             }
             else {
                 return snprintf(buf, buf_size, "%s", "??");
             }
-        case 32: return snprintf(buf, buf_size, "%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), f_buf, sizeof(f_buf)));
-        case 33: return snprintf(buf, buf_size, "%s", trace_get_disasm(trace_index));
+        case 34: return snprintf(buf, buf_size, "%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), f_buf, sizeof(f_buf)));
+        case 35: return snprintf(buf, buf_size, "%s", trace_get_disasm(trace_index));
         default: return snprintf(buf, buf_size, "%s", "???");
     }
 }

@@ -422,6 +422,29 @@ uint8_t trace_z80_get_z(uint32_t index) {
     return read_nodes(index, 8, nodegroup_reg_z);
 }
 
+uint8_t trace_z80_get_mcycle(uint32_t index) {
+    switch (read_nodes(index, 5, nodegroup_m)) {
+        case (1<<0): return 1;
+        case (1<<1): return 2;
+        case (1<<2): return 3;
+        case (1<<3): return 4;
+        case (1<<4): return 5;
+        default: return 0xFF;
+    }
+}
+
+uint8_t trace_z80_get_tstate(uint32_t index) {
+    switch (read_nodes(index, 6, nodegroup_t)) {
+        case (1<<0): return 1;
+        case (1<<1): return 2;
+        case (1<<2): return 3;
+        case (1<<3): return 4;
+        case (1<<4): return 5;
+        case (1<<5): return 6;
+        default: return 0xFF;
+    }
+}
+
 uint16_t trace_z80_get_af(uint32_t index) {
     return (trace_z80_get_a(index)<<8) | trace_z80_get_f(index);
 }

@@ -1030,6 +1030,8 @@ static void sim_init_nodegroups(void) {
     sim_add_nodegroup("ALU_Out", RANGE(nodegroup_aluout));
     sim_add_nodegroup("DBus", RANGE(nodegroup_dbus));
     sim_add_nodegroup("DLatch", RANGE(nodegroup_dlatch));
+    sim_add_nodegroup("MCycle", RANGE(nodegroup_m));
+    sim_add_nodegroup("TState", RANGE(nodegroup_t));
     #elif defined(CHIP_2A03)
     sim_add_nodegroup("Addr", RANGE(nodegroup_ab));
     sim_add_nodegroup("Data", RANGE(nodegroup_db));
