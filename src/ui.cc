@@ -166,6 +166,8 @@ static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] =
 
 static struct {
     bool valid;
+    bool ini_save_in_progress;
+    bool ini_load_in_progress;
     ui_memedit_t memedit;
     ui_memedit_t memedit_integrated;
     #if defined(CHIP_Z80)
@@ -249,6 +251,7 @@ static void ui_listing(void);
 static void ui_help_assembler(void);
 static void ui_help_opcodes(void);
 static void ui_help_about(void);
+static void ui_handle_save_settings(void);
 static void markdown_link_callback(ImGui::MarkdownLinkCallbackData data);
 
 static ImGui::MarkdownConfig md_conf;
@@ -662,6 +665,7 @@ void ui_frame() {
     if (ui.link_hovered) {
         sapp_set_mouse_cursor(SAPP_MOUSECURSOR_POINTING_HAND);
     }
+    ui_handle_save_settings();
 }
 
 void ui_draw() {
@@ -2465,4 +2469,34 @@ ui_diffview_t ui_get_diffview(void) {
         }
     }
     return res;
+}
+
+static const char* ui_save_key(void) {
+    #if defined(CHIP_Z80)
+    return "z80";
+    #elif defined(CHIP_6502)
+    return "6502";
+    #elif defined(CHIP_2A03)
+    return "2A03";
+    #else
+    #error "FIXME UNHANDLED CPU"
+    #endif
+}
+
+static void ui_save_completed(bool succeeded, void* userdata) {
+    (void)succeeded; (void)userdata;
+    ImGui::GetIO().WantSaveIniSettings = false;
+    ui.ini_save_in_progress = false;
+}
+
+static void ui_handle_save_settings(void) {
+    if (ImGui::GetIO().WantSaveIniSettings && !ui.ini_save_in_progress) {
+        ui.ini_save_in_progress = true;
+        util_save_t save = {};
+        save.key = ui_save_key();
+        save.bytes = ImGui::SaveIniSettingsToMemory(&save.num_bytes);
+        save.completed = ui_save_completed;
+        save.userdata = 0;
+        util_save_async(save);
+    }
 }

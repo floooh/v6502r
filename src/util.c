@@ -5,6 +5,7 @@
 #include <emscripten.h>
 #endif
 #include "ui_asm.h"
+#include "util.h"
 
 static struct {
     bool valid;
@@ -28,9 +29,9 @@ EM_JS(int, emsc_js_is_osx, (void), {
 });
 
 EM_JS(void, emsc_js_download_string, (const char* c_filename, const char* c_content), {
-    var filename = UTF8ToString(c_filename);
-    var content = UTF8ToString(c_content);
-    var elm = document.createElement('a');
+    const filename = UTF8ToString(c_filename);
+    const content = UTF8ToString(c_content);
+    const elm = document.createElement('a');
     elm.setAttribute('href', 'data:text/plain;charset=utf-8,'+encodeURIComponent(content));
     elm.setAttribute('download', filename);
     elm.style.display='none';
@@ -40,13 +41,13 @@ EM_JS(void, emsc_js_download_string, (const char* c_filename, const char* c_cont
 });
 
 EM_JS(void, emsc_js_download_binary, (const char* c_filename, const uint8_t* ptr, int num_bytes), {
-    var filename = UTF8ToString(c_filename);
-    var binary = "";
+    const filename = UTF8ToString(c_filename);
+    const binary = "";
     for (var i = 0; i < num_bytes; i++) {
         binary += String.fromCharCode(HEAPU8[ptr+i]);
     }
     console.log(btoa(binary));
-    var elm = document.createElement('a');
+    const elm = document.createElement('a');
     elm.setAttribute('href', 'data:application/octet-stream;base64,'+btoa(binary));
     elm.setAttribute('download', filename);
     elm.style.display='none';
@@ -60,23 +61,23 @@ EM_JS(void, emsc_js_load, (void), {
 });
 
 EM_JS(void, emsc_js_onload, (void), {
-    var picker = document.getElementById('picker');
+    const picker = document.getElementById('picker');
     // reset the file picker
-    var file = picker.files[0];
+    const file = picker.files[0];
     picker.value = null;
     console.log('--- load file:');
     console.log('  name: ' + file.name);
     console.log('  type: ' + file.type);
     console.log('  size: ' + file.size);
     if (file.size < 256000) {
-        var reader = new FileReader();
-        reader.onload = function(loadEvent) {
+        const reader = new FileReader();
+        reader.onload = (loadEvent) => {
             console.log('file loaded!');
-            var content = loadEvent.target.result;
+            const content = loadEvent.target.result;
             if (content) {
                 console.log('content length: ' + content.byteLength);
-                var uint8Array = new Uint8Array(content);
-                var res = ccall('util_emsc_loadfile',  // C function name
+                const uint8Array = new Uint8Array(content);
+                const res = ccall('util_emsc_loadfile',  // C function name
                     'int',
                     ['string', 'array', 'number'],  // name, data, size
                     [file.name, uint8Array, uint8Array.length]);
@@ -96,7 +97,7 @@ EM_JS(void, emsc_js_onload, (void), {
 });
 
 EM_JS(void, emsc_js_open_link, (const char* c_url), {
-    var url = UTF8ToString(c_url);
+    const url = UTF8ToString(c_url);
     window.open(url);
 });
 
@@ -106,6 +107,58 @@ EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, uint8_t* data, int
     ui_asm_assemble();
     return 1;
 }
+
+EM_JS(void, emsc_js_save_async, (const char* c_key, const void* bytes, uint32_t num_bytes, util_save_callback_t completed, void* userdata), {
+    console.log('emsc_js_save_async called');
+    const db_name = 'v6502r';
+    const db_store_name = UTF8ToString(c_key);
+    let open_request;
+    try {
+        open_request = window.indexedDB.open(db_name);
+    } catch (err) {
+        console.warn('emsc_js_save_async: failed to open IndexedDB with: ', err);
+        _util_emsc_save_callback(false, completed, userdata);
+        return;
+    }
+    open_request.onupgradeneeded = () => {
+        console.log('emsc_js_save_async: onupgradeneeded');
+        const db = open_request.result;
+        db.createObjectStore(db_store_name);
+    };
+    open_request.onsuccess = () => {
+        console.log('emsc_js_save_async: onsuccess');
+        const db = open_request.result;
+        const transaction = db.transaction([db_store_name], 'readwrite');
+        const file = transaction.objectStore(db_store_name);
+        const blob = HEAPU8.subarray(bytes, bytes + num_bytes);
+        const put_request = file.put(blob, 'imgui.ini');
+        put_request.onsuccess = () => {
+            console.log('emsc_js_save_async: put success');
+            _util_emsc_save_callback(true, completed, userdata);
+        };
+        put_request.onerror = () => {
+            console.log('emsc_js_save_async: put failure');
+            _util_emsc_save_callback(false, completed, userdata);
+        };
+        transaction.onerror = () => {
+            console.log('emsc_js_save_async: transaction failure');
+            _util_emsc_save_callback(false, completed, userdata);
+        };
+    };
+    open_request.onerror = () => {
+        console.log('emsc_js_save_async: open request failure');
+        _util_emsc_save_callback(false, completed, userdata);
+    };
+});
+
+EMSCRIPTEN_KEEPALIVE void util_emsc_save_callback(bool succeeded, util_save_callback_t completed, void* userdata) {
+    completed(succeeded, userdata);
+}
+
+EM_JS(void, emsc_js_load_async, (const char* key, util_load_callback_t completed, void* userdata), {
+    console.log('emsc_js_load_async called');
+    completed(false, 0, 0, userdata);
+});
 
 #endif
 
@@ -164,4 +217,26 @@ void util_html5_open_link(const char* url) {
 bool util_is_osx(void) {
     assert(util.valid);
     return util.is_osx;
+}
+
+void util_save_async(util_save_t args) {
+    assert(args.key);
+    assert(args.bytes);
+    assert(args.num_bytes > 0);
+    assert(args.completed);
+    #if defined(__EMSCRIPTEN__)
+    emsc_js_save_async(args.key, args.bytes, args.num_bytes, args.completed, args.userdata);
+    #else
+    args.completed(false, args.userdata);
+    #endif
+}
+
+void util_load_async(util_load_t args) {
+    assert(args.key);
+    assert(args.completed);
+    #if defined(__EMSCRIPTEN__)
+    emsc_js_load_async(args.key, args.completed, args.userdata);
+    #else
+    args.completed(false, 0, 0, args.userdata);
+    #endif
 }
