@@ -42,7 +42,7 @@ EM_JS(void, emsc_js_download_string, (const char* c_filename, const char* c_cont
 
 EM_JS(void, emsc_js_download_binary, (const char* c_filename, const uint8_t* ptr, int num_bytes), {
     const filename = UTF8ToString(c_filename);
-    const binary = "";
+    let binary = "";
     for (var i = 0; i < num_bytes; i++) {
         binary += String.fromCharCode(HEAPU8[ptr+i]);
     }
