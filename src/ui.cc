@@ -2486,11 +2486,11 @@ ui_diffview_t ui_get_diffview(void) {
 
 static const char* ui_save_key(void) {
     #if defined(CHIP_Z80)
-    return "z80";
+    return "cpu_z80";
     #elif defined(CHIP_6502)
-    return "6502";
+    return "cpu_6502";
     #elif defined(CHIP_2A03)
-    return "2A03";
+    return "cpu_2A03";
     #else
     #error "FIXME UNHANDLED CPU"
     #endif

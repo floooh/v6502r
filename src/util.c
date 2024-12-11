@@ -128,7 +128,14 @@ EM_JS(void, emsc_js_save_async, (const char* c_key, const void* bytes, uint32_t 
     open_request.onsuccess = () => {
         console.log('emsc_js_save_async: onsuccess');
         const db = open_request.result;
-        const transaction = db.transaction([db_store_name], 'readwrite');
+        let transaction;
+        try {
+            transaction = db.transaction([db_store_name], 'readwrite');
+        } catch (err) {
+            console.warn('emsc_js_save_async: db.transaction failed with: ', err);
+            _util_emsc_save_callback(false, completed, userdata);
+            return;
+        }
         const file = transaction.objectStore(db_store_name);
         const blob = HEAPU8.subarray(bytes, bytes + num_bytes);
         const put_request = file.put(blob, 'imgui.ini');
@@ -167,6 +174,7 @@ EM_JS(void, emsc_js_load_async, (const char* c_key, util_load_callback_t complet
         _util_emsc_load_callback(false, completed, 0, 0, userdata);
         return;
     }
+console.log('after indexedDB open');
     open_request.onupgradeneeded = () => {
         console.log('emsc_js_load_async: onupgradeneeded');
         const db = open_request.result;
@@ -175,7 +183,14 @@ EM_JS(void, emsc_js_load_async, (const char* c_key, util_load_callback_t complet
     open_request.onsuccess = () => {
         console.log('emsc_js_load_async: open_request onsuccess');
         let db = open_request.result;
-        const transaction = db.transaction([db_store_name], 'readwrite');
+        let transaction;
+        try {
+            transaction = db.transaction([db_store_name], 'readwrite');
+        } catch (err) {
+            console.warn('emsc_js_load_async: db.transaction failed with: ', err);
+            _util_emsc_load_callback(false, completed, 0, 0, userdata);
+            return;
+        }
         const file = transaction.objectStore(db_store_name);
         const get_request = file.get('imgui.ini');
         get_request.onsuccess = () => {
