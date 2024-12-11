@@ -110,8 +110,8 @@ EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, uint8_t* data, int
 
 EM_JS(void, emsc_js_save_async, (const char* c_key, const void* bytes, uint32_t num_bytes, util_save_callback_t completed, void* userdata), {
     console.log('emsc_js_save_async called');
-    const db_name = 'v6502r';
-    const db_store_name = UTF8ToString(c_key);
+    const db_name = UTF8ToString(c_key);
+    const db_store_name = 'store';
     let open_request;
     try {
         open_request = window.indexedDB.open(db_name);
@@ -164,8 +164,8 @@ EMSCRIPTEN_KEEPALIVE void util_emsc_save_callback(bool succeeded, util_save_call
 
 EM_JS(void, emsc_js_load_async, (const char* c_key, util_load_callback_t completed, void* userdata), {
     console.log('emsc_js_load_async called');
-    const db_name = 'v6502r';
-    const db_store_name = UTF8ToString(c_key);
+    const db_name = UTF8ToString(c_key);
+    const db_store_name = 'store';
     let open_request;
     try {
         open_request = window.indexedDB.open(db_name);
