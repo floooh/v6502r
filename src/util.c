@@ -174,7 +174,6 @@ EM_JS(void, emsc_js_load_async, (const char* c_key, util_load_callback_t complet
         _util_emsc_load_callback(false, completed, 0, 0, userdata);
         return;
     }
-console.log('after indexedDB open');
     open_request.onupgradeneeded = () => {
         console.log('emsc_js_load_async: onupgradeneeded');
         const db = open_request.result;
