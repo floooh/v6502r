@@ -110,7 +110,7 @@ void ui_asm_draw(void) {
     }
     auto cpos = state.editor->GetCursorPosition();
     const float footer_h = ImGui::GetFrameHeightWithSpacing();
-    ImGui::SetNextWindowSize({480, 260}, ImGuiCond_Once);
+    ImGui::SetNextWindowSize({480, 260}, ImGuiCond_FirstUseEver);
     const asm_error_t* cur_error = 0;
     for (int i = 0; i < asm_num_errors(); i++) {
         const asm_error_t* err = asm_error(i);

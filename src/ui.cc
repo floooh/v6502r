@@ -168,6 +168,7 @@ static struct {
     bool valid;
     bool ini_save_in_progress;
     bool ini_load_in_progress;
+    bool ini_load_completed;
     ui_memedit_t memedit;
     ui_memedit_t memedit_integrated;
     #if defined(CHIP_Z80)
@@ -252,6 +253,7 @@ static void ui_help_assembler(void);
 static void ui_help_opcodes(void);
 static void ui_help_about(void);
 static void ui_handle_save_settings(void);
+static void ui_load_settings(void);
 static void markdown_link_callback(ImGui::MarkdownLinkCallbackData data);
 
 static ImGui::MarkdownConfig md_conf;
@@ -412,6 +414,10 @@ void ui_init() {
     md_conf.linkIcon = ICON_FA_LINK;
 
     ui.menu.layer_slider = MAX_LAYERS;
+
+    // start load the persistent Dear ImGui ini settings
+    ui_load_settings();
+
     ui.valid = true;
 }
 
@@ -641,6 +647,9 @@ bool ui_handle_input(const sapp_event* ev) {
 void ui_frame() {
     assert(ui.valid);
     ui.link_hovered = false;
+    if (!ui.ini_load_completed) {
+        return;
+    }
     simgui_new_frame({ sapp_width(), sapp_height(), sapp_frame_duration(), sapp_dpi_scale() });
     ui_handle_docking();
     ui_menu();
@@ -670,6 +679,9 @@ void ui_frame() {
 
 void ui_draw() {
     assert(ui.valid);
+    if (!ui.ini_load_completed) {
+        return;
+    }
     sgimgui_draw(&ui.sgimgui);
     simgui_render();
 }
@@ -858,34 +870,35 @@ static void ui_menu(void) {
 }
 
 static void ui_floating_controls(void) {
-    if (ui.window_open.floating_controls) {
-        ImGui::SetNextWindowPos({ 10, 20 }, ImGuiCond_Once);
-        const ImGuiWindowFlags flags =
-            ImGuiWindowFlags_NoDocking |
-            ImGuiWindowFlags_NoDecoration |
-            ImGuiWindowFlags_AlwaysAutoResize |
-            ImGuiWindowFlags_NoBackground |
-            ImGuiWindowFlags_NoBringToFrontOnFocus |
-            ImGuiWindowFlags_NoFocusOnAppearing;
-        if (ImGui::Begin("##floating", &ui.window_open.floating_controls, flags)) {
-            if (ImGui::SliderInt("Layers", &ui.menu.layer_slider, 0, MAX_LAYERS)) {
-                int i = 0;
-                for (; i < ui.menu.layer_slider; i++) {
-                    gfx_set_layer_visibility(i, true);
-                    pick_set_layer_enabled(i, true);
-                }
-                for (; i < MAX_LAYERS; i++) {
-                    gfx_set_layer_visibility(i, false);
-                    pick_set_layer_enabled(i, false);
-                }
+    if (!ui.window_open.floating_controls) {
+        return;
+    }
+    ImGui::SetNextWindowPos({ 10, 20 }, ImGuiCond_Once);
+    const ImGuiWindowFlags flags =
+        ImGuiWindowFlags_NoDocking |
+        ImGuiWindowFlags_NoDecoration |
+        ImGuiWindowFlags_AlwaysAutoResize |
+        ImGuiWindowFlags_NoBackground |
+        ImGuiWindowFlags_NoBringToFrontOnFocus |
+        ImGuiWindowFlags_NoFocusOnAppearing;
+    if (ImGui::Begin("##floating", &ui.window_open.floating_controls, flags)) {
+        if (ImGui::SliderInt("Layers", &ui.menu.layer_slider, 0, MAX_LAYERS)) {
+            int i = 0;
+            for (; i < ui.menu.layer_slider; i++) {
+                gfx_set_layer_visibility(i, true);
+                pick_set_layer_enabled(i, true);
             }
-            float scale = gfx_get_scale();
-            if (ImGui::SliderFloat("Scale", &scale, gfx_min_scale(), gfx_max_scale(), "%.2f", ImGuiSliderFlags_Logarithmic)) {
-                gfx_set_scale(scale);
+            for (; i < MAX_LAYERS; i++) {
+                gfx_set_layer_visibility(i, false);
+                pick_set_layer_enabled(i, false);
             }
         }
-        ImGui::End();
+        float scale = gfx_get_scale();
+        if (ImGui::SliderFloat("Scale", &scale, gfx_min_scale(), gfx_max_scale(), "%.2f", ImGuiSliderFlags_Logarithmic)) {
+            gfx_set_scale(scale);
+        }
     }
+    ImGui::End();
 }
 
 #if defined(CHIP_6502) || defined(CHIP_2A03)
@@ -1273,7 +1286,7 @@ static void ui_cassette_deck_controls(void) {
 
 static void ui_controls(void) {
     if (ui.window_open.cpu_controls) {
-        ImGui::SetNextWindowSize({ 270, 120 }, ImGuiCond_Once);
+        ImGui::SetNextWindowSize({ 270, 120 }, ImGuiCond_FirstUseEver);
         if (ImGui::Begin("CPU Controls", &ui.window_open.cpu_controls, ImGuiWindowFlags_NoScrollbar)) {
             /* cassette deck controls */
             ui_cassette_deck_controls();
@@ -1315,8 +1328,8 @@ static void ui_listing(void) {
     if (!ui.window_open.listing) {
         return;
     }
-    ImGui::SetNextWindowPos({60, 320}, ImGuiCond_Once);
-    ImGui::SetNextWindowSize({480, 200}, ImGuiCond_Once);
+    ImGui::SetNextWindowPos({60, 320}, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize({480, 200}, ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Listing", &ui.window_open.listing, ImGuiWindowFlags_None)) {
         ImGui::Text("%s", asm_listing());
     }
@@ -1499,7 +1512,7 @@ static void ui_tracelog(void) {
         return;
     }
     const float footer_h = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
-    ImGui::SetNextWindowSize({ 600, 128 }, ImGuiCond_Once);
+    ImGui::SetNextWindowSize({ 600, 128 }, ImGuiCond_FirstUseEver);
     bool any_hovered = false;
     if (ImGui::Begin("Trace Log", &ui.window_open.tracelog, ImGuiWindowFlags_None)) {
         const ImGuiTableFlags table_flags =
@@ -1762,8 +1775,8 @@ static void ui_timingdiagram(void) {
     const int num_cols = trace_num_items();
     const float graph_height = num_time_diagram_nodes * cell_height + top_padding;
     const float graph_width  = num_cols * cell_width;
-    ImGui::SetNextWindowPos({60, 60}, ImGuiCond_Once);
-    ImGui::SetNextWindowSize({600, top_padding + graph_height + 32.0f}, ImGuiCond_Once);
+    ImGui::SetNextWindowPos({60, 60}, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize({600, top_padding + graph_height + 32.0f}, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowContentSize({graph_width, graph_height});
     bool any_hovered = false;
     if (ImGui::Begin("Timing Diagram", &ui.window_open.timingdiagram, ImGuiWindowFlags_HorizontalScrollbar)) {
@@ -1967,8 +1980,8 @@ static void ui_nodeexplorer(void) {
     if (!ui.window_open.nodeexplorer) {
         return;
     }
-    ImGui::SetNextWindowPos({ImGui::GetIO().DisplaySize.x - 450, 70}, ImGuiCond_Once);
-    ImGui::SetNextWindowSize({400, 300}, ImGuiCond_Once);
+    ImGui::SetNextWindowPos({ImGui::GetIO().DisplaySize.x - 450, 70}, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize({400, 300}, ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Node Explorer", &ui.window_open.nodeexplorer, ImGuiWindowFlags_NoScrollWithMouse)) {
         ui.explorer.num_hovered_nodes = 0;
         ImGui::Text("Select nodes, groups or type node-names and -numbers:");
@@ -2115,8 +2128,8 @@ static void ui_help_assembler(void) {
     if (!ui.window_open.help_asm) {
         return;
     }
-    ImGui::SetNextWindowSize({640, 400}, ImGuiCond_Once);
-    ImGui::SetNextWindowPos(display_center(), ImGuiCond_Once, { 0.5f, 0.5f });
+    ImGui::SetNextWindowSize({640, 400}, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(display_center(), ImGuiCond_FirstUseEver, { 0.5f, 0.5f });
     if (ImGui::Begin("Assembler Help", &ui.window_open.help_asm, ImGuiWindowFlags_None)) {
         ImGui::Markdown(dump_help_assembler_md, sizeof(dump_help_assembler_md)-1, md_conf);
     }
@@ -2127,7 +2140,7 @@ static void ui_help_opcodes(void) {
     if (!ui.window_open.help_opcodes) {
         return;
     }
-    ImGui::SetNextWindowSize({640, 400}, ImGuiCond_Once);
+    ImGui::SetNextWindowSize({640, 400}, ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Opcode Help", &ui.window_open.help_opcodes, ImGuiWindowFlags_None)) {
         ImGui::Text("TODO!");
     }
@@ -2430,8 +2443,8 @@ static void ui_help_about(void) {
     const float win_width = 600.0f;
     const float win_height = 420.0f;
     const float box_padding = 40.0f;
-    ImGui::SetNextWindowSize({win_width, win_height}, ImGuiCond_Once);
-    ImGui::SetNextWindowPos(disp_center, ImGuiCond_Once, { 0.5f, 0.5f });
+    ImGui::SetNextWindowSize({win_width, win_height}, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(disp_center, ImGuiCond_FirstUseEver, { 0.5f, 0.5f });
     if (ImGui::Begin("About", &ui.window_open.help_about, ImGuiWindowFlags_NoResize)) {
         ImVec2 c_pos = ImGui::GetCursorScreenPos();
         ImVec2 p = draw_header(c_pos, win_width);
@@ -2499,4 +2512,22 @@ static void ui_handle_save_settings(void) {
         save.userdata = 0;
         util_save_async(save);
     }
+}
+
+static void ui_load_completed(bool succeeded, const void* data, uint32_t num_bytes, void* userdata) {
+    (void)userdata;
+    if (succeeded && data && num_bytes > 0) {
+        ImGui::LoadIniSettingsFromMemory((const char*)data, num_bytes);
+    }
+    ui.ini_load_in_progress = false;
+    ui.ini_load_completed = true;
+}
+
+static void ui_load_settings(void) {
+    util_load_t load = {};
+    load.key = ui_save_key();
+    load.completed = ui_load_completed;
+    load.userdata = 0;
+    util_load_async(load);
+    ui.ini_load_in_progress = true;
 }
