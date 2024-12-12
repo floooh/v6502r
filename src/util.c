@@ -6,6 +6,7 @@
 #endif
 #include "ui_asm.h"
 #include "util.h"
+#include <stdlib.h> // free()
 
 static struct {
     bool valid;
@@ -13,7 +14,7 @@ static struct {
 } util;
 
 #if defined(__EMSCRIPTEN__)
-EM_JS_DEPS(v6502r, "$ccall");
+EM_JS_DEPS(v6502r, "$ccall,$UTF8ToString,$stringToNewUTF8");
 
 EM_JS(void, emsc_js_init, (void), {
     Module['emsc_js_onload'] = emsc_js_onload;
@@ -108,126 +109,21 @@ EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, uint8_t* data, int
     return 1;
 }
 
-EM_JS(void, emsc_js_save_async, (const char* c_key, const void* bytes, uint32_t num_bytes, util_save_callback_t completed, void* userdata), {
-    console.log('emsc_js_save_async called');
-    const db_name = UTF8ToString(c_key);
-    const db_store_name = 'store';
-    let open_request;
-    try {
-        open_request = window.indexedDB.open(db_name);
-    } catch (err) {
-        console.warn('emsc_js_save_async: failed to open IndexedDB with: ', err);
-        _util_emsc_save_callback(false, completed, userdata);
-        return;
-    }
-    open_request.onupgradeneeded = () => {
-        console.log('emsc_js_save_async: onupgradeneeded');
-        const db = open_request.result;
-        db.createObjectStore(db_store_name);
-    };
-    open_request.onsuccess = () => {
-        console.log('emsc_js_save_async: onsuccess');
-        const db = open_request.result;
-        let transaction;
-        try {
-            transaction = db.transaction([db_store_name], 'readwrite');
-        } catch (err) {
-            console.warn('emsc_js_save_async: db.transaction failed with: ', err);
-            _util_emsc_save_callback(false, completed, userdata);
-            return;
-        }
-        const file = transaction.objectStore(db_store_name);
-        const blob = HEAPU8.subarray(bytes, bytes + num_bytes);
-        const put_request = file.put(blob, 'imgui.ini');
-        put_request.onsuccess = () => {
-            console.log('emsc_js_save_async: put success');
-            _util_emsc_save_callback(true, completed, userdata);
-        };
-        put_request.onerror = () => {
-            console.warn('emsc_js_save_async: put failure');
-            _util_emsc_save_callback(false, completed, userdata);
-        };
-        transaction.onerror = () => {
-            console.warn('emsc_js_save_async: transaction failure');
-            _util_emsc_save_callback(false, completed, userdata);
-        };
-    };
-    open_request.onerror = () => {
-        console.warn('emsc_js_save_async: open request failure');
-        _util_emsc_save_callback(false, completed, userdata);
-    };
+EM_JS(void, emsc_js_save_string, (const char* c_key, const char* c_payload), {
+    const key = UTF8ToString(c_key);
+    const payload = UTF8ToString(c_payload);
+    window.localStorage.setItem(key, payload);
 });
 
-EMSCRIPTEN_KEEPALIVE void util_emsc_save_callback(bool succeeded, util_save_callback_t completed, void* userdata) {
-    completed(succeeded, userdata);
-}
-
-EM_JS(void, emsc_js_load_async, (const char* c_key, util_load_callback_t completed, void* userdata), {
-    console.log('emsc_js_load_async called');
-    const db_name = UTF8ToString(c_key);
-    const db_store_name = 'store';
-    let open_request;
-    try {
-        open_request = window.indexedDB.open(db_name);
-    } catch (err) {
-        console.warn('emsc_js_load_async: failed to open IndexedDB with: ', err);
-        _util_emsc_load_callback(false, completed, 0, 0, userdata);
-        return;
-    }
-    open_request.onupgradeneeded = () => {
-        console.log('emsc_js_load_async: onupgradeneeded');
-        const db = open_request.result;
-        db.createObjectStore(db_store_name);
-    };
-    open_request.onsuccess = () => {
-        console.log('emsc_js_load_async: open_request onsuccess');
-        let db = open_request.result;
-        let transaction;
-        try {
-            transaction = db.transaction([db_store_name], 'readwrite');
-        } catch (err) {
-            console.warn('emsc_js_load_async: db.transaction failed with: ', err);
-            _util_emsc_load_callback(false, completed, 0, 0, userdata);
-            return;
-        }
-        const file = transaction.objectStore(db_store_name);
-        const get_request = file.get('imgui.ini');
-        get_request.onsuccess = () => {
-            console.log('emsc_js_load_async: get_request onsuccess');
-            if (get_request.result !== undefined) {
-                const num_bytes = get_request.result.length;
-                console.log(`emsc_js_load_async: successfully loaded ${num_bytes} bytes`);
-                const ptr = _util_emsc_alloc(num_bytes);
-                HEAPU8.set(get_request.result, ptr);
-                _util_emsc_load_callback(true, completed, ptr, num_bytes, userdata);
-            } else {
-                console.warn('emsc_js_load_async: get_request.result is undefined');
-                _util_emsc_load_callback(false, completed, 0, 0, userdata);
-            }
-        };
-        get_request.onerror = () => {
-            console.warn('emsc_js_load_async: get_request onerror');
-            _util_emsc_load_callback(false, completed, 0, 0, userdata);
-        };
-        transaction.onerror = () => {
-            console.warn('emsc_js_load_async: transaction onerror');
-            _util_emsc_load_callback(false, completed, 0, 0, userdata);
-        };
-    };
-    open_request.onerror = () => {
-        console.log('emsc_js_load_async: open_request onerror');
-        _util_emsc_load_callback(false, completed, 0, 0, userdata);
+EM_JS(const char*, emsc_js_load_string, (const char* c_key), {
+    const key = UTF8ToString(c_key);
+    const payload = window.localStorage.getItem(key);
+    if (payload) {
+        return stringToNewUTF8(payload);
+    } else {
+        return 0;
     }
 });
-
-EMSCRIPTEN_KEEPALIVE void* util_emsc_alloc(uint32_t num_bytes) {
-    return malloc(num_bytes);
-}
-
-EMSCRIPTEN_KEEPALIVE void util_emsc_load_callback(bool succeeded, util_load_callback_t completed, void* bytes, uint32_t num_bytes, void* userdata) {
-    completed(succeeded, bytes, num_bytes, userdata);
-    free(bytes);
-}
 #endif // EMSCRIPTEN
 
 void util_init(void) {
@@ -287,24 +183,25 @@ bool util_is_osx(void) {
     return util.is_osx;
 }
 
-void util_save_async(util_save_t args) {
-    assert(args.key);
-    assert(args.bytes);
-    assert(args.num_bytes > 0);
-    assert(args.completed);
+void util_save_string(const char* key, const char* payload) {
+    assert(key && payload);
     #if defined(__EMSCRIPTEN__)
-    emsc_js_save_async(args.key, args.bytes, args.num_bytes, args.completed, args.userdata);
-    #else
-    args.completed(false, args.userdata);
+    emsc_js_save_string(key, payload);
     #endif
 }
 
-void util_load_async(util_load_t args) {
-    assert(args.key);
-    assert(args.completed);
+// NOTE: may return 0
+const char* util_load_string(const char* key) {
+    assert(key);
     #if defined(__EMSCRIPTEN__)
-    emsc_js_load_async(args.key, args.completed, args.userdata);
+    return emsc_js_load_string(key);
     #else
-    args.completed(false, 0, 0, args.userdata);
+    return 0;
     #endif
+}
+
+void util_free_loaded_string(const char* payload) {
+    if (payload) {
+        free((void*)payload);
+    }
 }

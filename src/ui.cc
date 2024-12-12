@@ -166,9 +166,6 @@ static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] =
 
 static struct {
     bool valid;
-    bool ini_save_in_progress;
-    bool ini_load_in_progress;
-    bool ini_load_completed;
     ui_memedit_t memedit;
     ui_memedit_t memedit_integrated;
     #if defined(CHIP_Z80)
@@ -414,10 +411,7 @@ void ui_init() {
     md_conf.linkIcon = ICON_FA_LINK;
 
     ui.menu.layer_slider = MAX_LAYERS;
-
-    // start load the persistent Dear ImGui ini settings
     ui_load_settings();
-
     ui.valid = true;
 }
 
@@ -647,9 +641,6 @@ bool ui_handle_input(const sapp_event* ev) {
 void ui_frame() {
     assert(ui.valid);
     ui.link_hovered = false;
-    if (!ui.ini_load_completed) {
-        return;
-    }
     simgui_new_frame({ sapp_width(), sapp_height(), sapp_frame_duration(), sapp_dpi_scale() });
     ui_handle_docking();
     ui_menu();
@@ -679,9 +670,6 @@ void ui_frame() {
 
 void ui_draw() {
     assert(ui.valid);
-    if (!ui.ini_load_completed) {
-        return;
-    }
     sgimgui_draw(&ui.sgimgui);
     simgui_render();
 }
@@ -2496,38 +2484,17 @@ static const char* ui_save_key(void) {
     #endif
 }
 
-static void ui_save_completed(bool succeeded, void* userdata) {
-    (void)succeeded; (void)userdata;
-    ImGui::GetIO().WantSaveIniSettings = false;
-    ui.ini_save_in_progress = false;
-}
-
 static void ui_handle_save_settings(void) {
-    if (ImGui::GetIO().WantSaveIniSettings && !ui.ini_save_in_progress) {
-        ui.ini_save_in_progress = true;
-        util_save_t save = {};
-        save.key = ui_save_key();
-        save.bytes = ImGui::SaveIniSettingsToMemory(&save.num_bytes);
-        save.completed = ui_save_completed;
-        save.userdata = 0;
-        util_save_async(save);
+    if (ImGui::GetIO().WantSaveIniSettings) {
+        ImGui::GetIO().WantSaveIniSettings = false;
+        util_save_string(ui_save_key(), ImGui::SaveIniSettingsToMemory());
     }
-}
-
-static void ui_load_completed(bool succeeded, const void* data, uint32_t num_bytes, void* userdata) {
-    (void)userdata;
-    if (succeeded && data && num_bytes > 0) {
-        ImGui::LoadIniSettingsFromMemory((const char*)data, num_bytes);
-    }
-    ui.ini_load_in_progress = false;
-    ui.ini_load_completed = true;
 }
 
 static void ui_load_settings(void) {
-    util_load_t load = {};
-    load.key = ui_save_key();
-    load.completed = ui_load_completed;
-    load.userdata = 0;
-    util_load_async(load);
-    ui.ini_load_in_progress = true;
+    const char* payload = util_load_string(ui_save_key());
+    if (payload) {
+        ImGui::LoadIniSettingsFromMemory(payload);
+        util_free_loaded_string(payload);
+    }
 }
