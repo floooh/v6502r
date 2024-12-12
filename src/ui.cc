@@ -1194,7 +1194,7 @@ static void ui_audio_status_panel(void) {
                         sim_2a03_get_pcm_en(), sim_2a03_get_pcm_rd_active());
             ImGui::EndTabItem();
         }
-        ImGui::EndTabItem();
+        ImGui::EndTabBar();
     }
 }
 #endif
