@@ -10,8 +10,7 @@
 #   3..:    polygon outline vertices as x,y pairs
 #===============================================================================
 
-import os
-import tripy
+import earcut
 
 # this is the original extracted data
 VERTICES = []   # each vertex is a (x,y,u,v) tuple (u being the node index)
@@ -112,7 +111,22 @@ def add_tris_to_grid(layer, triangles):
 def gen_triangles():
     for l,layer in enumerate(SEGMENTS):
         for seg in layer:
-            tris = tripy.earclip(VERTICES[seg[1]:seg[1]+seg[2]])
+            data = earcut.flatten([VERTICES[seg[1]:seg[1]+seg[2]]]);
+            vertices = data['vertices']
+            holes = data['holes']
+            dims = data['dimensions']
+            tri_indices = earcut.earcut(vertices, holes, dims)
+            tris = []
+            for i in range(int(len(tri_indices) / 3)):
+                i0 = tri_indices[i * 3 + 0]
+                i1 = tri_indices[i * 3 + 1]
+                i2 = tri_indices[i * 3 + 2]
+                v0 = (vertices[i0 * 2 + 0], vertices[i0 * 2 + 1])
+                v1 = (vertices[i1 * 2 + 0], vertices[i1 * 2 + 1])
+                v2 = (vertices[i2 * 2 + 0], vertices[i2 * 2 + 1])
+                tris.append([v0, v1, v2])
+
+            # tris = tripy.earclip(VERTICES[seg[1]:seg[1]+seg[2]])
             # add triangles picking grid
             add_tris_to_grid(l, tris)
             # add triangle vertices to vertex buffer
