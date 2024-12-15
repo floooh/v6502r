@@ -2070,16 +2070,17 @@ static void ui_picking(void) {
             int node_index = pick_result.node_index[i];
             if ((node_index >= 0) && (node_index < num_node_names)) {
                 if (!sim_is_ignore_picking_highlight_node(node_index)) {
+                    char print_buf[64];
                     if (valid_node_index != 0) {
                         strcat(str, "\n");
                     }
                     valid_node_index++;
                     if (0 != sim_get_node_name_by_index(node_index)[0]) {
-                        strcat(str, sim_get_node_name_by_index(node_index));
-                    }
-                    else {
-                        char print_buf[32];
+                        snprintf(print_buf, sizeof(print_buf), "%s (#%d)", sim_get_node_name_by_index(node_index), node_index);
+                    } else {
                         snprintf(print_buf, sizeof(print_buf), "#%d", node_index);
+                    }
+                    if ((strlen(str) + strlen(print_buf) + 4) < sizeof(str)) {
                         strcat(str, print_buf);
                     }
                 }
