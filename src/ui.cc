@@ -2324,7 +2324,7 @@ static const char* footers[NUM_FOOTERS] = {
     "ASMX",
     "Sokol Headers",
     "Chips Headers",
-    "Tripy",
+    "Earcut-Python",
     "IconFontCppHeaders",
     "Font Awesome 4",
     "Coded in C99",

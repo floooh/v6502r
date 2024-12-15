@@ -1,3 +1,4 @@
+# https://github.com/joshuaskelly/earcut-python
 import math
 
 __all__ = ['earcut', 'deviation', 'flatten']
