@@ -10,6 +10,6 @@ Implemented with:
 - asmx: [http://xi6.com/projects/asmx](http://xi6.com/projects/asmx)
 - The Sokol Headers: [https://github.com/floooh/sokol](https://github.com/floooh/sokol)
 - The Chips Headers: [https://github.com/floooh/chips](https://github.com/floooh/chips)
-- Tripy: [https://github.com/linuxlewis/tripy](https://github.com/linuxlewis/tripy)
+- earcut-python: [https://github.com/joshuaskelly/earcut-python](https://github.com/joshuaskelly/earcut-python)
 - IconFontCppHeaders: [https://github.com/juliettef/IconFontCppHeaders](https://github.com/juliettef/IconFontCppHeaders)
 - Font Awesome 4: [https://github.com/FortAwesome/Font-Awesome/tree/fa-4](https://github.com/FortAwesome/Font-Awesome/tree/fa-4)

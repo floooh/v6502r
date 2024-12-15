@@ -10,8 +10,7 @@
 #   3..:    polygon outline vertices as x,y pairs
 #===============================================================================
 
-import os
-import tripy
+import earcut
 
 # this is the original extracted data
 VERTICES = []   # each vertex is a (x,y,u,v) tuple (u being the node index)
@@ -107,12 +106,83 @@ def add_tris_to_grid(layer, triangles):
                 GRID_STACK[cell_index].append(tri_index)
 
 #-------------------------------------------------------------------------------
+# Some segments consist of multiple polygons, split them accordingly, the
+# returned array consists of types (node_index, start_vertex_index, num_vertices).
+#
+# Such multi-path segments only exists on the Z80 and define polygons with holes
+# (the first path is the actual poly, and all following paths are holes)
+#
+def split_segment(seg):
+    res = []
+    i0 = seg[1]
+    i1 = i0 + seg[2]
+    i_start = i0
+    # special case, v0 == v1
+    # (this is why the original renderer moves the first vertex to the end:
+    # https://github.com/trebonian/visual6502/blob/d8ecc129b34e0eaf320e0400fcf33329475bdb1e/wires.js#L232-L233)
+    v0 = VERTICES[i0]
+    v1 = VERTICES[i0 + 1]
+    if v0[0] == v1[0] and v0[1] == v1[1]:
+        print(f'skip initial duplicate vertex in segment: {seg[0]}')
+        i0 += 1
+    for i in range(i0, i1):
+        if i == i_start:
+            continue
+        v = VERTICES[i]
+        x = v[0]
+        y = v[1]
+        v0 = VERTICES[i_start]
+        x0 = v0[0]
+        y0 = v0[1]
+        last = i == i1 - 1
+        if (x == x0 and y == y0) or last:
+            # found end of current polygon
+            num_verts = i - i_start
+            if last:
+                num_verts += 1
+            if num_verts > 2:
+                new_seg = (seg[0], i_start, num_verts)
+                res.append(new_seg)
+            else:
+                print(f'ignoring path with less than 3 vertices in segment: {seg[0]}')
+            # skip the loop-back vertex
+            i_start = i + 1
+    return res
+
+#-------------------------------------------------------------------------------
 # Generate a triangulated index buffer per segment
 #
 def gen_triangles():
     for l,layer in enumerate(SEGMENTS):
         for seg in layer:
-            tris = tripy.earclip(VERTICES[seg[1]:seg[1]+seg[2]])
+            # some segments are made of multiple polygons
+            split_segs = split_segment(seg)
+            if len(split_segs) == 0:
+                print(f'skipping invalid segment (no paths with at least 3 vertices): {seg[0]}')
+                continue
+            if len(split_segs) > 1:
+                print(f'found multi-poly-segment: {seg[0]} num={len(split_segs)}')
+            # convert to 'first sequence is poly and following sequences are holes'
+            poly_and_holes = []
+            for s in split_segs:
+                poly_and_holes.append(VERTICES[s[1]:s[1]+s[2]])
+            data = earcut.flatten(poly_and_holes);
+            vertices = data['vertices']
+            holes = data['holes']
+            dims = data['dimensions']
+            tri_indices = earcut.earcut(vertices, holes, dims)
+            if 0 != earcut.deviation(vertices, holes, dims, tri_indices):
+                print(f'incorrect triangulation in segment: {seg[0]}')
+            tris = []
+            for i in range(int(len(tri_indices) / 3)):
+                i0 = tri_indices[i * 3 + 0]
+                i1 = tri_indices[i * 3 + 1]
+                i2 = tri_indices[i * 3 + 2]
+                v0 = (vertices[i0 * 2 + 0], vertices[i0 * 2 + 1])
+                v1 = (vertices[i1 * 2 + 0], vertices[i1 * 2 + 1])
+                v2 = (vertices[i2 * 2 + 0], vertices[i2 * 2 + 1])
+                tris.append([v0, v1, v2])
+
             # add triangles picking grid
             add_tris_to_grid(l, tris)
             # add triangle vertices to vertex buffer

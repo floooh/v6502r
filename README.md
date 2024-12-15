@@ -97,7 +97,7 @@ Many thanks to:
 - **asmx**: http://xi6.com/projects/asmx/
 - **The Sokol Headers**: https://github.com/floooh/sokol
 - **The Chips Headers (UI)**: https://github.com/floooh/chips
-- **Tripy**: https://github.com/linuxlewis/tripy
+- **Earcut-Python**: https://github.com/joshuaskelly/earcut-python
 - **IconFontCppHeaders**: https://github.com/juliettef/IconFontCppHeaders
 - **Font Awesome 4**: https://github.com/FortAwesome/Font-Awesome/tree/fa-4
 - **visual2a03**: http://www.qmtpro.com/~nes/chipimages/visual2a03/
