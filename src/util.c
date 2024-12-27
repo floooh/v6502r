@@ -8,6 +8,7 @@
 #define NOMINMAX
 #include "windows.h"
 #endif
+#include "ui.h"
 #include "ui_asm.h"
 #include "util.h"
 #include <stdlib.h> // free()
@@ -110,7 +111,7 @@ EM_JS(void, emsc_js_open_link, (const char* c_url), {
 
 EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, uint8_t* data, int size) {
     ui_asm_put_source(name, (range_t){ .ptr=data, .size=(size_t)size });
-    ui_asm_set_window_open(true);
+    ui_set_window_open(UI_WINDOW_ASM, true);
     ui_asm_assemble();
     return 1;
 }
@@ -317,7 +318,7 @@ bool util_is_osx(void) {
 void util_save_settings(const char* key, const char* payload) {
     assert(key && payload);
     #if defined(__EMSCRIPTEN__)
-        emsc_js_save_save_settings(key, payload);
+        emsc_js_save_settings(key, payload);
     #else
         util_path_t path = util_win32_posix_make_ini_path(key);
         range_t data = { .ptr = (void*)payload, .size = strlen(payload) };
