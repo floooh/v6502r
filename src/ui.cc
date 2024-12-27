@@ -244,7 +244,8 @@ static void ui_nodeexplorer_cut(void);
 static void ui_nodeexplorer_copy(void);
 static void ui_nodeexplorer_paste(void);
 static void ui_nodeexplorer(void);
-static void ui_controls(void);
+static void ui_cassette_deck_controls(void);
+static void ui_cpu_controls(void);
 static void ui_listing(void);
 static void ui_help_assembler(void);
 static void ui_help_opcodes(void);
@@ -252,6 +253,9 @@ static void ui_help_about(void);
 static void ui_handle_save_settings(void);
 static void ui_load_settings(void);
 static void markdown_link_callback(ImGui::MarkdownLinkCallbackData data);
+#if defined(CHIP_2A03)
+static void ui_audio_controls(void);
+#endif
 
 static ImGui::MarkdownConfig md_conf;
 
@@ -287,8 +291,8 @@ void ui_init() {
 
     // default window open state
     ui.window_open.floating_controls = true;
-    ui.window_open.cpu_controls = true;
-    ui.window_open.tracelog = true;
+    ui.window_open.cpu_controls = false;
+    ui.window_open.tracelog = false;
     ui_nodeexplorer_init();
 
     // setup sokol-imgui
@@ -652,7 +656,10 @@ void ui_frame() {
     ui_timingdiagram();
     ui_tracelog_timingdiagram_end();
     ui_nodeexplorer();
-    ui_controls();
+    ui_cpu_controls();
+    #if defined(CHIP_2A03)
+    ui_audio_controls();
+    #endif
     ui_asm_draw();
     ui_listing();
     ui_help_assembler();
@@ -673,19 +680,6 @@ void ui_draw() {
 static void ui_handle_docking(void) {
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     const ImGuiID dspace_id = ImGui::GetID("main_dockspace");
-    if (ImGui::DockBuilderGetNode(dspace_id) == nullptr) {
-        ImGui::DockBuilderRemoveNode(dspace_id);
-        ImGui::DockBuilderAddNode(dspace_id, ImGuiDockNodeFlags_CentralNode);
-        ImGui::DockBuilderSetNodeSize(dspace_id, viewport->WorkSize);
-
-        ImGuiID dock_id_left, dock_id_right, dock_id_down, dock_id_up;
-        ImGui::DockBuilderSplitNode(dspace_id, ImGuiDir_Down, 0.25f, &dock_id_down, &dock_id_up);
-        ImGui::DockBuilderSplitNode(dock_id_up, ImGuiDir_Right, 0.25f, &dock_id_right, &dock_id_left);
-        ImGui::DockBuilderSetNodeSize(dock_id_right, { 270, viewport->WorkSize.y });
-        ImGui::DockBuilderDockWindow("CPU Controls", dock_id_right);
-        ImGui::DockBuilderDockWindow("Trace Log", dock_id_down);
-        ImGui::DockBuilderFinish(dspace_id);
-    }
     ImGui::DockSpaceOverViewport(dspace_id, viewport, ImGuiDockNodeFlags_NoDockingOverCentralNode | ImGuiDockNodeFlags_PassthruCentralNode);
 }
 
@@ -866,6 +860,9 @@ static void ui_floating_controls(void) {
         ImGuiWindowFlags_NoBringToFrontOnFocus |
         ImGuiWindowFlags_NoFocusOnAppearing;
     if (ImGui::Begin("##floating", &ui.window_open.floating_controls, flags)) {
+        if (!ui.window_open.cpu_controls) {
+            ui_cassette_deck_controls();
+        }
         if (ImGui::SliderInt("Layers", &ui.menu.layer_slider, 0, MAX_LAYERS)) {
             int i = 0;
             for (; i < ui.menu.layer_slider; i++) {
@@ -1195,118 +1192,102 @@ static void ui_audio_status_panel(void) {
 }
 #endif
 
-static void ui_cassette_deck_controls(void) {
-    const char* tooltip = 0;
+static bool ui_cassette_deck_button(const char* label) {
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 10.0f, 10.0f } );
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 7.0f, 7.0f } );
     ImGui::PushStyleColor(ImGuiCol_Button, 0xFFFFFFFF);
     ImGui::PushStyleColor(ImGuiCol_Text, 0xFF000000);
-    if (ImGui::Button(ICON_FA_STEP_BACKWARD, { 28, 25 })) {
+    const bool res = ImGui::Button(label, { 28, 25 });
+    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(3);
+    return res;
+}
+
+static void ui_cassette_deck_controls(void) {
+    if (ui_cassette_deck_button(ICON_FA_STEP_BACKWARD)) {
         sim_set_paused(true);
         trace_revert_to_previous();
     }
     if (ImGui::IsItemHovered()) {
-        tooltip = "Step back one half-cycle";
+        ImGui::SetTooltip("Step back one half-cycle");
     }
     ImGui::SameLine();
     if (sim_get_paused()) {
-        if (ImGui::Button(ICON_FA_PLAY, { 28, 25 })) {
+        if (ui_cassette_deck_button(ICON_FA_PLAY)) {
             sim_set_paused(false);
         }
         if (ImGui::IsItemHovered()) {
-            tooltip = "Run (one half-cycle per frame)";
+            ImGui::SetTooltip("Run (one half-cycle per frame)");
         }
-    }
-    else {
-        if (ImGui::Button(ICON_FA_PAUSE, { 28, 25 })) {
+    } else {
+        if (ui_cassette_deck_button(ICON_FA_PAUSE)) {
             sim_set_paused(true);
         }
         if (ImGui::IsItemHovered()) {
-            tooltip = "Pause";
+            ImGui::SetTooltip("Pause");
         }
     }
     ImGui::SameLine();
-    if (ImGui::Button(ICON_FA_STEP_FORWARD, { 28, 25 })) {
+    if (ui_cassette_deck_button(ICON_FA_STEP_FORWARD)) {
         sim_set_paused(true);
         sim_step(1);
     }
     if (ImGui::IsItemHovered()) {
-        tooltip = "Step one half-cycle";
+        ImGui::SetTooltip("Step one half-cycle");
     }
     ImGui::SameLine();
-    if (ImGui::Button(ICON_FA_FAST_FORWARD, { 28, 25 })) {
+    if (ui_cassette_deck_button(ICON_FA_FAST_FORWARD)) {
         sim_set_paused(true);
         sim_step(2);
     }
     if (ImGui::IsItemHovered()) {
-        tooltip = "Step two half-cycles";
+        ImGui::SetTooltip("Step two half-cycles");
     }
     ImGui::SameLine();
-    if (ImGui::Button(ICON_FA_ARROW_RIGHT, { 28, 25 })) {
+    if (ui_cassette_deck_button(ICON_FA_ARROW_RIGHT)) {
         sim_set_paused(true);
         sim_step_op();
     }
     if (ImGui::IsItemHovered()) {
-        tooltip = "Step to next instruction";
+        ImGui::SetTooltip("Step to next instruction");
     }
     ImGui::SameLine();
-    if (ImGui::Button(ICON_FA_EJECT, { 28, 25 })) {
+    if (ui_cassette_deck_button(ICON_FA_EJECT)) {
         trace_clear();
         sim_shutdown();
         sim_init();
         sim_start();
     }
     if (ImGui::IsItemHovered()) {
-        tooltip = "Reset";
+        ImGui::SetTooltip("Reset");
     }
-    ImGui::PopStyleColor(2);
-    ImGui::PopStyleVar(3);
-    if (!tooltip) {
-        tooltip = sim_get_paused() ? "Paused" : "Running";
-    }
-    ImGui::Text("%s", tooltip);
 }
 
-static void ui_controls(void) {
-    if (ui.window_open.cpu_controls) {
-        ImGui::SetNextWindowSize({ 270, 120 }, ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("CPU Controls", &ui.window_open.cpu_controls, ImGuiWindowFlags_NoScrollbar)) {
-            /* cassette deck controls */
-            ui_cassette_deck_controls();
-            ImGui::Separator();
-
-            /* CPU state */
-            ui_cpu_status_panel();
-            ImGui::Separator();
-
-            /* memory dump */
-            if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None)) {
-                if (ImGui::BeginTabItem("Memory")) {
-                    ui_memedit_draw_content(&ui.memedit_integrated);
-                    ImGui::EndTabItem();
-                }
-                #if defined(CHIP_Z80)
-                if (ImGui::BeginTabItem("IO")) {
-                    ui_memedit_draw_content(&ui.ioedit_integrated);
-                    ImGui::EndTabItem();
-                }
-                #endif
-                ImGui::EndTabBar();
-            }
-        }
-        ImGui::End();
+static void ui_cpu_controls(void) {
+    if (!ui.window_open.cpu_controls) {
+        return;
     }
-
-    #if defined(CHIP_2A03)
-    if (ui.window_open.audio_controls) {
-        if (ImGui::Begin("Audio", &ui.window_open.audio_controls, ImGuiWindowFlags_None)) {
-            ui_audio_status_panel();
-        }
-        ImGui::End();
+    ImGui::SetNextWindowPos({ ImGui::GetIO().DisplaySize.x - 300, 50 }, ImGuiCond_Once);
+    ImGui::SetNextWindowSize({ 270, 480 }, ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("CPU Controls", &ui.window_open.cpu_controls, ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_AlwaysAutoResize)) {
+        ui_cassette_deck_controls();
+        ui_cpu_status_panel();
     }
-    #endif
+    ImGui::End();
 }
+
+#if defined(CHIP_2A03)
+static void ui_audio_controls(void) {
+    if (!ui.window_open.audio_controls) {
+        return;
+    }
+    if (ImGui::Begin("Audio", &ui.window_open.audio_controls, ImGuiWindowFlags_None)) {
+        ui_audio_status_panel();
+    }
+    ImGui::End();
+}
+#endif
 
 static void ui_listing(void) {
     if (!ui.window_open.listing) {

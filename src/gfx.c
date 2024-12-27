@@ -58,8 +58,7 @@ void gfx_init(const gfx_desc_t* desc) {
     gfx.seg_max_x = desc->seg_max_x;
     gfx.seg_max_y = desc->seg_max_y;
     gfx.aspect = 1.0f;
-    gfx.scale = 6.0f;
-    gfx.offset = (float2_t) { -0.05f, 0.0f };
+    gfx.scale = 9.0f;
     gfx.palette = gfx_default_palette;
     for (int i = 0; i < MAX_LAYERS; i++) {
         gfx.layer_visible[i] = true;
@@ -142,7 +141,7 @@ void gfx_shutdown(void) {
 void gfx_new_frame(float disp_width, float disp_height) {
     assert(gfx.valid);
     gfx.display_size = (float2_t) { disp_width, disp_height };
-    gfx.aspect = gfx.display_size.x / gfx.display_size.y;
+    gfx.aspect = gfx.display_size.y / gfx.display_size.x;
 }
 
 void gfx_begin(void) {
@@ -165,8 +164,8 @@ void gfx_begin(void) {
 
 void gfx_draw(void) {
     assert(gfx.valid);
-    const float sx = gfx.scale;
-    const float sy = gfx.scale * gfx.aspect;
+    const float sx = gfx.scale * gfx.aspect;
+    const float sy = gfx.scale;
     vs_params_t vs_params = {
         .half_size = (float2_t){(gfx.seg_max_x>>1)/65535.0f, (gfx.seg_max_y>>1)/65535.0f},
         .offset = gfx.offset,
