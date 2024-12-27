@@ -3,10 +3,16 @@
 //------------------------------------------------------------------------------
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
+#elif defined(__WIN32__)
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include "windows.h"
 #endif
 #include "ui_asm.h"
 #include "util.h"
 #include <stdlib.h> // free()
+#include <stdarg.h>
+#include <stdio.h>
 
 static struct {
     bool valid;
@@ -109,13 +115,16 @@ EMSCRIPTEN_KEEPALIVE int util_emsc_loadfile(const char* name, uint8_t* data, int
     return 1;
 }
 
-EM_JS(void, emsc_js_save_string, (const char* c_key, const char* c_payload), {
+EM_JS(void, emsc_js_save_settings, (const char* c_key, const char* c_payload), {
     const key = UTF8ToString(c_key);
     const payload = UTF8ToString(c_payload);
     window.localStorage.setItem(key, payload);
 });
 
-EM_JS(const char*, emsc_js_load_string, (const char* c_key), {
+EM_JS(const char*, emsc_js_load_settings, (const char* c_key), {
+    if (window.localStorage === undefined) {
+        return 0;
+    }
     const key = UTF8ToString(c_key);
     const payload = window.localStorage.getItem(key);
     if (payload) {
@@ -124,7 +133,129 @@ EM_JS(const char*, emsc_js_load_string, (const char* c_key), {
         return 0;
     }
 });
-#endif // EMSCRIPTEN
+#else // win32/posix
+#define UTIL_PATH_SIZE (2048)
+
+typedef struct {
+    char cstr[UTIL_PATH_SIZE];
+    bool clamped;
+} util_path_t;
+
+#if defined(__GNUC__)
+static util_path_t util_path_printf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
+#endif
+static util_path_t util_path_printf(const char* fmt, ...) {
+    util_path_t path = {0};
+    va_list args;
+    va_start(args, fmt);
+    int res = vsnprintf(path.cstr, sizeof(path.cstr), fmt, args);
+    va_end(args);
+    path.clamped = res >= (int)sizeof(path.cstr);
+    return path;
+}
+
+static bool util_win32_posix_write_file(util_path_t path, range_t data) {
+    if (path.clamped) {
+        return false;
+    }
+    #if defined(WIN32)
+        WCHAR wc_path[UTIL_PATH_SIZE];
+        if (!util_win32_path_to_wide(&path, wc_path, sizeof(wc_path))) {
+            return false;
+        }
+        HANDLE fp = CreateFileW(wc_path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (fp == INVALID_HANDLE_VALUE) {
+            return false;
+        }
+        if (!WriteFile(fp, data.ptr, data.size, NULL, NULL)) {
+            CloseHandle(fp);
+            return false;
+        }
+        CloseHandle(fp);
+    #else
+        FILE* fp = fopen(path.cstr, "wb");
+        if (!fp) {
+            return false;
+        }
+        fwrite(data.ptr, data.size, 1, fp);
+        fclose(fp);
+    #endif
+    return true;
+}
+
+// NOTE: free the returned range.ptr with free(ptr)
+static range_t util_win32_posix_read_file(util_path_t path, bool null_terminated) {
+    if (path.clamped) {
+        return (range_t){0};
+    }
+    #if defined(WIN32)
+        WCHAR wc_path[UTIL_PATH_SIZE];
+        if (!util_win32_path_to_wide(&path, wc_path, sizeof(wc_path))) {
+            return (range_t){0};
+        }
+        HANDLE fp = CreateFileW(wc_path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (fp == INVALID_HANDLE_VALUE) {
+            return (range_t){0};
+        }
+        size_t file_size = GetFileSize(fp, NULL);
+        size_t alloc_size = null_terminated ? file_size + 1 : file_size;
+        void* ptr = calloc(1, alloc_size);
+        DWORD read_bytes = 0;
+        BOOL read_res = ReadFile(fp, ptr, file_size, &read_bytes, NULL);
+        CloseHandle(fp);
+        if (read_res && read_bytes == file_size) {
+            return (range_t){ .ptr = ptr, .size = alloc_size };
+        } else {
+            free(ptr);
+            return (range_t){0};
+        }
+    #else
+        FILE* fp = fopen(path.cstr, "rb");
+        if (!fp) {
+            return (range_t){0};
+        }
+        fseek(fp, 0, SEEK_END);
+        size_t file_size = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+        size_t alloc_size = null_terminated ? file_size + 1 : file_size;
+        void* ptr = calloc(1, alloc_size);
+        size_t bytes_read = fread(ptr, 1, file_size, fp);
+        fclose(fp);
+        if (bytes_read == file_size) {
+            return (range_t){ .ptr = ptr, .size = alloc_size };
+        } else {
+            free(ptr);
+            return (range_t){0};
+        }
+    #endif
+}
+
+static util_path_t util_win32_posix_tmp_dir(void) {
+    #if defined(WIN32)
+    WCHAR wc_tmp_path[UTIL_PATH_SIZE];
+    if (0 == GetTempPathW(sizeof(wc_tmp_path) / sizeof(WCHAR), wc_tmp_path)) {
+        return (util_path_t){0};
+    }
+    char utf8_tmp_path[UTIL_PATH_SIZE];
+    if (0 == WideCharToMultiByte(CP_UTF8, 0, wc_tmp_path, -1, utf8_tmp_path, sizeof(utf8_tmp_path), NULL, NULL)) {
+        return (util_path_t){0};
+    }
+    return util_path_printf("%s", utf8_tmp_path);
+    #else
+    return util_path_printf("%s", "/tmp");
+    #endif
+}
+
+util_path_t util_win32_posix_make_snapshot_path(const char* system_name, size_t snapshot_index) {
+    util_path_t tmp_dir = util_win32_posix_tmp_dir();
+    return util_path_printf("%s/chips_%s_snapshot_%zu", tmp_dir.cstr, system_name, snapshot_index);
+}
+
+util_path_t util_win32_posix_make_ini_path(const char* key) {
+    util_path_t tmp_dir = util_win32_posix_tmp_dir();
+    return util_path_printf("%s/%s_imgui.ini", tmp_dir.cstr, key);
+}
+#endif
 
 void util_init(void) {
     assert(!util.valid);
@@ -183,24 +314,30 @@ bool util_is_osx(void) {
     return util.is_osx;
 }
 
-void util_save_string(const char* key, const char* payload) {
+void util_save_settings(const char* key, const char* payload) {
     assert(key && payload);
     #if defined(__EMSCRIPTEN__)
-    emsc_js_save_string(key, payload);
+        emsc_js_save_save_settings(key, payload);
+    #else
+        util_path_t path = util_win32_posix_make_ini_path(key);
+        range_t data = { .ptr = (void*)payload, .size = strlen(payload) };
+        util_win32_posix_write_file(path, data);
     #endif
 }
 
 // NOTE: may return 0
-const char* util_load_string(const char* key) {
+const char* util_load_settings(const char* key) {
     assert(key);
     #if defined(__EMSCRIPTEN__)
-    return emsc_js_load_string(key);
+        return emsc_js_load_settings(key);
     #else
-    return 0;
+        util_path_t path = util_win32_posix_make_ini_path(key);
+        range_t data = util_win32_posix_read_file(path, true);
+        return data.ptr;
     #endif
 }
 
-void util_free_loaded_string(const char* payload) {
+void util_free_settings(const char* payload) {
     if (payload) {
         free((void*)payload);
     }

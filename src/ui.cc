@@ -167,26 +167,12 @@ static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] =
 static struct {
     bool valid;
     ui_memedit_t memedit;
-    ui_memedit_t memedit_integrated;
     #if defined(CHIP_Z80)
     ui_memedit_t ioedit;
-    ui_memedit_t ioedit_integrated;
     #endif
     ui_dasm_t dasm;
-    struct {
-        bool floating_controls;
-        bool cpu_controls;
-        #if defined(CHIP_2A03)
-        bool audio_controls;
-        #endif
-        bool tracelog;
-        bool timingdiagram;
-        bool nodeexplorer;
-        bool listing;
-        bool help_asm;
-        bool help_opcodes;
-        bool help_about;
-    } window_open;
+    bool window_open[UI_WINDOW_NUM];
+    bool prev_window_open[UI_WINDOW_NUM];
     struct {
         bool open_source_hovered;
         bool save_source_hovered;
@@ -247,6 +233,8 @@ static void ui_nodeexplorer(void);
 static void ui_cassette_deck_controls(void);
 static void ui_cpu_controls(void);
 static void ui_listing(void);
+static void ui_memedit(void);
+static void ui_dasm(void);
 static void ui_help_assembler(void);
 static void ui_help_opcodes(void);
 static void ui_help_about(void);
@@ -256,8 +244,94 @@ static void markdown_link_callback(ImGui::MarkdownLinkCallbackData data);
 #if defined(CHIP_2A03)
 static void ui_audio_controls(void);
 #endif
+#if defined(CHIP_Z80)
+static void ui_ioedit(void);
+#endif
 
 static ImGui::MarkdownConfig md_conf;
+
+void ui_check_dirty(ui_window_t win) {
+    assert((win >= 0) && (win < UI_WINDOW_NUM));
+    if (ui.window_open[win] != ui.prev_window_open[win]) {
+        ui.prev_window_open[win] = ui.window_open[win];
+        ImGui::MarkIniSettingsDirty();
+    }
+}
+
+void ui_init_window_open(ui_window_t win, bool state) {
+    assert((win >= 0) && (win < UI_WINDOW_NUM));
+    ui.window_open[win] = state;
+    ui.prev_window_open[win] = state;
+}
+
+void ui_set_window_open(ui_window_t win, bool state) {
+    assert((win >= 0) && (win < UI_WINDOW_NUM));
+    ui.window_open[win] = state;
+}
+
+bool ui_is_window_open(ui_window_t win) {
+    assert((win >= 0) && (win < UI_WINDOW_NUM));
+    return ui.window_open[win];
+}
+
+void ui_toggle_window(ui_window_t win) {
+    assert((win >= 0) && (win < UI_WINDOW_NUM));
+    ui.window_open[win] = !ui.window_open[win];
+}
+
+bool* ui_window_open_ptr(ui_window_t win) {
+    assert((win >= 0) && (win < UI_WINDOW_NUM));
+    return &ui.window_open[win];
+}
+
+bool ui_pre_check(ui_window_t win) {
+    ui_check_dirty(win);
+    return ui_is_window_open(win);
+}
+
+const char* ui_window_id(ui_window_t win) {
+    switch (win) {
+        case UI_WINDOW_FLOATING_CONTROLS: return "##floating";
+        case UI_WINDOW_CPU_CONTROLS: return "CPU Controls";
+        case UI_WINDOW_TRACELOG: return "Trace Log";
+        case UI_WINDOW_TIMING_DIAGRAM: return "Timing Diagram";
+        case UI_WINDOW_NODE_EXPLORER: return "Node Explorer";
+        case UI_WINDOW_LISTING: return "Listing";
+        case UI_WINDOW_ASM: return "Assembler";
+        case UI_WINDOW_MEMEDIT: return "Memory Editor";
+        case UI_WINDOW_DASM: return "Disassembler";
+        case UI_WINDOW_HELP_ASM: return "Assembler Help";
+        case UI_WINDOW_HELP_OPCODES: return "Opcode Help";
+        case UI_WINDOW_HELP_ABOUT: return "About";
+        #if defined(CHIP_Z80)
+        case UI_WINDOW_IOEDIT: return "IO Editor";
+        #endif
+        #if defined(CHIP_2A03)
+        case UI_WINDOW_AUDIO: return "Audio";
+        #endif
+        default: assert(false); return "INVALID";
+    }
+}
+
+const char* ui_window_name(ui_window_t win) {
+    switch (win) {
+        case UI_WINDOW_FLOATING_CONTROLS: return "Floating Controls";
+        case UI_WINDOW_HELP_ASM: return "Assembler";
+        case UI_WINDOW_HELP_OPCODES: return "Opcode";
+        default: return ui_window_id(win);
+    }
+}
+
+ui_window_t ui_window_by_id(const char* id) {
+    assert(id);
+    for (int i = 0; i < UI_WINDOW_NUM; i++) {
+        ui_window_t win = (ui_window_t)i;
+        if (0 == strcmp(ui_window_id(win), id)) {
+            return win;
+        }
+    }
+    return UI_WINDOW_INVALID;
+}
 
 // read and write callback for memory/io editor windows
 static uint8_t ui_mem_read(int /*layer*/, uint16_t addr, void* /*user_data*/) {
@@ -290,9 +364,7 @@ void ui_init() {
     sgimgui_init(&ui.sgimgui, &sgimgui_desc);
 
     // default window open state
-    ui.window_open.floating_controls = true;
-    ui.window_open.cpu_controls = false;
-    ui.window_open.tracelog = false;
+    ui_init_window_open(UI_WINDOW_FLOATING_CONTROLS, true);
     ui_nodeexplorer_init();
 
     // setup sokol-imgui
@@ -350,7 +422,7 @@ void ui_init() {
     // initialize helper windows from the chips projects
     {
         ui_memedit_desc_t desc = { };
-        desc.title = "Memory Editor";
+        desc.title = ui_window_id(UI_WINDOW_MEMEDIT);
         desc.open = false;
         desc.num_cols = 8;
         desc.h = 300;
@@ -360,15 +432,11 @@ void ui_init() {
         desc.read_cb = ui_mem_read;
         desc.write_cb = ui_mem_write;
         ui_memedit_init(&ui.memedit, &desc);
-        desc.title = "Integrated Memory Editor";
-        desc.hide_options = true;
-        desc.hide_addr_input = true;
-        ui_memedit_init(&ui.memedit_integrated, &desc);
     }
     #if defined(CHIP_Z80)
     {
         ui_memedit_desc_t desc = { };
-        desc.title = "IO Editor";
+        desc.title = ui_window_id(UI_WINDOW_IOEDIT);
         desc.open = false;
         desc.num_cols = 8;
         desc.h = 300;
@@ -378,15 +446,11 @@ void ui_init() {
         desc.read_cb = ui_io_read;
         desc.write_cb = ui_io_write;
         ui_memedit_init(&ui.ioedit, &desc);
-        desc.title = "Integrated IO Editor";
-        desc.hide_options = true;
-        desc.hide_addr_input = true;
-        ui_memedit_init(&ui.ioedit_integrated, &desc);
     }
     #endif
     {
         ui_dasm_desc_t desc = { };
-        desc.title = "Disassembler";
+        desc.title = ui_window_id(UI_WINDOW_DASM);
         desc.open = false;
         #if defined(CHIP_6502) || defined(CHIP_2A03)
         desc.cpu_type = UI_DASM_CPUTYPE_M6502;
@@ -422,10 +486,8 @@ void ui_shutdown() {
     ui_asm_discard();
     ui_dasm_discard(&ui.dasm);
     ui_memedit_discard(&ui.memedit);
-    ui_memedit_discard(&ui.memedit_integrated);
     #if defined(CHIP_Z80)
     ui_memedit_discard(&ui.ioedit);
-    ui_memedit_discard(&ui.ioedit_integrated);
     #endif
     simgui_shutdown();
 }
@@ -470,12 +532,11 @@ static bool test_click(const sapp_event* ev, bool hovered) {
 
 static bool handle_special_link(void) {
     if (0 == strcmp(ui.link_url, "ui://listing")) {
-        ui.window_open.listing = true;
+        ui_set_window_open(UI_WINDOW_LISTING, true);
         ImGui::SetWindowFocus("Listing");
         return true;
-    }
-    else if (0 == strcmp(ui.link_url, "ui://assembler")) {
-        ui_asm_set_window_open(true);
+    } else if (0 == strcmp(ui.link_url, "ui://assembler")) {
+        ui_set_window_open(UI_WINDOW_ASM, true);
         ImGui::SetWindowFocus("Assembler");
         return true;
     }
@@ -559,28 +620,28 @@ bool ui_handle_input(const sapp_event* ev) {
         return true;
     }
     if (test_alt(ev, SAPP_KEYCODE_F)) {
-        ui.window_open.floating_controls = !ui.window_open.floating_controls;
+        ui_toggle_window(UI_WINDOW_FLOATING_CONTROLS);
     }
     if (test_alt(ev, SAPP_KEYCODE_C)) {
-        ui.window_open.cpu_controls = !ui.window_open.cpu_controls;
+        ui_toggle_window(UI_WINDOW_CPU_CONTROLS);
     }
     if (test_alt(ev, SAPP_KEYCODE_T)) {
-        ui.window_open.tracelog = !ui.window_open.tracelog;
+        ui_toggle_window(UI_WINDOW_TRACELOG);
     }
     if (test_alt(ev, SAPP_KEYCODE_A)) {
-        ui_asm_toggle_window_open();
+        ui_toggle_window(UI_WINDOW_ASM);
     }
     if (test_alt(ev, SAPP_KEYCODE_L)) {
-        ui.window_open.listing = !ui.window_open.listing;
+        ui_toggle_window(UI_WINDOW_LISTING);
     }
     if (test_alt(ev, SAPP_KEYCODE_M)) {
-        ui.memedit.open = !ui.memedit.open;
+        ui_toggle_window(UI_WINDOW_MEMEDIT);
     }
     if (test_alt(ev, SAPP_KEYCODE_D)) {
-        ui.dasm.open = !ui.dasm.open;
+        ui_toggle_window(UI_WINDOW_DASM);
     }
     if (test_alt(ev, SAPP_KEYCODE_E)) {
-        ui.window_open.nodeexplorer = !ui.window_open.nodeexplorer;
+        ui_toggle_window(UI_WINDOW_NODE_EXPLORER);
     }
     if (test_click(ev, ui.menu.open_source_hovered) || test_ctrl_shift(ev, SAPP_KEYCODE_O)) {
         util_html5_load();
@@ -646,11 +707,11 @@ void ui_frame() {
     ui_menu();
     ui_floating_controls();
     ui_picking();
-    ui_memedit_draw(&ui.memedit);
+    ui_memedit();
     #if defined(CHIP_Z80)
-    ui_memedit_draw(&ui.ioedit);
+    ui_ioedit();
     #endif
-    ui_dasm_draw(&ui.dasm);
+    ui_dasm();
     ui_tracelog_timingdiagram_begin();
     ui_tracelog();
     ui_timingdiagram();
@@ -731,23 +792,21 @@ static void ui_menu(void) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("Floating Controls", "Alt+F", &ui.window_open.floating_controls);
-            ImGui::MenuItem("CPU Controls", "Alt+C", &ui.window_open.cpu_controls);
+            ImGui::MenuItem(ui_window_name(UI_WINDOW_FLOATING_CONTROLS), "Alt+F", ui_window_open_ptr(UI_WINDOW_FLOATING_CONTROLS));
+            ImGui::MenuItem(ui_window_name(UI_WINDOW_CPU_CONTROLS), "Alt+C", ui_window_open_ptr(UI_WINDOW_CPU_CONTROLS));
             #if defined(CHIP_2A03)
-            ImGui::MenuItem("Audio", nullptr, &ui.window_open.audio_controls);
+            ImGui::MenuItem(ui_window_name(UI_WINDOW_AUDIO), nullptr, ui_window_open_ptr(UI_WINDOW_AUDIO));
             #endif
-            ImGui::MenuItem("Node Explorer", "Alt+E", &ui.window_open.nodeexplorer);
-            ImGui::MenuItem("Trace Log", "Alt+T", &ui.window_open.tracelog);
-            ImGui::MenuItem("Timing Diagram", nullptr, &ui.window_open.timingdiagram);
-            ImGui::MenuItem("Listing", "Alt+L", &ui.window_open.listing);
-            ImGui::MenuItem("Memory Editor", "Alt+M", &ui.memedit.open);
+            ImGui::MenuItem(ui_window_name(UI_WINDOW_NODE_EXPLORER), "Alt+E", ui_window_open_ptr(UI_WINDOW_NODE_EXPLORER));
+            ImGui::MenuItem(ui_window_name(UI_WINDOW_TRACELOG), "Alt+T", ui_window_open_ptr(UI_WINDOW_TRACELOG));
+            ImGui::MenuItem(ui_window_name(UI_WINDOW_TIMING_DIAGRAM), nullptr, ui_window_open_ptr(UI_WINDOW_TIMING_DIAGRAM));
+            ImGui::MenuItem(ui_window_name(UI_WINDOW_LISTING), "Alt+L", ui_window_open_ptr(UI_WINDOW_LISTING));
+            ImGui::MenuItem(ui_window_name(UI_WINDOW_MEMEDIT), "Alt+M", ui_window_open_ptr(UI_WINDOW_MEMEDIT));
             #if defined(CHIP_Z80)
-            ImGui::MenuItem("IO Editor", nullptr, &ui.ioedit.open);
+            ImGui::MenuItem(ui_window_name(UI_WINDOW_IOEDIT), nullptr, ui_window_open_ptr(UI_WINDOW_IOEDIT));
             #endif
-            ImGui::MenuItem("Disassembler", "Alt+D", &ui.dasm.open);
-            if (ImGui::MenuItem("Assembler", "Alt+A", ui_asm_is_window_open())) {
-                ui_asm_toggle_window_open();
-            }
+            ImGui::MenuItem(ui_window_name(UI_WINDOW_DASM), "Alt+D", ui_window_open_ptr(UI_WINDOW_DASM));
+            ImGui::MenuItem(ui_window_name(UI_WINDOW_ASM), "Alt+A", ui_window_open_ptr(UI_WINDOW_ASM));
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Layers")) {
@@ -838,9 +897,9 @@ static void ui_menu(void) {
         }
         sgimgui_draw_menu(&ui.sgimgui, "Sokol");
         if (ImGui::BeginMenu("Help")) {
-            ImGui::MenuItem("Assembler", 0, &ui.window_open.help_asm);
-            ImGui::MenuItem("Opcode Table", 0, &ui.window_open.help_opcodes);
-            ImGui::MenuItem("About", 0, &ui.window_open.help_about);
+            ImGui::MenuItem(ui_window_name(UI_WINDOW_HELP_ASM), 0, ui_window_open_ptr(UI_WINDOW_HELP_ASM));
+            ImGui::MenuItem(ui_window_name(UI_WINDOW_HELP_OPCODES), 0, ui_window_open_ptr(UI_WINDOW_HELP_OPCODES));
+            ImGui::MenuItem(ui_window_name(UI_WINDOW_HELP_ABOUT), 0, ui_window_open_ptr(UI_WINDOW_HELP_ABOUT));
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -848,10 +907,10 @@ static void ui_menu(void) {
 }
 
 static void ui_floating_controls(void) {
-    if (!ui.window_open.floating_controls) {
+    if (!ui_pre_check(UI_WINDOW_FLOATING_CONTROLS)) {
         return;
     }
-    ImGui::SetNextWindowPos({ 10, 20 }, ImGuiCond_Once);
+    ImGui::SetNextWindowPos({ 10, 20 }, ImGuiCond_FirstUseEver);
     const ImGuiWindowFlags flags =
         ImGuiWindowFlags_NoDocking |
         ImGuiWindowFlags_NoDecoration |
@@ -859,8 +918,8 @@ static void ui_floating_controls(void) {
         ImGuiWindowFlags_NoBackground |
         ImGuiWindowFlags_NoBringToFrontOnFocus |
         ImGuiWindowFlags_NoFocusOnAppearing;
-    if (ImGui::Begin("##floating", &ui.window_open.floating_controls, flags)) {
-        if (!ui.window_open.cpu_controls) {
+    if (ImGui::Begin(ui_window_id(UI_WINDOW_FLOATING_CONTROLS), ui_window_open_ptr(UI_WINDOW_FLOATING_CONTROLS), flags)) {
+        if (!ui_is_window_open(UI_WINDOW_CPU_CONTROLS)) {
             ui_cassette_deck_controls();
         }
         if (ImGui::SliderInt("Layers", &ui.menu.layer_slider, 0, MAX_LAYERS)) {
@@ -1265,12 +1324,12 @@ static void ui_cassette_deck_controls(void) {
 }
 
 static void ui_cpu_controls(void) {
-    if (!ui.window_open.cpu_controls) {
+    if (!ui_pre_check(UI_WINDOW_CPU_CONTROLS)) {
         return;
     }
-    ImGui::SetNextWindowPos({ ImGui::GetIO().DisplaySize.x - 300, 50 }, ImGuiCond_Once);
+    ImGui::SetNextWindowPos({ ImGui::GetIO().DisplaySize.x - 300, 50 }, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize({ 270, 480 }, ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("CPU Controls", &ui.window_open.cpu_controls, ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (ImGui::Begin(ui_window_id(UI_WINDOW_CPU_CONTROLS), ui_window_open_ptr(UI_WINDOW_CPU_CONTROLS), ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_AlwaysAutoResize)) {
         ui_cassette_deck_controls();
         ui_cpu_status_panel();
     }
@@ -1279,10 +1338,10 @@ static void ui_cpu_controls(void) {
 
 #if defined(CHIP_2A03)
 static void ui_audio_controls(void) {
-    if (!ui.window_open.audio_controls) {
+    if (!ui_pre_check(UI_WINDOW_AUDIO)) {
         return;
     }
-    if (ImGui::Begin("Audio", &ui.window_open.audio_controls, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin(ui_window_id(UI_WINDOW_AUDIO), ui_window_open_ptr(UI_WINDOW_AUDIO))) {
         ui_audio_status_panel();
     }
     ImGui::End();
@@ -1290,15 +1349,38 @@ static void ui_audio_controls(void) {
 #endif
 
 static void ui_listing(void) {
-    if (!ui.window_open.listing) {
+    if (!ui_pre_check(UI_WINDOW_LISTING)) {
         return;
     }
     ImGui::SetNextWindowPos({60, 320}, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize({480, 200}, ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("Listing", &ui.window_open.listing, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin(ui_window_id(UI_WINDOW_LISTING), ui_window_open_ptr(UI_WINDOW_LISTING))) {
         ImGui::Text("%s", asm_listing());
     }
     ImGui::End();
+}
+
+static void ui_memedit(void) {
+    ui_check_dirty(UI_WINDOW_MEMEDIT);
+    ui.memedit.open = ui_is_window_open(UI_WINDOW_MEMEDIT);
+    ui_memedit_draw(&ui.memedit);
+    ui_set_window_open(UI_WINDOW_MEMEDIT, ui.memedit.open);
+}
+
+#if defined(CHIP_Z80)
+static void ui_ioedit(void) {
+    ui_check_dirty(UI_WINDOW_IOEDIT);
+    ui.ioedit.open = ui_is_window_open(UI_WINDOW_IOEDIT);
+    ui_memedit_draw(&ui.ioedit);
+    ui_set_window_open(UI_WINDOW_IOEDIT, ui.ioedit.open);
+}
+#endif
+
+static void ui_dasm(void) {
+    ui_check_dirty(UI_WINDOW_DASM);
+    ui.dasm.open = ui_is_window_open(UI_WINDOW_DASM);
+    ui_dasm_draw(&ui.dasm);
+    ui_set_window_open(UI_WINDOW_DASM, ui.dasm.open);
 }
 
 static void ui_tracelog_timingdiagram_begin() {
@@ -1471,15 +1553,18 @@ static void ui_update_watch_node(void) {
 }
 
 static void ui_tracelog(void) {
-    if (!ui.window_open.tracelog) {
+    if (!ui_pre_check(UI_WINDOW_TRACELOG)) {
         // diff-view is deactivated when tracelog window isn't open
         ui.trace.diff_view_active = false;
         return;
     }
     const float footer_h = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
+    const float disp_w = ImGui::GetIO().DisplaySize.x;
+    const float disp_h = ImGui::GetIO().DisplaySize.y;
+    ImGui::SetNextWindowPos({ disp_w / 2, disp_h - 150 }, ImGuiCond_FirstUseEver, { 0.5f, 0.0f });
     ImGui::SetNextWindowSize({ 600, 128 }, ImGuiCond_FirstUseEver);
     bool any_hovered = false;
-    if (ImGui::Begin("Trace Log", &ui.window_open.tracelog, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin(ui_window_id(UI_WINDOW_TRACELOG), ui_window_open_ptr(UI_WINDOW_TRACELOG))) {
         const ImGuiTableFlags table_flags =
             ImGuiTableFlags_ScrollY |
             ImGuiTableFlags_ScrollX |
@@ -1730,7 +1815,7 @@ static struct { uint32_t node; const char* name; bool active_low; } time_diagram
 #endif
 
 static void ui_timingdiagram(void) {
-    if (!ui.window_open.timingdiagram) {
+    if (!ui_pre_check(UI_WINDOW_TIMING_DIAGRAM)) {
         return;
     }
     const float top_padding = ImGui::GetTextLineHeightWithSpacing();
@@ -1744,7 +1829,7 @@ static void ui_timingdiagram(void) {
     ImGui::SetNextWindowSize({600, top_padding + graph_height + 32.0f}, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowContentSize({graph_width, graph_height});
     bool any_hovered = false;
-    if (ImGui::Begin("Timing Diagram", &ui.window_open.timingdiagram, ImGuiWindowFlags_HorizontalScrollbar)) {
+    if (ImGui::Begin(ui_window_id(UI_WINDOW_TIMING_DIAGRAM), ui_window_open_ptr(UI_WINDOW_TIMING_DIAGRAM), ImGuiWindowFlags_HorizontalScrollbar)) {
         ImDrawList* dl = ImGui::GetWindowDrawList();
         const ImVec2 dl_orig = ImGui::GetCursorScreenPos();
 
@@ -1942,12 +2027,12 @@ static void ui_nodeexplorer_paste(void) {
 
 static void ui_nodeexplorer(void) {
     ui.explorer.window_focused = false;
-    if (!ui.window_open.nodeexplorer) {
+    if (!ui_pre_check(UI_WINDOW_NODE_EXPLORER)) {
         return;
     }
     ImGui::SetNextWindowPos({ImGui::GetIO().DisplaySize.x - 450, 70}, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize({400, 300}, ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("Node Explorer", &ui.window_open.nodeexplorer, ImGuiWindowFlags_NoScrollWithMouse)) {
+    if (ImGui::Begin(ui_window_id(UI_WINDOW_NODE_EXPLORER), ui_window_open_ptr(UI_WINDOW_NODE_EXPLORER), ImGuiWindowFlags_NoScrollWithMouse)) {
         ui.explorer.num_hovered_nodes = 0;
         ImGui::Text("Select nodes, groups or type node-names and -numbers:");
         ImGui::Separator();
@@ -2023,7 +2108,7 @@ static void ui_nodeexplorer(void) {
 }
 
 bool ui_is_nodeexplorer_active(void) {
-    return ui.window_open.nodeexplorer && ui.explorer.explorer_mode_active;
+    return ui_is_window_open(UI_WINDOW_NODE_EXPLORER) && ui.explorer.explorer_mode_active;
 }
 
 void ui_write_nodeexplorer_visual_state(range_t to_buffer) {
@@ -2091,23 +2176,23 @@ static ImVec2 display_center(void) {
 }
 
 static void ui_help_assembler(void) {
-    if (!ui.window_open.help_asm) {
+    if (!ui_pre_check(UI_WINDOW_HELP_ASM)) {
         return;
     }
     ImGui::SetNextWindowSize({640, 400}, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowPos(display_center(), ImGuiCond_FirstUseEver, { 0.5f, 0.5f });
-    if (ImGui::Begin("Assembler Help", &ui.window_open.help_asm, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin(ui_window_id(UI_WINDOW_HELP_ASM), ui_window_open_ptr(UI_WINDOW_HELP_ASM))) {
         ImGui::Markdown(dump_help_assembler_md, sizeof(dump_help_assembler_md)-1, md_conf);
     }
     ImGui::End();
 }
 
 static void ui_help_opcodes(void) {
-    if (!ui.window_open.help_opcodes) {
+    if (!ui_pre_check(UI_WINDOW_HELP_OPCODES)) {
         return;
     }
     ImGui::SetNextWindowSize({640, 400}, ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("Opcode Help", &ui.window_open.help_opcodes, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin(ui_window_id(UI_WINDOW_HELP_OPCODES), ui_window_open_ptr(UI_WINDOW_HELP_OPCODES))) {
         ImGui::Text("TODO!");
     }
     ImGui::End();
@@ -2400,7 +2485,7 @@ static void draw_footer(ImVec2 c_pos, float win_width) {
 }
 
 static void ui_help_about(void) {
-    if (!ui.window_open.help_about) {
+    if (!ui_pre_check(UI_WINDOW_HELP_ABOUT)) {
         footer_time = 0.0f;
         footer_frame_count = 0;
         return;
@@ -2411,7 +2496,7 @@ static void ui_help_about(void) {
     const float box_padding = 40.0f;
     ImGui::SetNextWindowSize({win_width, win_height}, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowPos(disp_center, ImGuiCond_FirstUseEver, { 0.5f, 0.5f });
-    if (ImGui::Begin("About", &ui.window_open.help_about, ImGuiWindowFlags_NoResize)) {
+    if (ImGui::Begin(ui_window_id(UI_WINDOW_HELP_ABOUT), ui_window_open_ptr(UI_WINDOW_HELP_ABOUT), ImGuiWindowFlags_NoResize)) {
         ImVec2 c_pos = ImGui::GetCursorScreenPos();
         ImVec2 p = draw_header(c_pos, win_width);
         c_pos.y = p.y + 16.0f;
@@ -2452,11 +2537,11 @@ ui_diffview_t ui_get_diffview(void) {
 
 static const char* ui_save_key(void) {
     #if defined(CHIP_Z80)
-    return "VISUAL_Z80_REMIX";
+    return "floooh.v6502r.z80";
     #elif defined(CHIP_6502)
-    return "VISUAL_6502_REMIX";
+    return "floooh.v6502r.6502";
     #elif defined(CHIP_2A03)
-    return "VISUAL_2A03_REMIX";
+    return "floooh.v6502r.2A03";
     #else
     #error "FIXME UNHANDLED CPU"
     #endif
@@ -2465,14 +2550,14 @@ static const char* ui_save_key(void) {
 static void ui_handle_save_settings(void) {
     if (ImGui::GetIO().WantSaveIniSettings) {
         ImGui::GetIO().WantSaveIniSettings = false;
-        util_save_string(ui_save_key(), ImGui::SaveIniSettingsToMemory());
+        util_save_settings(ui_save_key(), ImGui::SaveIniSettingsToMemory());
     }
 }
 
 static void ui_load_settings(void) {
-    const char* payload = util_load_string(ui_save_key());
+    const char* payload = util_load_settings(ui_save_key());
     if (payload) {
         ImGui::LoadIniSettingsFromMemory(payload);
-        util_free_loaded_string(payload);
+        util_free_settings(payload);
     }
 }

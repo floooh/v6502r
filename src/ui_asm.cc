@@ -6,13 +6,13 @@
 #include "TextEditor.h"
 #include "imgui_internal.h"
 
+#include "ui.h"
 #include "ui_asm.h"
 #include "asm.h"
 #include "sim.h"
 
 static struct {
     bool valid;
-    bool window_open;
     bool window_focused;
     TextEditor* editor;
     uint16_t prev_addr;
@@ -23,24 +23,9 @@ static struct {
     } binary;
 } state;
 
-bool ui_asm_is_window_open(void) {
-    assert(state.valid);
-    return state.window_open;
-}
-
-void ui_asm_set_window_open(bool b) {
-    assert(state.valid);
-    state.window_open = b;
-}
-
 bool ui_asm_is_window_focused(void) {
     assert(state.valid);
     return state.window_focused;
-}
-
-void ui_asm_toggle_window_open(void) {
-    assert(state.valid);
-    state.window_open = !state.window_open;
 }
 
 range_t ui_asm_get_binary(void) {
@@ -105,7 +90,7 @@ void ui_asm_discard(void) {
 void ui_asm_draw(void) {
     assert(state.valid);
     state.window_focused = false;
-    if (!state.window_open) {
+    if (!ui_is_window_open(UI_WINDOW_ASM)) {
         return;
     }
     auto cpos = state.editor->GetCursorPosition();
@@ -118,7 +103,7 @@ void ui_asm_draw(void) {
             cur_error = err;
         }
     }
-    if (ImGui::Begin("Assembler", &state.window_open, ImGuiWindowFlags_None)) {
+    if (ImGui::Begin(ui_window_id(UI_WINDOW_ASM), ui_window_open_ptr(UI_WINDOW_ASM))) {
         bool is_active = ImGui::IsWindowFocused();
         state.editor->Render("Assembler", {0,-footer_h}, false);
         // set focus to text input field whenever the parent window is active
@@ -136,6 +121,7 @@ void ui_asm_draw(void) {
     if (state.editor->IsTextChanged()) {
         ui_asm_assemble();
     }
+    ui_check_dirty(UI_WINDOW_ASM);
 }
 
 void ui_asm_assemble(void) {
