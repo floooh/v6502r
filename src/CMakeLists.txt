@@ -33,6 +33,7 @@ set(SOURCES
     asm.c asm.h
     ui.cc ui.h
     ui_asm.cc ui_asm.h
+    imgui_util.cc imgui_util.h
     common.h
 )
 

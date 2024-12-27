@@ -34,6 +34,7 @@
 #include "pick.h"
 #include "trace.h"
 #include "util.h"
+#include "imgui_util.h"
 #include "TextEditor.h"
 #include "nodenames.h"
 
@@ -251,7 +252,7 @@ static void ui_ioedit(void);
 static ImGui::MarkdownConfig md_conf;
 
 void ui_check_dirty(ui_window_t win) {
-    assert((win >= 0) && (win < UI_WINDOW_NUM));
+    assert((win > UI_WINDOW_INVALID) && (win < UI_WINDOW_NUM));
     if (ui.window_open[win] != ui.prev_window_open[win]) {
         ui.prev_window_open[win] = ui.window_open[win];
         ImGui::MarkIniSettingsDirty();
@@ -259,28 +260,28 @@ void ui_check_dirty(ui_window_t win) {
 }
 
 void ui_init_window_open(ui_window_t win, bool state) {
-    assert((win >= 0) && (win < UI_WINDOW_NUM));
+    assert((win > UI_WINDOW_INVALID) && (win < UI_WINDOW_NUM));
     ui.window_open[win] = state;
     ui.prev_window_open[win] = state;
 }
 
 void ui_set_window_open(ui_window_t win, bool state) {
-    assert((win >= 0) && (win < UI_WINDOW_NUM));
+    assert((win > UI_WINDOW_INVALID) && (win < UI_WINDOW_NUM));
     ui.window_open[win] = state;
 }
 
 bool ui_is_window_open(ui_window_t win) {
-    assert((win >= 0) && (win < UI_WINDOW_NUM));
+    assert((win > UI_WINDOW_INVALID) && (win < UI_WINDOW_NUM));
     return ui.window_open[win];
 }
 
 void ui_toggle_window(ui_window_t win) {
-    assert((win >= 0) && (win < UI_WINDOW_NUM));
+    assert((win > UI_WINDOW_INVALID) && (win < UI_WINDOW_NUM));
     ui.window_open[win] = !ui.window_open[win];
 }
 
 bool* ui_window_open_ptr(ui_window_t win) {
-    assert((win >= 0) && (win < UI_WINDOW_NUM));
+    assert((win > UI_WINDOW_INVALID) && (win < UI_WINDOW_NUM));
     return &ui.window_open[win];
 }
 
@@ -324,7 +325,7 @@ const char* ui_window_name(ui_window_t win) {
 
 ui_window_t ui_window_by_id(const char* id) {
     assert(id);
-    for (int i = 0; i < UI_WINDOW_NUM; i++) {
+    for (int i = UI_WINDOW_INVALID + 1; i < UI_WINDOW_NUM; i++) {
         ui_window_t win = (ui_window_t)i;
         if (0 == strcmp(ui_window_id(win), id)) {
             return win;
@@ -372,6 +373,7 @@ void ui_init() {
     simgui_desc.no_default_font = true;
     simgui_desc.disable_paste_override = true;
     simgui_setup(&simgui_desc);
+    imgui_register_settings_handler();
     auto& style = ImGui::GetStyle();
     style.WindowRounding = 0.0f;
     style.WindowBorderSize = 1.0f;
