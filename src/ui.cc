@@ -340,11 +340,7 @@ void ui_init() {
         img_desc.data.subimage[0][0].size = font_width * font_height * 4;
         img_desc.label = "icon-font";
         sg_image img = sg_make_image(&img_desc);
-
-        simgui_image_desc_t ui_img_desc = { };
-        ui_img_desc.image = img;
-
-        io.Fonts->TexID = simgui_imtextureid(simgui_make_image(&ui_img_desc));
+        io.Fonts->TexID = simgui_imtextureid(img);
     }
 
     // initialize helper windows from the chips projects
