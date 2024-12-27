@@ -3,7 +3,7 @@
 //------------------------------------------------------------------------------
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
-#elif defined(__WIN32__)
+#elif defined(WIN32)
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include "windows.h"
@@ -154,6 +154,19 @@ static util_path_t util_path_printf(const char* fmt, ...) {
     path.clamped = res >= (int)sizeof(path.cstr);
     return path;
 }
+
+#if defined (WIN32)
+static bool util_win32_path_to_wide(const util_path_t* path, WCHAR* out_buf, size_t out_buf_size_in_bytes) {
+    if ((path->cstr[0] == 0) || (path->clamped)) {
+        return false;
+    }
+    int out_num_chars = (int)(out_buf_size_in_bytes / sizeof(wchar_t));
+    if (0 == MultiByteToWideChar(CP_UTF8, 0, path->cstr, -1, out_buf, out_num_chars)) {
+        return false;
+    }
+    return true;
+}
+#endif
 
 static bool util_win32_posix_write_file(util_path_t path, range_t data) {
     if (path.clamped) {
