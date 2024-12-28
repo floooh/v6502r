@@ -157,7 +157,7 @@ static pick_result_t do_pick(float2_t mouse_pos, float2_t disp_size, float2_t of
 
 pick_result_t pick_dopick(float2_t mouse_pos, float2_t disp_size, float2_t gfx_offset, float gfx_aspect, float gfx_scale) {
     assert(pick.valid);
-    float2_t scale = { gfx_scale, gfx_scale * gfx_aspect };
+    float2_t scale = { gfx_scale * gfx_aspect, gfx_scale };
     pick.result = do_pick(mouse_pos, disp_size, gfx_offset, scale);
     return pick.result;
 }
