@@ -2498,7 +2498,8 @@ static void ui_help_about(void) {
     const float box_padding = 40.0f;
     ImGui::SetNextWindowSize({win_width, win_height}, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowPos(disp_center, ImGuiCond_FirstUseEver, { 0.5f, 0.5f });
-    if (ImGui::Begin(ui_window_id(UI_WINDOW_HELP_ABOUT), ui_window_open_ptr(UI_WINDOW_HELP_ABOUT), ImGuiWindowFlags_NoResize)) {
+    const ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking;
+    if (ImGui::Begin(ui_window_id(UI_WINDOW_HELP_ABOUT), ui_window_open_ptr(UI_WINDOW_HELP_ABOUT), flags)) {
         ImVec2 c_pos = ImGui::GetCursorScreenPos();
         ImVec2 p = draw_header(c_pos, win_width);
         c_pos.y = p.y + 16.0f;
