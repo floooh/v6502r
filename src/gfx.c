@@ -83,7 +83,7 @@ void gfx_init(const gfx_desc_t* desc) {
         .layout = {
             .attrs = {
                 [0] = { .format = SG_VERTEXFORMAT_USHORT2N },
-                [1]  = { .format = SG_VERTEXFORMAT_USHORT2N }
+                [1]  = { .format = SG_VERTEXFORMAT_SHORT2 }
             },
         },
         .shader = sg_make_shader(shd_alpha_shader_desc(sg_query_backend())),
