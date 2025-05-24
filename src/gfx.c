@@ -112,7 +112,7 @@ void gfx_init(const gfx_desc_t* desc) {
         .width = 256,
         .height = MAX_NODES / 256,
         .pixel_format = SG_PIXELFORMAT_R8,
-        .usage = SG_USAGE_STREAM,
+        .usage.stream_update = true,
         .label = "node-texture",
     });
     gfx.smp = sg_make_sampler(&(sg_sampler_desc){
