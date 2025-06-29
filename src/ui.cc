@@ -406,21 +406,6 @@ void ui_init() {
     h1Conf.SizePixels = 26.0f;
     md_conf.headingFormats[0].font = io.Fonts->AddFontDefault(&h1Conf);
 
-    unsigned char* font_pixels;
-    int font_width, font_height;
-    io.Fonts->GetTexDataAsRGBA32(&font_pixels, &font_width, &font_height);
-    {
-        sg_image_desc img_desc = { };
-        img_desc.width = font_width;
-        img_desc.height = font_height;
-        img_desc.pixel_format = SG_PIXELFORMAT_RGBA8;
-        img_desc.data.subimage[0][0].ptr = font_pixels;
-        img_desc.data.subimage[0][0].size = font_width * font_height * 4;
-        img_desc.label = "icon-font";
-        sg_image img = sg_make_image(&img_desc);
-        io.Fonts->TexID = simgui_imtextureid(img);
-    }
-
     // initialize helper windows from the chips projects
     {
         ui_memedit_desc_t desc = { };
