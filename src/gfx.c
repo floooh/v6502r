@@ -24,6 +24,7 @@ static struct {
     sg_pipeline pip_alpha;
     sg_pipeline pip_add;
     sg_image img;
+    sg_view tex_view;
     sg_sampler smp;
     float2_t display_size;
     float aspect;
@@ -40,6 +41,7 @@ void gfx_preinit(void) {
     sg_setup(&(sg_desc){
         .buffer_pool_size = 16,
         .image_pool_size = 8,
+        .view_pool_size = 8,
         .pipeline_pool_size = 8,
         .environment = sglue_environment(),
         .logger.func = slog_func,
@@ -106,7 +108,7 @@ void gfx_init(const gfx_desc_t* desc) {
     gfx.pip_alpha = sg_make_pipeline(&pip_desc_alpha);
     gfx.pip_add = sg_make_pipeline(&pip_desc_add);
 
-    // a dynamic palette texture with one pixel per netlist node, and a matching sampler
+    // a dynamic palette texture with one pixel per netlist node, and a matching texture view and sampler
     assert((MAX_NODES & 255) == 0);
     gfx.img = sg_make_image(&(sg_image_desc){
         .width = 256,
@@ -114,6 +116,9 @@ void gfx_init(const gfx_desc_t* desc) {
         .pixel_format = SG_PIXELFORMAT_R8,
         .usage.stream_update = true,
         .label = "node-texture",
+    });
+    gfx.tex_view = sg_make_view(&(sg_view_desc){
+        .texture.image = gfx.img,
     });
     gfx.smp = sg_make_sampler(&(sg_sampler_desc){
         .min_filter = SG_FILTER_NEAREST,
@@ -132,6 +137,7 @@ void gfx_shutdown(void) {
     }
     sg_destroy_pipeline(gfx.pip_alpha);
     sg_destroy_pipeline(gfx.pip_add);
+    sg_destroy_view(gfx.tex_view);
     sg_destroy_image(gfx.img);
     sg_destroy_sampler(gfx.smp);
     sg_shutdown();
@@ -185,7 +191,7 @@ void gfx_draw(void) {
         if (gfx.layer_visible[i] && (gfx.layers[i].vb.id != SG_INVALID_ID)) {
             sg_apply_bindings(&(sg_bindings){
                 .vertex_buffers[0] = gfx.layers[i].vb,
-                .images[IMG_palette_tex] = gfx.img,
+                .views[VIEW_palette_tex] = gfx.tex_view,
                 .samplers[SMP_palette_smp] = gfx.smp,
             });
             sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
