@@ -119,6 +119,7 @@ void gfx_init(const gfx_desc_t* desc) {
     });
     gfx.tex_view = sg_make_view(&(sg_view_desc){
         .texture.image = gfx.img,
+        .label = "node-texture-view",
     });
     gfx.smp = sg_make_sampler(&(sg_sampler_desc){
         .min_filter = SG_FILTER_NEAREST,
