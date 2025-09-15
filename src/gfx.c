@@ -179,7 +179,7 @@ void gfx_draw(void) {
         .scale = (float2_t) { sx, sy },
     };
     sg_update_image(gfx.img, &(sg_image_data){
-        .subimage[0][0] = SG_RANGE(gfx.node_state)
+        .mip_levels[0] = SG_RANGE(gfx.node_state)
     });
     if (gfx.use_additive_blend) {
         sg_apply_pipeline(gfx.pip_add);
