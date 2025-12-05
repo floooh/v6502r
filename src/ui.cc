@@ -212,7 +212,6 @@ static struct {
         int pos;
         char buf[MAX_TRACEDUMP_SIZE];
     } tracedump;
-    sgimgui_t sgimgui;
 } ui;
 
 static void ui_handle_docking(void);
@@ -362,7 +361,7 @@ void ui_init() {
 
     // setup sokol-gfx debugging UI
     const sgimgui_desc_t sgimgui_desc = {};
-    sgimgui_init(&ui.sgimgui, &sgimgui_desc);
+    sgimgui_setup(&sgimgui_desc);
 
     // default window open state
     ui_init_window_open(UI_WINDOW_FLOATING_CONTROLS, true);
@@ -468,7 +467,7 @@ void ui_init() {
 
 void ui_shutdown() {
     assert(ui.valid);
-    sgimgui_discard(&ui.sgimgui);
+    sgimgui_shutdown();
     ui_nodeexplorer_discard();
     ui_asm_discard();
     ui_dasm_discard(&ui.dasm);
@@ -721,7 +720,7 @@ void ui_frame() {
 
 void ui_draw() {
     assert(ui.valid);
-    sgimgui_draw(&ui.sgimgui);
+    sgimgui_draw();
     simgui_render();
 }
 
@@ -882,7 +881,7 @@ static void ui_menu(void) {
             }
             ImGui::EndMenu();
         }
-        sgimgui_draw_menu(&ui.sgimgui, "Sokol");
+        sgimgui_draw_menu("Sokol");
         if (ImGui::BeginMenu("Help")) {
             ImGui::MenuItem(ui_window_name(UI_WINDOW_HELP_ASM), 0, ui_window_open_ptr(UI_WINDOW_HELP_ASM));
             ImGui::MenuItem(ui_window_name(UI_WINDOW_HELP_OPCODES), 0, ui_window_open_ptr(UI_WINDOW_HELP_OPCODES));
