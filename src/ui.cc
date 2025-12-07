@@ -206,6 +206,7 @@ static struct {
         uint8_t selected[MAX_NODES];
         char token_buffer[MAX_NODEEXPLORER_TOKENBUFFER_SIZE];
     } explorer;
+    ui_window_t keyboard_target;
     bool link_hovered;
     char link_url[MAX_LINKURL_SIZE];
     struct {
@@ -282,6 +283,11 @@ void ui_toggle_window(ui_window_t win) {
 bool* ui_window_open_ptr(ui_window_t win) {
     assert((win > UI_WINDOW_INVALID) && (win < UI_WINDOW_NUM));
     return &ui.window_open[win];
+}
+
+void ui_set_keyboard_target(ui_window_t win) {
+    assert((win >= UI_WINDOW_INVALID) && (win < UI_WINDOW_NUM));
+    ui.keyboard_target = win;
 }
 
 bool ui_pre_check(ui_window_t win) {
@@ -460,6 +466,7 @@ void ui_init() {
     md_conf.headingFormats[1].newline_below = false;
     md_conf.linkIcon = ICON_FA_LINK;
 
+    ui.keyboard_target = UI_WINDOW_INVALID;
     ui.menu.layer_slider = MAX_LAYERS;
     ui_load_settings();
     ui.valid = true;
@@ -530,47 +537,42 @@ static bool handle_special_link(void) {
 }
 
 static void ui_undo(void) {
-    if (ui_asm_is_window_focused()) {
-        ui_asm_undo();
-    }
-    else if (ui.explorer.window_focused) {
-        ui_nodeexplorer_undo();
+    switch (ui.keyboard_target) {
+        case UI_WINDOW_ASM: ui_asm_undo(); break;
+        case UI_WINDOW_NODE_EXPLORER: ui_nodeexplorer_undo(); break;
+        default: break;
     }
 }
 
 static void ui_redo(void) {
-    if (ui_asm_is_window_focused()) {
-        ui_asm_redo();
-    }
-    else if (ui.explorer.window_focused) {
-        ui_nodeexplorer_redo();
+    switch (ui.keyboard_target) {
+        case UI_WINDOW_ASM: ui_asm_redo(); break;
+        case UI_WINDOW_NODE_EXPLORER: ui_nodeexplorer_redo(); break;
+        default: break;
     }
 }
 
 static void ui_cut(void) {
-    if (ui_asm_is_window_focused()) {
-        ui_asm_cut();
-    }
-    else if (ui.explorer.window_focused) {
-        ui_nodeexplorer_cut();
+    switch (ui.keyboard_target) {
+        case UI_WINDOW_ASM: ui_asm_cut(); break;
+        case UI_WINDOW_NODE_EXPLORER: ui_nodeexplorer_cut(); break;
+        default: break;
     }
 }
 
 static void ui_copy(void) {
-    if (ui_asm_is_window_focused()) {
-        ui_asm_copy();
-    }
-    else if (ui.explorer.window_focused) {
-        ui_nodeexplorer_copy();
+    switch (ui.keyboard_target) {
+        case UI_WINDOW_ASM: ui_asm_copy(); break;
+        case UI_WINDOW_NODE_EXPLORER: ui_nodeexplorer_copy(); break;
+        default: break;
     }
 }
 
 static void ui_paste(void) {
-    if (ui_asm_is_window_focused()) {
-        ui_asm_paste();
-    }
-    else if (ui.explorer.window_focused) {
-        ui_nodeexplorer_paste();
+    switch (ui.keyboard_target) {
+        case UI_WINDOW_ASM: ui_asm_paste(); break;
+        case UI_WINDOW_NODE_EXPLORER: ui_nodeexplorer_paste(); break;
+        default: break;
     }
 }
 
@@ -755,10 +757,10 @@ static void ui_menu(void) {
         }
         if (ImGui::BeginMenu("Edit")) {
             if (ImGui::MenuItem("Undo", is_osx?"Cmd+Z|Y":"Ctrl+Z|Y")) {
-                ui_asm_undo();
+                ui_undo();
             }
             if (ImGui::MenuItem("Redo", is_osx?"Cmd+Shift+Z|Y":"Ctrl+Shift+Z|Y")) {
-                ui_asm_redo();
+                ui_redo();
             }
             ImGui::Separator();
             ImGui::MenuItem("Cut", is_osx?"Cmd+X":"Ctrl+X");
@@ -772,7 +774,7 @@ static void ui_menu(void) {
             }
             #else
             if (ImGui::MenuItem("Paste", is_osx?"Cmd+V":"Ctrl+V")) {
-                ui_asm_paste();
+                ui_paste();
             }
             #endif
             ImGui::EndMenu();
@@ -2086,6 +2088,9 @@ static void ui_nodeexplorer(void) {
 
         ui.explorer.window_focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
         ui.explorer.explorer_mode_active = ui.explorer.window_focused || !ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow);
+        if (ui.explorer.window_focused) {
+            ui_set_keyboard_target(UI_WINDOW_NODE_EXPLORER);
+        }
     }
     ImGui::End();
     if (ui.explorer.editor->IsTextChanged()) {

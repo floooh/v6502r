@@ -104,11 +104,10 @@ void ui_asm_draw(void) {
         }
     }
     if (ImGui::Begin(ui_window_id(UI_WINDOW_ASM), ui_window_open_ptr(UI_WINDOW_ASM))) {
-        bool is_active = ImGui::IsWindowFocused();
+        bool is_active = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
         state.editor->Render("Assembler", {0,-footer_h}, false);
-        // set focus to text input field whenever the parent window is active
         if (is_active) {
-            ImGui::SetFocusID(ImGui::GetCurrentWindow()->ID, ImGui::GetCurrentWindow());
+            ui_set_keyboard_target(UI_WINDOW_ASM);
         }
         if (cur_error) {
             ImGui::PushStyleColor(ImGuiCol_Text, cur_error->warning ? 0xFF44FFFF : 0xFF4444FF);

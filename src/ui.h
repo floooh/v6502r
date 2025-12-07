@@ -40,6 +40,7 @@ void ui_init_window_open(ui_window_t win, bool state);
 void ui_set_window_open(ui_window_t win, bool state);
 void ui_toggle_window(ui_window_t win);
 bool ui_is_window_open(ui_window_t win);
+void ui_set_keyboard_target(ui_window_t win);
 const char* ui_window_id(ui_window_t win);
 ui_window_t ui_window_by_id(const char* id);
 void ui_check_dirty(ui_window_t win);
