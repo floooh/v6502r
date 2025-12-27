@@ -25,7 +25,7 @@ export function configure(c: Configurer) {
 }
 
 export function build(b: Builder) {
-    b.addIncludeDirectories(['ext']);
+    b.addIncludeDirectories(["ext"]);
     const commonSources = [
         "main.c",
         "input.c",
@@ -53,37 +53,58 @@ export function build(b: Builder) {
     b.addTarget("v6502r", "windowed-exe", (t) => {
         t.setDir("src");
         t.addSources(commonSources);
-        t.addIncludeDirectories(['m6502']);
-        t.addSources(["m6502/segdefs.c", "m6502/segdefs.h"]);
-        t.addSources(["m6502/nodenames.c", "m6502/nodenames.h", "m6502/nodegroups.h"]);
-        t.addDependencies(['assets', 'perfect6502', 'asmx_6502' ]);
+        t.addIncludeDirectories(["m6502"]);
+        t.addSources([
+            "m6502/segdefs.c",
+            "m6502/segdefs.h",
+            "m6502/nodenames.c",
+            "m6502/nodenames.h",
+            "m6502/nodegroups.h",
+        ]);
+        t.addDependencies(["assets", "perfect6502", "asmx_6502"]);
         t.addCompileDefinitions({ CHIP_6502: "1" });
         if (b.isEmscripten()) {
-            t.addLinkOptions([`--shell-file ${b.projectDir()}/src/m6502/shell.html`]);
+            t.addLinkOptions([
+                `--shell-file ${b.projectDir()}/src/m6502/shell.html`,
+            ]);
         }
     });
     b.addTarget("vz80r", "windowed-exe", (t) => {
         t.setDir("src");
         t.addSources(commonSources);
-        t.addIncludeDirectories(['z80']);
-        t.addSources(["z80/segdefs.c", "z80/segdefs.h"]);
-        t.addSources(["z80/nodenames.c", "z80/nodenames.h", "z80/nodegroups.h"]);
-        t.addDependencies(['assets', 'perfectz80', 'asmx_z80' ]);
+        t.addIncludeDirectories(["z80"]);
+        t.addSources([
+            "z80/segdefs.c",
+            "z80/segdefs.h",
+            "z80/nodenames.c",
+            "z80/nodenames.h",
+            "z80/nodegroups.h",
+        ]);
+        t.addDependencies(["assets", "perfectz80", "asmx_z80"]);
         t.addCompileDefinitions({ CHIP_Z80: "1" });
         if (b.isEmscripten()) {
-            t.addLinkOptions([`--shell-file ${b.projectDir()}/src/z80/shell.html`]);
+            t.addLinkOptions([
+                `--shell-file ${b.projectDir()}/src/z80/shell.html`,
+            ]);
         }
     });
     b.addTarget("v2a03r", "windowed-exe", (t) => {
         t.setDir("src");
         t.addSources(commonSources);
-        t.addIncludeDirectories(['2a03']);
-        t.addSources(["2a03/segdefs.c", "2a03/segdefs.h"]);
-        t.addSources(["2a03/nodenames.c", "2a03/nodenames.h", "2a03/nodegroups.h"]);
-        t.addDependencies(['assets', 'perfect2a03', 'asmx_6502' ]);
+        t.addIncludeDirectories(["2a03"]);
+        t.addSources([
+            "2a03/segdefs.c",
+            "2a03/segdefs.h",
+            "2a03/nodenames.c",
+            "2a03/nodenames.h",
+            "2a03/nodegroups.h",
+        ]);
+        t.addDependencies(["assets", "perfect2a03", "asmx_6502"]);
         t.addCompileDefinitions({ CHIP_2A03: "1" });
         if (b.isEmscripten()) {
-            t.addLinkOptions([`--shell-file ${b.projectDir()}/src/2a03/shell.html`]);
+            t.addLinkOptions([
+                `--shell-file ${b.projectDir()}/src/2a03/shell.html`,
+            ]);
         }
     });
 
@@ -172,7 +193,11 @@ export function build(b: Builder) {
         t.addIncludeDirectories({ dirs: [shdcOutDir], scope: "interface" });
         t.addJob({
             job: "embedfiles",
-            args: { outHeader: "res/fonts.h", prefix: "dump_", files: ["res/fontawesome.ttf"] },
+            args: {
+                outHeader: "res/fonts.h",
+                prefix: "dump_",
+                files: ["res/fontawesome.ttf"],
+            },
         });
         t.addJob({
             job: "embedfiles",
