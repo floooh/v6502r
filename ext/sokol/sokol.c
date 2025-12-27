@@ -1,6 +1,7 @@
 // NOTE: the 3D backend define is passed in from the build system!
 #include "cimgui.h"
 #define SOKOL_IMPL
+#define SOKOL_TRACE_HOOKS
 #include "sokol_app.h"
 #include "sokol_gfx.h"
 #include "sokol_time.h"
