@@ -54,22 +54,26 @@ Explore netlist nodes by their name, group or number:
 
 ## How To Build:
 
-Make sure ```python``` and ```cmake``` is in the path.
+Install Deno:
+
+https://docs.deno.com/runtime/getting_started/installation/
+
+You'll also need cmake and your system's C/C++ toolchain.
 
 To get an idea about additional required tools, first run
 
 ```
-> ./fips diag tools
+> ./fibs diag tools
 ```
 
 To build and run the native version, run:
 
 ```
-> ./fips build
+> ./fibs build
 ...
-> ./fips run v6502r
-> ./fips run vz80r
-> ./fips run v2a03r
+> ./fibs run v6502r
+> ./fibs run vz80r
+> ./fibs run v2a03r
 ```
 
 Linux may require additional development packages for X11 and OpenGL development.
@@ -77,12 +81,28 @@ Linux may require additional development packages for X11 and OpenGL development
 To build the WASM version:
 
 ```
-> ./fips setup emscripten
-> ./fips set config wasm-ninja-release
-> ./fips build
-> ./fips run v6502r
-> ./fips run vz80r
-> ./fips run v2a03r
+> ./fibs emsdk setup
+> ./fibs config emsc-ninja-release
+> ./fibs build
+> ./fibs run v6502r
+> ./fibs run vz80r
+> ./fibs run v2a03r
+```
+
+To develop the project in an IDE first run one of:
+
+```
+> ./fibs config win-vstudio-debug
+> ./fibs config macos-xcode-debug
+> ./fibs config win-vscode-debug
+> ./fibs config macos-vscode-debug
+> ./fibs config win-vscode-debug
+```
+
+...then open the project in Visual Studio, Xcode or VScode:
+
+```
+> ./fibs open
 ```
 
 ## Software used in this project:
