@@ -404,7 +404,7 @@ void ui_init() {
     icons_config.MergeMode = true;
     icons_config.PixelSnapH = true;
     icons_config.FontDataOwnedByAtlas = false;
-    io.Fonts->AddFontFromMemoryTTF(dump_fontawesome_ttf,
+    io.Fonts->AddFontFromMemoryTTF((void*)dump_fontawesome_ttf,
         sizeof(dump_fontawesome_ttf),
         16.0f, &icons_config, icons_ranges);
     ImFontConfig h1Conf;
