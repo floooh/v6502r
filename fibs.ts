@@ -214,7 +214,7 @@ export function build(b: Builder) {
             job: "sokolshdc",
             args: { src: "gfx.glsl", outDir: shdcOutDir },
         });
-        t.addIncludeDirectories({ dirs: [shdcOutDir], scope: "interface" });
+        t.addIncludeDirectories([shdcOutDir]);
         t.addJob({
             job: "embedfiles",
             args: {
