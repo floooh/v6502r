@@ -1,5 +1,5 @@
 // deno-lint-ignore no-unversioned-import
-import { Builder, Configurer } from "jsr:@floooh/fibs";
+import { Builder, Configurer, TargetBuilder } from "jsr:@floooh/fibs";
 
 export function configure(c: Configurer) {
     c.addImport({
@@ -26,6 +26,9 @@ export function configure(c: Configurer) {
 
 export function build(b: Builder) {
     b.addIncludeDirectories(["ext"]);
+    if (b.isMsvc()) {
+        b.addCompileOptions(['/wd4244']); // conversion from X to Y, possible loss of data
+    }
     const commonSources = [
         "main.c",
         "input.c",
@@ -107,27 +110,37 @@ export function build(b: Builder) {
             ]);
         }
     });
-
+    const addAsmxCompileOptions = (t: TargetBuilder) => {
+        if (b.isGcc() || b.isClang()) {
+            t.addCompileOptions({
+                scope: "private",
+                opts: ["-Wno-implicit-fallthrough"],
+            });
+        } else if (b.isMsvc()) {
+            t.addCompileOptions({
+                scope: "private",
+                opts: [
+                    "/wd4459",  // hides global declaration...
+                    "/wd4210",  // nonstandard extension used
+                    "/wd4701",  // potentially uninitialized local variable used
+                    "/wd4245",  // conversion from X to Y
+                ]
+            });
+        }
+    }
     b.addTarget("asmx_6502", "lib", (t) => {
         t.setDir("ext/asmx/src");
         t.addSources(["asmx.c", "asmx.h", "asm6502.c"]);
         t.addIncludeDirectories(["."]);
         t.addCompileDefinitions({ ASMX_6502: "1" });
-        if (b.isGcc() || b.isClang()) {
-            t.addCompileOptions(["-Wno-implicit-fallthrough"]);
-        }
+        addAsmxCompileOptions(t);
     });
     b.addTarget("asmx_z80", "lib", (t) => {
         t.setDir("ext/asmx/src");
         t.addSources(["asmx.c", "asmx.h", "asmz80.c"]);
         t.addIncludeDirectories(["."]);
         t.addCompileDefinitions({ ASMX_Z80: "1" });
-        if (b.isGcc() || b.isClang()) {
-            t.addCompileOptions({
-                opts: ["-Wno-implicit-fallthrough"],
-                scope: "private",
-            });
-        }
+        addAsmxCompileOptions(t);
     });
     b.addTarget("perfect6502", "lib", (t) => {
         t.setDir("ext/perfect6502");
@@ -180,6 +193,11 @@ export function build(b: Builder) {
                 opts: ["-Wno-unused-but-set-variable"],
                 scope: "private",
             });
+        } else if (b.isMsvc()) {
+            t.addCompileOptions({
+                opts: ["/wd4189"],  // local variable is initialized but no referenced
+                scope: "private",
+            })
         }
     });
     b.addTarget("assets", "interface", (t) => {
