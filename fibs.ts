@@ -2,6 +2,12 @@
 import { Builder, Configurer, TargetBuilder } from "jsr:@floooh/fibs";
 
 export function configure(c: Configurer) {
+    c.addImportOptions(() => ({
+        emscripten: {
+            // we're using our own shell file templates
+            useMinimalShellFile: false,
+        },
+    }));
     c.addImport({
         name: "libs",
         url: "https://github.com/floooh/fibs-libs",
@@ -68,7 +74,7 @@ export function build(b: Builder) {
         t.addCompileDefinitions({ CHIP_6502: "1" });
         if (b.isEmscripten()) {
             t.addLinkOptions([
-                `--shell-file ${b.projectDir()}/src/m6502/shell.html`,
+                `--shell-file=${b.projectDir()}/src/m6502/shell.html`,
             ]);
         }
     });
@@ -87,7 +93,7 @@ export function build(b: Builder) {
         t.addCompileDefinitions({ CHIP_Z80: "1" });
         if (b.isEmscripten()) {
             t.addLinkOptions([
-                `--shell-file ${b.projectDir()}/src/z80/shell.html`,
+                `--shell-file=${b.projectDir()}/src/z80/shell.html`,
             ]);
         }
     });
@@ -106,7 +112,7 @@ export function build(b: Builder) {
         t.addCompileDefinitions({ CHIP_2A03: "1" });
         if (b.isEmscripten()) {
             t.addLinkOptions([
-                `--shell-file ${b.projectDir()}/src/2a03/shell.html`,
+                `--shell-file=${b.projectDir()}/src/2a03/shell.html`,
             ]);
         }
     });
