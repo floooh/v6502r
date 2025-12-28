@@ -181,7 +181,7 @@ static bool util_win32_posix_write_file(util_path_t path, range_t data) {
         if (fp == INVALID_HANDLE_VALUE) {
             return false;
         }
-        if (!WriteFile(fp, data.ptr, data.size, NULL, NULL)) {
+        if (!WriteFile(fp, data.ptr, (DWORD)data.size, NULL, NULL)) {
             CloseHandle(fp);
             return false;
         }
@@ -215,7 +215,7 @@ static range_t util_win32_posix_read_file(util_path_t path, bool null_terminated
         size_t alloc_size = null_terminated ? file_size + 1 : file_size;
         void* ptr = calloc(1, alloc_size);
         DWORD read_bytes = 0;
-        BOOL read_res = ReadFile(fp, ptr, file_size, &read_bytes, NULL);
+        BOOL read_res = ReadFile(fp, ptr, (DWORD)file_size, &read_bytes, NULL);
         CloseHandle(fp);
         if (read_res && read_bytes == file_size) {
             return (range_t){ .ptr = ptr, .size = alloc_size };

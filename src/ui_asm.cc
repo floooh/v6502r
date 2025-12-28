@@ -3,6 +3,7 @@
 //
 //  UI code for the integrated assembler.
 //------------------------------------------------------------------------------
+#include <stdint.h>
 #include "TextEditor.h"
 #include "imgui_internal.h"
 
