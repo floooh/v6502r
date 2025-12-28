@@ -1,5 +1,13 @@
-// deno-lint-ignore no-unversioned-import
-import { Builder, Configurer, TargetBuilder } from "jsr:@floooh/fibs";
+// deno-lint-ignore-file no-unversioned-import
+import {
+    Builder,
+    Configurer,
+    log,
+    proj,
+    Project,
+    TargetBuilder,
+} from "jsr:@floooh/fibs";
+import { copy, ensureDirSync, existsSync } from "jsr:@std/fs";
 
 export function configure(c: Configurer) {
     c.addImportOptions(() => ({
@@ -28,12 +36,17 @@ export function configure(c: Configurer) {
         url: "https://github.com/floooh/dcimgui",
         files: ["fibs-docking.ts"],
     });
+    c.addCommand({
+        name: "webpage",
+        help: webpageCmdHelp,
+        run: webpageCmdRun,
+    });
 }
 
 export function build(b: Builder) {
     b.addIncludeDirectories(["ext"]);
     if (b.isMsvc()) {
-        b.addCompileOptions(['/wd4244']); // conversion from X to Y, possible loss of data
+        b.addCompileOptions(["/wd4244"]); // conversion from X to Y, possible loss of data
     }
     const commonSources = [
         "main.c",
@@ -126,14 +139,14 @@ export function build(b: Builder) {
             t.addCompileOptions({
                 scope: "private",
                 opts: [
-                    "/wd4459",  // hides global declaration...
-                    "/wd4210",  // nonstandard extension used
-                    "/wd4701",  // potentially uninitialized local variable used
-                    "/wd4245",  // conversion from X to Y
-                ]
+                    "/wd4459", // hides global declaration...
+                    "/wd4210", // nonstandard extension used
+                    "/wd4701", // potentially uninitialized local variable used
+                    "/wd4245", // conversion from X to Y
+                ],
             });
         }
-    }
+    };
     b.addTarget("asmx_6502", "lib", (t) => {
         t.setDir("ext/asmx/src");
         t.addSources(["asmx.c", "asmx.h", "asm6502.c"]);
@@ -201,9 +214,9 @@ export function build(b: Builder) {
             });
         } else if (b.isMsvc()) {
             t.addCompileOptions({
-                opts: ["/wd4189"],  // local variable is initialized but no referenced
+                opts: ["/wd4189"], // local variable is initialized but no referenced
                 scope: "private",
-            })
+            });
         }
     });
     b.addTarget("assets", "interface", (t) => {
@@ -234,4 +247,49 @@ export function build(b: Builder) {
         });
         t.addDependencies(["sokolimpl", "texteditor"]);
     });
+}
+
+function webpageCmdHelp() {
+    log.helpCmd([
+        "webpage build [vz80r|v6502r|v2a03r]",
+        "webpage serve [vz80r|v6502r|v2a03r]",
+    ], "build or serve webpage");
+}
+
+async function webpageCmdRun(p: Project, args: string[]) {
+    const subcmd = args[1];
+    const targetName = args[2];
+    if (!["build", "serve"].includes(subcmd)) {
+        log.panic(
+            `expected subcmd 'build' or 'serve' (run 'fibs help webpage')`,
+        );
+    }
+    if (!["vz80r", "v6502r", "v2a03r"].includes(targetName)) {
+        log.panic(
+            `expected target name 'vz80r', 'v6502r' or 'v2a03r' (run 'fibs help webpage')`,
+        );
+    }
+    const configName = "emsc-ninja-release";
+    const config = p.config(configName);
+    const srcDir = p.targetDistDir(targetName, configName);
+    const dstDir = `${p.fibsDir()}/webpage/${targetName}`;
+    if (subcmd === "build") {
+        if (existsSync(dstDir)) {
+            if (log.ask(`Ok to delete directory ${dstDir}?`, false)) {
+                Deno.removeSync(dstDir, { recursive: true });
+            }
+        }
+        ensureDirSync(dstDir);
+        await proj.generate(config);
+        await proj.build({ buildTarget: targetName, forceRebuild: true });
+        await copy(`${srcDir}/${targetName}.html`, `${dstDir}/index.html`);
+        await copy(
+            `${srcDir}/${targetName}.wasm`,
+            `${dstDir}/${targetName}.wasm`,
+        );
+        await copy(`${srcDir}/${targetName}.js`, `${dstDir}/${targetName}.js`);
+    } else if (subcmd === "serve") {
+        const emsc = p.importModule("platforms", "emscripten.ts");
+        emsc.emrun(p, { cwd: dstDir, file: "index.html" });
+    }
 }
