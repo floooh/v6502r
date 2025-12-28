@@ -135,6 +135,12 @@ export function build(b: Builder) {
                 scope: "private",
                 opts: ["-Wno-implicit-fallthrough"],
             });
+            if (b.isGcc()) {
+                t.addCompileOptions({
+                    scope: "private",
+                    opts: ["-Wno-misleading-indentation"],
+                });
+            }
         } else if (b.isMsvc()) {
             t.addCompileOptions({
                 scope: "private",
