@@ -10,12 +10,12 @@ import {
 import { copy, ensureDirSync, existsSync } from "jsr:@std/fs";
 
 export function configure(c: Configurer) {
-    c.addImportOptions(() => ({
+    c.addImportOptions({
         emscripten: {
             // we're using our own shell file templates
             useMinimalShellFile: false,
         },
-    }));
+    });
     c.addImport({
         name: "libs",
         url: "https://github.com/floooh/fibs-libs",
