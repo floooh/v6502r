@@ -266,14 +266,10 @@ async function webpageCmdRun(p: Project, args: string[]) {
     const subcmd = args[1];
     const targetName = args[2];
     if (!["build", "serve"].includes(subcmd)) {
-        log.panic(
-            `expected subcmd 'build' or 'serve' (run 'fibs help webpage')`,
-        );
+        throw new Error(`expected subcmd 'build' or 'serve' (run 'fibs help webpage')`);
     }
     if (!["vz80r", "v6502r", "v2a03r"].includes(targetName)) {
-        log.panic(
-            `expected target name 'vz80r', 'v6502r' or 'v2a03r' (run 'fibs help webpage')`,
-        );
+        throw new Error(`expected target name 'vz80r', 'v6502r' or 'v2a03r' (run 'fibs help webpage')`);
     }
     const configName = "emsc-ninja-release";
     const config = p.config(configName);
