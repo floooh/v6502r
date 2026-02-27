@@ -81,10 +81,9 @@ bool sim_6502_get_rdy(void);
 #endif
 
 #if defined(CHIP_Z80)
+#define CHIP_Z80_IFF1_NODE (231)
 void sim_io_w8(uint16_t addr, uint8_t val);
 uint8_t sim_io_r8(uint16_t addr);
-void sim_io_w16(uint16_t addr, uint16_t val);
-uint16_t sim_io_r16(uint16_t addr);
 uint16_t sim_z80_get_af(void);
 uint16_t sim_z80_get_bc(void);
 uint16_t sim_z80_get_de(void);

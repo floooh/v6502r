@@ -1787,7 +1787,7 @@ static struct { uint32_t node; const char* name; bool active_low; } time_diagram
     { pz80__reset, "RESET", true },
     { pz80__busrq, "BUSRQ", true },
     { pz80__busak, "BUSAK", true },
-    { 1278, "IFF1", false },
+    { CHIP_Z80_IFF1_NODE, "IFF1", false },
 };
 #elif defined(CHIP_2A03)
 static const int num_time_diagram_nodes = 7;
