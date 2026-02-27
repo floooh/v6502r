@@ -43,7 +43,7 @@ void input_handle_event(const sapp_event* ev) {
     float h = (float) ev->framebuffer_height * gfx_get_scale();
     switch (ev->type) {
         case SAPP_EVENTTYPE_MOUSE_SCROLL:
-            gfx_add_scale(ev->scroll_y * 0.25f);
+            gfx_add_scale(ev->scroll_y * 0.5f);
             input.mouse.x = ev->mouse_x;
             input.mouse.y = ev->mouse_y;
             break;
