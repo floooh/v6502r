@@ -1,0 +1,90 @@
+name: Deploy Webpages
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - uses: ashutoshvarma/setup-ninja@master
+      - uses: denoland/setup-deno@v2
+      - name: prepare
+        run: |
+          ./fibs emsdk install
+      - name: build
+        run: |
+          ./fibs webpage build vz80r
+          ./fibs webpage build v6502r
+          ./fibs webpage build v2a03r
+      - name: upload-vz80r-artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: vz80r-webpage
+          path: ./fibs/webpage/vz80r
+          retention-days: 1
+      - name: upload-v6502r-artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: v6502r-webpage
+          path: ./fibs/webpage/v6502r
+          retention-days: 1
+      - name: upload-v2a03r-artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: v2a03r-webpage
+          path: ./fibs/webpage/v2a03r
+          retention-days: 1
+  deploy-vz80r:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+        with:
+          repository: floooh/visualz80remix
+          ssh-key: ${{ secrets.GHACTION_PUSH }}
+      - uses: actions/download-artifact@main
+        with:
+          name: vz80r-webpage
+      - name: commit-and-push
+        run: |
+          git config user.email "none"
+          git config user.name "GH Action"
+          git add .
+          git commit -m "updated (${{ github.run_number }})"
+          git push
+  deploy-v6502r:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+        with:
+          repository: floooh/visual6502remix
+          ssh-key: ${{ secrets.GHACTION_PUSH }}
+      - uses: actions/download-artifact@main
+        with:
+          name: v6502r-webpage
+      - name: commit-and-push
+        run: |
+          git config user.email "none"
+          git config user.name "GH Action"
+          git add .
+          git commit -m "updated (${{ github.run_number }})"
+          git push
+  deploy-v2a03r:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+        with:
+          repository: floooh/visual2a03remix
+          ssh-key: ${{ secrets.GHACTION_PUSH }}
+      - uses: actions/download-artifact@main
+        with:
+          name: v2a03r-webpage
+      - name: commit-and-push
+        run: |
+          git config user.email "none"
+          git config user.name "GH Action"
+          git add .
+          git commit -m "updated (${{ github.run_number }})"
+          git push
