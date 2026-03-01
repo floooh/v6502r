@@ -50,7 +50,7 @@ jobs:
           git config user.email "none"
           git config user.name "GH Action"
           git add .
-          git commit -m "updated (${{ github.run_number }})"
+          git diff-index --quiet HEAD || git commit -m "updated (https://github.com/floooh/v6502r/commit/${{ github.sha }})"
           git push
   deploy-v6502r:
     needs: build
@@ -68,7 +68,7 @@ jobs:
           git config user.email "none"
           git config user.name "GH Action"
           git add .
-          git commit -m "updated (${{ github.run_number }})"
+          git diff-index --quiet HEAD || git commit -m "updated (https://github.com/floooh/v6502r/commit/${{ github.sha }})"
           git push
   deploy-v2a03r:
     needs: build
@@ -86,5 +86,5 @@ jobs:
           git config user.email "none"
           git config user.name "GH Action"
           git add .
-          git commit -m "updated (${{ github.run_number }})"
+          git diff-index --quiet HEAD || git commit -m "updated (https://github.com/floooh/v6502r/commit/${{ github.sha }})"
           git push
