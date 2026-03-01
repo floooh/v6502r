@@ -20,19 +20,19 @@ jobs:
         uses: actions/upload-artifact@main
         with:
           name: vz80r-webpage
-          path: ./fibs/webpage/vz80r
+          path: ./.fibs/webpage/vz80r
           retention-days: 1
       - name: upload-v6502r-artifact
         uses: actions/upload-artifact@main
         with:
           name: v6502r-webpage
-          path: ./fibs/webpage/v6502r
+          path: ./.fibs/webpage/v6502r
           retention-days: 1
       - name: upload-v2a03r-artifact
         uses: actions/upload-artifact@main
         with:
           name: v2a03r-webpage
-          path: ./fibs/webpage/v2a03r
+          path: ./.fibs/webpage/v2a03r
           retention-days: 1
   deploy-vz80r:
     needs: build
