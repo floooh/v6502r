@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@main
         with:
           repository: floooh/visualz80remix
-          ssh-key: ${{ secrets.GHACTION_PUSH }}
+          ssh-key: ${{ secrets.GHACTION_PUSH_VZ80R }}
       - uses: actions/download-artifact@main
         with:
           name: vz80r-webpage
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/checkout@main
         with:
           repository: floooh/visual6502remix
-          ssh-key: ${{ secrets.GHACTION_PUSH }}
+          ssh-key: ${{ secrets.GHACTION_PUSH_V6502R }}
       - uses: actions/download-artifact@main
         with:
           name: v6502r-webpage
@@ -77,7 +77,7 @@ jobs:
       - uses: actions/checkout@main
         with:
           repository: floooh/visual2a03remix
-          ssh-key: ${{ secrets.GHACTION_PUSH }}
+          ssh-key: ${{ secrets.GHACTION_PUSH_V2A03R }}
       - uses: actions/download-artifact@main
         with:
           name: v2a03r-webpage
