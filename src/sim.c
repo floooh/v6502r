@@ -517,10 +517,11 @@ bool sim_z80_get_busak(void) {
 }
 
 bool sim_z80_get_iff1(void) {
-    // NOTE: the Z80 netlist data from visual6502.org doesn't identify
-    // the IFF1 flag as named node, so this is just my guess after
-    // looking at the diff-view on executing EI vs DI!
     return cpu_read_node(sim.cpu_state, CHIP_Z80_IFF1_NODE);
+}
+
+bool sim_z80_get_iff2(void) {
+    return cpu_read_node(sim.cpu_state, CHIP_Z80_IFF2_NODE);
 }
 
 uint8_t sim_z80_get_m(void) {

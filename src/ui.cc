@@ -94,7 +94,7 @@ static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] =
     { "Asm", ImGuiTableColumnFlags_NoClip, 8 },
 };
 #elif defined(CHIP_Z80)
-#define UI_TRACELOG_NUM_COLUMNS (36)
+#define UI_TRACELOG_NUM_COLUMNS (37)
 static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] = {
     { "Cycle/h", ImGuiTableColumnFlags_None, 7 },
     { "M", ImGuiTableColumnFlags_DefaultHide, 2 },
@@ -129,6 +129,7 @@ static const ui_tracelog_column_t ui_tracelog_columns[UI_TRACELOG_NUM_COLUMNS] =
     { "R", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2 },
     { "IM", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 2 },
     { "IFF1", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
+    { "IFF2", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 4 },
     { "Watch", ImGuiTableColumnFlags_NoClip, 5 },
     { "Flags", ImGuiTableColumnFlags_NoClip|ImGuiTableColumnFlags_DefaultHide, 8 },
     { "Asm", ImGuiTableColumnFlags_NoClip, 12 }
@@ -1025,8 +1026,10 @@ static void ui_cpu_status_panel(void) {
         case (1<<4): t_str = "T5"; break;
         case (1<<5): t_str = "T6"; break;
     }
-    ImGui::Text("Cycle:%s/%s DBus:%02X ABus:%04X %s",
-        m_str, t_str, sim_get_data(), sim_get_addr(), sim_z80_get_iff1() ? "IFF1":"iff1");
+    ImGui::Text("Cycle:%s/%s DBus:%02X ABus:%04X %s %s",
+        m_str, t_str, sim_get_data(), sim_get_addr(),
+        sim_z80_get_iff1() ? "IFF1":"iff1",
+        sim_z80_get_iff2() ? "IFF2":"iff2");
     ImGui::Text("%s %s %s %s %s %s %s %s\n%s %s %s %s %s %s",
         sim_z80_get_clk() ? "CLK":"clk",
         sim_z80_get_m1() ? "m1":"M1",
@@ -1466,15 +1469,16 @@ static int ui_tracelog_print_item(int trace_index, int col_index, char* buf, siz
         case 30: return snprintf(buf, buf_size, "%02X", trace_z80_get_r(trace_index));
         case 31: return snprintf(buf, buf_size, "%01X", trace_z80_get_im(trace_index));
         case 32: return snprintf(buf, buf_size, "%s", trace_z80_get_iff1(trace_index) ? "IFF1":"    ");
-        case 33:
+        case 33: return snprintf(buf, buf_size, "%s", trace_z80_get_iff2(trace_index) ? "IFF2":"    ");
+        case 34:
             if (ui.trace.watch_node_valid) {
                 return snprintf(buf, buf_size, "%c", trace_is_node_high(trace_index, ui.trace.watch_node_index) ? '1':'0');
             }
             else {
                 return snprintf(buf, buf_size, "%s", "??");
             }
-        case 34: return snprintf(buf, buf_size, "%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), f_buf, sizeof(f_buf)));
-        case 35: return snprintf(buf, buf_size, "%s", trace_get_disasm(trace_index));
+        case 35: return snprintf(buf, buf_size, "%s", ui_cpu_flags_as_string(trace_get_flags(trace_index), f_buf, sizeof(f_buf)));
+        case 36: return snprintf(buf, buf_size, "%s", trace_get_disasm(trace_index));
         default: return snprintf(buf, buf_size, "%s", "???");
     }
 }
@@ -1771,7 +1775,7 @@ static struct { uint32_t node; const char* name; bool active_low; } time_diagram
     { p6502_rdy, "RDY", false },
 };
 #elif defined(CHIP_Z80)
-static const int num_time_diagram_nodes = 15;
+static const int num_time_diagram_nodes = 16;
 static struct { uint32_t node; const char* name; bool active_low; } time_diagram_nodes[num_time_diagram_nodes] = {
     { pz80_clk, "CLK", false },
     { pz80__m1, "M1", true },
@@ -1788,6 +1792,7 @@ static struct { uint32_t node; const char* name; bool active_low; } time_diagram
     { pz80__busrq, "BUSRQ", true },
     { pz80__busak, "BUSAK", true },
     { CHIP_Z80_IFF1_NODE, "IFF1", false },
+    { CHIP_Z80_IFF2_NODE, "IFF2", false },
 };
 #elif defined(CHIP_2A03)
 static const int num_time_diagram_nodes = 7;

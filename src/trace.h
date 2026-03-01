@@ -48,6 +48,7 @@ bool trace_z80_get_nmi(uint32_t index);
 bool trace_z80_get_wait(uint32_t index);
 bool trace_z80_get_halt(uint32_t index);
 bool trace_z80_get_iff1(uint32_t index);
+bool trace_z80_get_iff2(uint32_t index);
 uint8_t trace_z80_get_im(uint32_t index);
 uint8_t trace_z80_get_op(uint32_t index);
 uint8_t trace_z80_get_a(uint32_t index);
