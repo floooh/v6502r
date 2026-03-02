@@ -21,14 +21,15 @@ export function configure(c: Configurer) {
         files: ["sokol.ts"],
     });
     c.addImport({
-        name: "platforms",
-        url: "https://github.com/floooh/fibs-platforms",
-        files: ["emscripten.ts", "macos.ts"],
-    });
-    c.addImport({
-        name: "utils",
-        url: "https://github.com/floooh/fibs-utils",
-        files: ["stdoptions.ts", "sokolshdc.ts", "embedfiles.ts"],
+        name: "extras",
+        url: "https://github.com/floooh/fibs-extras",
+        files: [
+            "emscripten.ts",
+            "macos.ts",
+            "sokolshdc.ts",
+            "embedfiles.ts",
+            "stdoptions.ts",
+        ],
     });
     c.addImport({
         name: "dcimgui",
@@ -290,7 +291,7 @@ async function webpageCmdRun(p: Project, args: string[]) {
         );
         await copy(`${srcDir}/${targetName}.js`, `${dstDir}/${targetName}.js`);
     } else if (subcmd === "serve") {
-        const emsc = p.importModule("platforms", "emscripten.ts");
+        const emsc = p.importModule("extras", "emscripten.ts");
         emsc.emrun(p, { cwd: dstDir, file: "index.html" });
     }
 }
