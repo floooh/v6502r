@@ -524,6 +524,18 @@ bool sim_z80_get_iff2(void) {
     return cpu_read_node(sim.cpu_state, CHIP_Z80_IFF2_NODE);
 }
 
+bool sim_z80_get_inten(void) {
+    return cpu_read_node(sim.cpu_state, CHIP_Z80_INTEN_NODE);
+}
+
+bool sim_z80_get_intack(void) {
+    return cpu_read_node(sim.cpu_state, CHIP_Z80_INTACK_NODE);
+}
+
+bool sim_z80_get_nmi_ack(void) {
+    return cpu_read_node(sim.cpu_state, CHIP_Z80_NMIACK_NODE);
+}
+
 uint8_t sim_z80_get_m(void) {
     return cpu_readM(sim.cpu_state);
 }

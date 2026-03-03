@@ -293,6 +293,18 @@ bool trace_z80_get_iff2(uint32_t index) {
     return is_node_high(index, CHIP_Z80_IFF2_NODE);
 }
 
+bool trace_z80_get_inten(uint32_t index) {
+    return is_node_high(index, CHIP_Z80_INTEN_NODE);
+}
+
+bool trace_z80_get_intack(uint32_t index) {
+    return is_node_high(index, CHIP_Z80_INTACK_NODE);
+}
+
+bool trace_z80_get_nmiack(uint32_t index) {
+    return is_node_high(index, CHIP_Z80_NMIACK_NODE);
+}
+
 uint8_t trace_z80_get_op(uint32_t index) {
     return read_nodes(index, 8, nodegroup_ir);
 }
