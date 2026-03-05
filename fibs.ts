@@ -30,6 +30,7 @@ export function configure(c: Configurer) {
             "embedfiles.ts",
             "stdoptions.ts",
             "linux-threads.ts",
+            "vscode.ts",
         ],
     });
     c.addImport({
