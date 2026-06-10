@@ -5,6 +5,7 @@
 //  node indices which are picked.
 //------------------------------------------------------------------------------
 #include "pick.h"
+#include "gfx.h"
 
 static struct {
     bool valid;
@@ -78,18 +79,12 @@ static bool point_in_triangle(float2_t p, float2_t a, float2_t b, float2_t c) {
 }
 
 // not super-duper optimized, but probably fast enough
-static pick_result_t do_pick(float2_t mouse_pos, float2_t disp_size, float2_t offset, float2_t scale) {
+static pick_result_t do_pick(float2_t mouse_pos) {
     pick_result_t res = {0};
 
-    // first convert mouse pos into screen space [-1,+1]
-    float sx = ((mouse_pos.x / disp_size.x) -0.5f) * 2.0f;
-    float sy = ((mouse_pos.y / disp_size.y) -0.5f) * -2.0f;
-
-    // next convert into vertex coordinate space (see gfx.glsl)
-    float half_size_x = (pick.seg_max_x>>1)/65535.0f;
-    float half_size_y = (pick.seg_max_y>>1)/65535.0f;
-    float vx = ((sx / scale.x) - offset.x + half_size_x) * 65535.0f;
-    float vy = ((sy / scale.y) - offset.y + half_size_y) * 65535.0f;
+    float2_t world = gfx_transform_mouse(mouse_pos, gfx_get_offset());
+    float vx = world.x * 65535.0f;
+    float vy = world.y * 65535.0f;
     if (((int)vx<=0) || ((int)vy<=0) || ((int)vx>=pick.seg_max_x) || ((int)vy>=pick.seg_max_y)) {
         // out of bounds
         return res;
@@ -155,10 +150,9 @@ static pick_result_t do_pick(float2_t mouse_pos, float2_t disp_size, float2_t of
     return res;
 }
 
-pick_result_t pick_dopick(float2_t mouse_pos, float2_t disp_size, float2_t gfx_offset, float gfx_aspect, float gfx_scale) {
+pick_result_t pick_dopick(float2_t mouse_pos) {
     assert(pick.valid);
-    float2_t scale = { gfx_scale * gfx_aspect, gfx_scale };
-    pick.result = do_pick(mouse_pos, disp_size, gfx_offset, scale);
+    pick.result = do_pick(mouse_pos);
     return pick.result;
 }
 

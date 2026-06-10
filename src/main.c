@@ -135,13 +135,7 @@ static void app_frame(void) {
     else {
         sim_write_node_visual_state(gfx_get_nodestate_buffer());
     }
-    const pick_result_t pick_result = pick_dopick(
-        input_get_mouse_pos(),
-        gfx_get_display_size(),
-        gfx_get_offset(),
-        gfx_get_aspect(),
-        gfx_get_scale()
-    );
+    const pick_result_t pick_result = pick_dopick(input_get_mouse_pos());
     for (int i = 0; i < pick_result.num_hits; i++) {
         if (!sim_is_ignore_picking_highlight_node(pick_result.node_index[i])) {
             gfx_highlight_node(pick_result.node_index[i]);
