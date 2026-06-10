@@ -410,7 +410,7 @@ void ui_init() {
     icons_config.FontDataOwnedByAtlas = false;
     io.Fonts->AddFontFromMemoryTTF((void*)dump_fontawesome_ttf,
         sizeof(dump_fontawesome_ttf),
-        16.0f, &icons_config, icons_ranges);
+        0.0f, &icons_config, icons_ranges);
     ImFontConfig h1Conf;
     h1Conf.SizePixels = 26.0f;
     md_conf.headingFormats[0].font = io.Fonts->AddFontDefault(&h1Conf);

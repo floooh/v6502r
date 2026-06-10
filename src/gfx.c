@@ -29,7 +29,6 @@ static struct {
     float2_t display_size;
     float aspect;
     float scale;
-    float2_t scale_pivot;
     float2_t offset;
     bool use_additive_blend;
     gfx_palette_t palette;
