@@ -43,7 +43,7 @@ void input_handle_event(const sapp_event* ev) {
     switch (ev->type) {
         case SAPP_EVENTTYPE_MOUSE_SCROLL: {
                 float2_t pivot = gfx_transform_mouse(mouse, gfx_get_offset());
-                gfx_set_scale(gfx_get_scale() * powf(1.1f, ev->scroll_y));
+                gfx_set_scale(gfx_get_scale() * powf(1.05f, ev->scroll_y));
                 gfx_set_offset(gfx_transform_mouse(mouse, pivot));
                 input.mouse.x = ev->mouse_x;
                 input.mouse.y = ev->mouse_y;
