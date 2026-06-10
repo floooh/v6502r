@@ -10,8 +10,7 @@
 static struct {
     bool valid;
     bool dragging;
-    float2_t drag_start;
-    float2_t offset_start;
+    float2_t drag_world_anchor;
     float2_t mouse;
 } input;
 
@@ -39,29 +38,25 @@ void input_handle_event(const sapp_event* ev) {
         input.dragging = false;
         return;
     }
-    float w = (float) ev->framebuffer_width * gfx_get_scale() * gfx_get_aspect();
-    float h = (float) ev->framebuffer_height * gfx_get_scale();
+    const float2_t mouse = (float2_t){ ev->mouse_x, ev->mouse_y };
     switch (ev->type) {
-        case SAPP_EVENTTYPE_MOUSE_SCROLL:
-            gfx_add_scale(ev->scroll_y * 0.5f);
-            input.mouse.x = ev->mouse_x;
-            input.mouse.y = ev->mouse_y;
+        case SAPP_EVENTTYPE_MOUSE_SCROLL: {
+                float2_t pivot = gfx_transform_mouse(mouse, gfx_get_offset());
+                gfx_set_scale(gfx_get_scale() * 1.0f + ev->scroll_y * 0.25f);
+                gfx_set_offset(gfx_transform_mouse(mouse, pivot));
+                input.mouse.x = ev->mouse_x;
+                input.mouse.y = ev->mouse_y;
+            }
             break;
         case SAPP_EVENTTYPE_MOUSE_DOWN:
             input.dragging = true;
-            input.drag_start = (float2_t){ev->mouse_x, ev->mouse_y};
-            input.offset_start = gfx_get_offset();
+            input.drag_world_anchor = gfx_transform_mouse(mouse, gfx_get_offset());
             input.mouse.x = ev->mouse_x;
             input.mouse.y = ev->mouse_y;
             break;
         case SAPP_EVENTTYPE_MOUSE_MOVE:
             if (input.dragging) {
-                float dx = ((ev->mouse_x - input.drag_start.x) * 2.0f) / w;
-                float dy = ((ev->mouse_y - input.drag_start.y) * -2.0f) / h;
-                gfx_set_offset((float2_t){
-                    .x = input.offset_start.x + dx,
-                    .y = input.offset_start.y + dy,
-                });
+                gfx_set_offset(gfx_transform_mouse(mouse, input.drag_world_anchor));
             }
             input.mouse.x = ev->mouse_x;
             input.mouse.y = ev->mouse_y;

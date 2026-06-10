@@ -168,12 +168,20 @@ void gfx_begin(void) {
     });
 }
 
+static float2_t gfx_get_seg_half_size(void) {
+    assert(gfx.valid);
+    return (float2_t){
+        (gfx.seg_max_x >> 1) / 65535.0f,
+        (gfx.seg_max_y >> 1) / 65535.0f,
+    };
+}
+
 void gfx_draw(void) {
     assert(gfx.valid);
     const float sx = gfx.scale * gfx.aspect;
     const float sy = gfx.scale;
     vs_params_t vs_params = {
-        .half_size = (float2_t){(gfx.seg_max_x>>1)/65535.0f, (gfx.seg_max_y>>1)/65535.0f},
+        .half_size = gfx_get_seg_half_size(),
         .offset = gfx.offset,
         .scale = (float2_t) { sx, sy },
     };
@@ -229,11 +237,6 @@ float gfx_max_scale(void) {
     return 100.0f;
 }
 
-void gfx_add_scale(float scale_add) {
-    assert(gfx.valid);
-    gfx_set_scale(gfx.scale + scale_add);
-}
-
 void gfx_set_scale(float scale) {
     gfx.scale = scale;
     if (gfx.scale < gfx_min_scale()) {
@@ -252,6 +255,20 @@ float gfx_get_scale(void) {
 float gfx_get_aspect(void) {
     assert(gfx.valid);
     return gfx.aspect;
+}
+
+float2_t gfx_transform_mouse(float2_t mouse, float2_t offset) {
+    float2_t half_size = gfx_get_seg_half_size();
+    float fb_w = gfx.display_size.x;
+    float fb_h = gfx.display_size.y;
+    float sx = gfx.scale * gfx.aspect;
+    float sy = gfx.scale;
+    float clip_x = (mouse.x / fb_w) * 2.0f - 1.0f;
+    float clip_y = 1.0f - (mouse.y / fb_h) * 2.0f;
+    return (float2_t){
+        .x = clip_x / sx + half_size.x - offset.x,
+        .y = clip_y / sy + half_size.y - offset.y,
+    };
 }
 
 void gfx_highlight_node(int node_index) {
