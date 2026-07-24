@@ -81,7 +81,7 @@ Linux may require additional development packages for X11 and OpenGL development
 To build the WASM version:
 
 ```
-> ./fibs emsdk setup
+> ./fibs emsdk install
 > ./fibs config emsc-ninja-release
 > ./fibs build
 > ./fibs run v6502r
