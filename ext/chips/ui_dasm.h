@@ -413,7 +413,7 @@ static void _ui_dasm_draw_disasm(ui_dasm_t* win) {
 
 /* draw the stack */
 static void _ui_dasm_draw_stack(ui_dasm_t* win) {
-    ImGui::BeginChild("##stackbox", ImVec2(72, 0), true);
+    ImGui::BeginChild("##stackbox", ImVec2(72, 0), ImGuiChildFlags_Borders);
     if (ImGui::Button("Clear")) {
         win->stack_num = 0;
     }
