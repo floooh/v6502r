@@ -337,10 +337,10 @@ static void _ui_dasm_draw_controls(ui_dasm_t* win) {
 
 /* draw the disassembly column */
 static void _ui_dasm_draw_disasm(ui_dasm_t* win) {
-    ImGui::BeginChild("##dasmbox", ImVec2(0, 0), true);
+    ImGui::BeginChild("##dasmbox", ImVec2(0, 0), ImGuiChildFlags_Borders);
     _ui_dasm_draw_controls(win);
 
-    ImGui::BeginChild("##dasm", ImVec2(0, 0), false);
+    ImGui::BeginChild("##dasm", ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0,0));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0,0));
     const float line_height = ImGui::GetTextLineHeight();

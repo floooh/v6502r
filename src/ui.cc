@@ -2095,7 +2095,7 @@ static void ui_nodeexplorer(void) {
         // editor
         ImGui::SameLine();
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(ui.explorer.editor->GetPalette()[(int)TextEditor::PaletteIndex::Background]));
-        ImGui::BeginChild("##editor", {0,0}, false, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
+        ImGui::BeginChild("##editor", {0,0}, ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
         ui.explorer.editor->Render("Editor");
         ImGui::EndChild();
         ImGui::PopStyleColor();
@@ -2508,7 +2508,7 @@ static void ui_help_about(void) {
         c_pos.y = p.y + 16.0f;
         c_pos.x += box_padding;
         ImGui::SetCursorScreenPos(c_pos);
-        ImGui::BeginChild("##about", {win_width-2*box_padding, -40.0f}, false);
+        ImGui::BeginChild("##about", {win_width-2*box_padding, -40.0f});
         ImGui::Markdown(dump_about_md, sizeof(dump_about_md)-1, md_conf);
         ImGui::EndChild();
         c_pos = ImGui::GetCursorScreenPos();
