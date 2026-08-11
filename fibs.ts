@@ -47,6 +47,7 @@ export function configure(c: Configurer) {
 }
 
 export function build(b: Builder) {
+    b.addCmakeVariable('CMAKE_CXX_STANDARD', '17');
     b.addIncludeDirectories(["ext"]);
     if (b.isMsvc()) {
         b.addCompileOptions(["/wd4244"]); // conversion from X to Y, possible loss of data

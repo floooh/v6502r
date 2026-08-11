@@ -1940,7 +1940,6 @@ static void ui_nodeexplorer_clear_selected_nodes(void) {
 }
 
 static void ui_nodeexplorer_update_selected_nodes_from_editor(void) {
-    TextEditor::ErrorMarkers err_markers;
     ui_nodeexplorer_clear_selected_nodes();
     auto lines = ui.explorer.editor->GetTextLines();
     int line_nr = 0;
@@ -1960,12 +1959,10 @@ static void ui_nodeexplorer_update_selected_nodes_from_editor(void) {
             else {
                 char err_msg[128];
                 snprintf(err_msg, sizeof(err_msg), "Unknown node: '%s'", token_str);
-                // err_markers is std::map<int, std::string>
-                err_markers[line_nr] = err_msg;
+                ui.explorer.editor->AddMarker(line_nr, 0, IM_COL32(128, 0, 32, 128), "", err_msg);
             }
         }
     }
-    ui.explorer.editor->SetErrorMarkers(err_markers);
 }
 
 static void ui_nodeexplorer_add_node_by_name(const char* node_name) {
