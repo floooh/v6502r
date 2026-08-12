@@ -4,11 +4,13 @@
 //  UI code for the integrated assembler.
 //------------------------------------------------------------------------------
 #include <stdint.h>
+#include "pystring.h"
 #include "TextEditor.h"
 #include "imgui_internal.h"
 
 #include "ui.h"
 #include "ui_asm.h"
+#include "ui_util.h"
 #include "asm.h"
 #include "sim.h"
 
@@ -39,45 +41,11 @@ void ui_asm_init(void) {
     state.prev_addr = 0x0000;
     state.prev_len = 0x0200;
     state.editor = new TextEditor();
-    state.editor->SetPalette(TextEditor::GetRetroBluePalette());
-    state.editor->SetShowWhitespaces(false);
+    state.editor->SetPalette(ui_editor_retro_blue_palette());
+    state.editor->SetShowWhitespacesEnabled(false);
     state.editor->SetTabSize(8);
-
-    // language definition for 6502 asm
-    static TextEditor::LanguageDefinition def;
-    static const char* keywords[] = {
-        #if defined(CHIP_6502) || defined(CHIP_2A03)
-        "ADC", "AND", "ASL", "BCC", "BCS", "BEQ", "BIT", "BMI", "BNE", "BPL", "BRK",
-        "BVC", "BVS", "CLC", "CLD", "CLI", "CLV", "CMP", "CPX", "CPY", "DEC", "DEX",
-        "DEY", "EOR", "INC", "INX", "INY", "JMP", "JSR", "LDA", "LDX", "LDY", "LSR",
-        "NOP", "ORA", "PHA", "PHP", "PLA", "PLP", "ROL", "ROR", "RTI", "RTS", "SBC",
-        "SEC", "SED", "SEI", "STA", "STX", "STY", "TAX", "TAY", "TSX", "TXA", "TXS",
-        "TYA"
-        #elif defined(CHIP_Z80)
-        "ADC", "ADD", "AND", "BIT", "CALL", "CCF", "CP", "CPD", "CPDR", "CPI", "CPIR",
-        "CPL", "DAA", "DEC", "DI", "DJNZ", "EI", "EX", "EXX", "HALT", "IM", "IN",
-        "INC", "IND", "INDR", "INI", "INIR", "JP", "JR", "LD", "LDD", "LDDR", "LDI", "LDIR",
-        "NEG", "NOP", "OR", "OTDR", "OTIR", "OUT", "OUTD", "OUTI", "POP", "PUSH", "RES",
-        "RET", "RETI", "RETN", "RL", "RLA", "RLC", "RLCA", "RLD", "RR", "RRA", "RRC", "RRCA",
-        "RRD", "RST", "SBC", "SCF", "SET", "SLA", "SLL", "SRA", "SRL", "SUB", "XOR"
-        #endif
-    };
-    for (const auto& k: keywords) {
-        def.mKeywords.insert(k);
-    }
-    def.mTokenRegexStrings.push_back(std::make_pair<std::string, TextEditor::PaletteIndex>("L?\\\"(\\\\.|[^\\\"])*\\\"", TextEditor::PaletteIndex::String));
-    def.mTokenRegexStrings.push_back(std::make_pair<std::string, TextEditor::PaletteIndex>("\\'\\\\?[^\\']\\'", TextEditor::PaletteIndex::CharLiteral));
-    def.mTokenRegexStrings.push_back(std::make_pair<std::string, TextEditor::PaletteIndex>("\\$[+-]?[0-9a-fA-F]*", TextEditor::PaletteIndex::Number));
-    def.mTokenRegexStrings.push_back(std::make_pair<std::string, TextEditor::PaletteIndex>("[+-]?[0-9]", TextEditor::PaletteIndex::Number));
-    def.mTokenRegexStrings.push_back(std::make_pair<std::string, TextEditor::PaletteIndex>("[a-zA-Z_][a-zA-Z0-9_]*", TextEditor::PaletteIndex::Identifier));
-    def.mTokenRegexStrings.push_back(std::make_pair<std::string, TextEditor::PaletteIndex>("[\\[\\]\\{\\}\\!\\%\\^\\&\\*\\(\\)\\-\\+\\=\\~\\|\\<\\>\\?\\/\\;\\,\\.]", TextEditor::PaletteIndex::Punctuation));
-    def.mCommentStart = "/*";
-    def.mCommentEnd = "*/";
-    def.mSingleLineComment = ";";
-    def.mCaseSensitive = false;
-    def.mAutoIndentation = true;
-    def.mName = "ASM";
-    state.editor->SetLanguageDefinition(def);
+    state.editor->SetChangeCallback([](){ ui_asm_assemble(); }, 500);
+    state.editor->SetLanguage(ui_editor_asm_language_def());
     state.valid = true;
 }
 
@@ -94,13 +62,14 @@ void ui_asm_draw(void) {
     if (!ui_is_window_open(UI_WINDOW_ASM)) {
         return;
     }
-    auto cpos = state.editor->GetCursorPosition();
+    auto cpos = state.editor->GetMainCursorPosition();
     const float footer_h = ImGui::GetFrameHeightWithSpacing();
     ImGui::SetNextWindowSize({480, 260}, ImGuiCond_FirstUseEver);
     const asm_error_t* cur_error = 0;
     for (int i = 0; i < asm_num_errors(); i++) {
         const asm_error_t* err = asm_error(i);
-        if (err->line_nr == (cpos.mLine+1)) {
+        // asm errors are 1-based, TextEditor is 0-based
+        if (err->line_nr == (int)(cpos.line + 1)) {
             cur_error = err;
         }
     }
@@ -118,9 +87,6 @@ void ui_asm_draw(void) {
         state.window_focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
     }
     ImGui::End();
-    if (state.editor->IsTextChanged()) {
-        ui_asm_assemble();
-    }
     ui_check_dirty(UI_WINDOW_ASM);
 }
 
@@ -129,11 +95,8 @@ void ui_asm_assemble(void) {
     state.binary.num_bytes = 0;
     asm_init();
     asm_source_open();
-    auto lines = state.editor->GetTextLines();
-    for (const auto& line: lines) {
-        asm_source_write(line.c_str(), 8);
-        asm_source_write("\n", 8);
-    }
+    const std::string src = state.editor->GetText();
+    asm_source_write(src.c_str(), 8);
     asm_source_close();
     asm_result_t asm_res = asm_assemble();
     if (!asm_res.errors && (asm_res.len > 0)) {
@@ -147,21 +110,20 @@ void ui_asm_assemble(void) {
         state.binary.buf[1] = (uint8_t) (asm_res.addr>>8);
         memcpy(&state.binary.buf[2], asm_res.bytes, asm_res.len);
     }
-    TextEditor::ErrorMarkers err_markers;
+    state.editor->ClearMarkers();
     for (int err_index = 0; err_index < asm_num_errors(); err_index++) {
         const asm_error_t* err = asm_error(err_index);
         if (!err->warning) {
-            err_markers[err->line_nr] = err->msg;
+            state.editor->AddMarker(err->line_nr - 1, 0, IM_COL32(192, 0, 32, 255), "", err->msg);
         }
     }
-    state.editor->SetErrorMarkers(err_markers);
 }
 
 const char* ui_asm_source(void) {
     assert(state.valid);
     asm_init();
     asm_source_open();
-    auto lines = state.editor->GetTextLines();
+    auto lines = ui_editor_get_text_lines(state.editor);
     for (const auto& line: lines) {
         asm_source_write(line.c_str(), 8);
         asm_source_write("\n", 8);
@@ -200,7 +162,6 @@ void ui_asm_cut(void) {
 void ui_asm_copy(void) {
     assert(state.valid);
     state.editor->Copy();
-    ui_asm_assemble();
 }
 
 void ui_asm_paste(void) {
