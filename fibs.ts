@@ -72,6 +72,8 @@ export function build(b: Builder) {
         "ui.h",
         "ui_asm.cc",
         "ui_asm.h",
+        "ui_util.cc",
+        "ui_util.h",
         "imgui_util.cc",
         "imgui_util.h",
         "common.h",
@@ -87,7 +89,7 @@ export function build(b: Builder) {
             "m6502/nodenames.h",
             "m6502/nodegroups.h",
         ]);
-        t.addDependencies(["assets", "perfect6502", "asmx_6502"]);
+        t.addDependencies(["assets", "perfect6502", "asmx_6502", "pystring"]);
         t.addCompileDefinitions({ CHIP_6502: "1" });
         if (b.isEmscripten()) {
             t.addLinkOptions([
@@ -106,7 +108,7 @@ export function build(b: Builder) {
             "z80/nodenames.h",
             "z80/nodegroups.h",
         ]);
-        t.addDependencies(["assets", "perfectz80", "asmx_z80"]);
+        t.addDependencies(["assets", "perfectz80", "asmx_z80", "pystring"]);
         t.addCompileDefinitions({ CHIP_Z80: "1" });
         if (b.isEmscripten()) {
             t.addLinkOptions([
@@ -125,7 +127,7 @@ export function build(b: Builder) {
             "2a03/nodenames.h",
             "2a03/nodegroups.h",
         ]);
-        t.addDependencies(["assets", "perfect2a03", "asmx_6502"]);
+        t.addDependencies(["assets", "perfect2a03", "asmx_6502", "pystring"]);
         t.addCompileDefinitions({ CHIP_2A03: "1" });
         if (b.isEmscripten()) {
             t.addLinkOptions([
@@ -228,6 +230,11 @@ export function build(b: Builder) {
                 scope: "private",
             });
         }
+    });
+    b.addTarget("pystring", "lib", (t) => {
+        t.setDir("ext/pystring");
+        t.addSources(["pystring.cpp", "pystring.h"]);
+        t.addIncludeDirectories(["."]);
     });
     b.addTarget("assets", "interface", (t) => {
         const shdcOutDir = t.buildDir();

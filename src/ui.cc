@@ -3,10 +3,12 @@
 //------------------------------------------------------------------------------
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "pystring.h"
 #include "res/fonts.h"
 #include "res/iconsfontawesome4_c.h"
 #include "res/markdown.h"
 #include "imgui_markdown/imgui_markdown.h"
+#include "ui_util.h"
 
 #include "sokol_app.h"
 #include "sokol_gfx.h"
@@ -1941,44 +1943,40 @@ static void ui_nodeexplorer_clear_selected_nodes(void) {
 
 static void ui_nodeexplorer_update_selected_nodes_from_editor(void) {
     ui_nodeexplorer_clear_selected_nodes();
-    auto lines = ui.explorer.editor->GetTextLines();
-    int line_nr = 0;
-    for (const auto& line: lines) {
-        line_nr++;
-        strncpy(ui.explorer.token_buffer, line.c_str(), sizeof(ui.explorer.token_buffer));
-        ui.explorer.token_buffer[sizeof(ui.explorer.token_buffer)-1] = 0;
-        char* str = ui.explorer.token_buffer;
-        const char* token_str;
-        while (0 != (token_str = strtok(str, " ,\t\r\n"))) {
-            str = 0;
-            int node_index = sim_find_node(token_str);
+    ui.explorer.editor->ClearMarkers();
+    auto lines = ui_editor_get_text_lines(ui.explorer.editor);
+    for (size_t line_nr = 0; line_nr < lines.size(); line_nr++) {
+        std::vector<std::string> tokens;
+        pystring::split(pystring::replace(lines[line_nr], ",", " "), tokens);
+        for (const auto& tok: tokens) {
+            if (tok.empty()) continue;
+            int node_index = sim_find_node(tok.c_str());
             if (node_index >= 0) {
                 assert(node_index < MAX_NODES);
                 ui.explorer.selected[node_index] = gfx_visual_node_active;
-            }
-            else {
+            } else {
                 char err_msg[128];
-                snprintf(err_msg, sizeof(err_msg), "Unknown node: '%s'", token_str);
-                ui.explorer.editor->AddMarker(line_nr, 0, IM_COL32(128, 0, 32, 128), "", err_msg);
+                snprintf(err_msg, sizeof(err_msg), "Unknown node: '%s'", tok.c_str());
+                ui.explorer.editor->AddMarker((int)line_nr, 0, IM_COL32(192, 0, 32, 255), "", err_msg);
             }
         }
     }
 }
 
 static void ui_nodeexplorer_add_node_by_name(const char* node_name) {
-    ui.explorer.editor->MoveEnd();
-    ui.explorer.editor->InsertText(std::string("\n") + node_name);
+    ui_editor_move_to_end(ui.explorer.editor);
+    ui.explorer.editor->ReplaceTextInCurrentCursor(std::string("\n") + node_name);
     ui_nodeexplorer_update_selected_nodes_from_editor();
 }
 
 static void ui_nodeexplorer_add_nodegroup(sim_nodegroup_t group) {
-    ui.explorer.editor->MoveEnd();
-    ui.explorer.editor->InsertText("\n");
+    ui_editor_move_to_end(ui.explorer.editor);
+    ui.explorer.editor->ReplaceTextInCurrentCursor("\n");
     for (int i = 0; i < group.num_nodes; i++) {
         const uint32_t node_index = group.nodes[i];
         const char* node_name = sim_get_node_name_by_index(node_index);
         if (node_name[0]) {
-            ui.explorer.editor->InsertText(node_name + std::string(" "));
+            ui.explorer.editor->ReplaceTextInCurrentCursor(node_name + std::string(" "));
         }
     }
     ui_nodeexplorer_update_selected_nodes_from_editor();
@@ -1987,11 +1985,10 @@ static void ui_nodeexplorer_add_nodegroup(sim_nodegroup_t group) {
 static void ui_nodeexplorer_init(void) {
     ui_nodeexplorer_clear_selected_nodes();
     ui.explorer.editor = new TextEditor();
-    ui.explorer.editor->SetPalette(TextEditor::GetRetroBluePalette());
-    ui.explorer.editor->SetShowWhitespaces(false);
+    ui.explorer.editor->SetPalette(ui_editor_retro_blue_palette());
+    ui.explorer.editor->SetShowWhitespacesEnabled(false);
     ui.explorer.editor->SetTabSize(8);
-    ui.explorer.editor->SetImGuiChildIgnored(true);
-    ui.explorer.editor->SetColorizerEnable(false);
+    ui.explorer.editor->SetChangeCallback([](){ ui_nodeexplorer_update_selected_nodes_from_editor(); }, 500);
 }
 
 static void ui_nodeexplorer_discard(void) {
@@ -2091,7 +2088,7 @@ static void ui_nodeexplorer(void) {
 
         // editor
         ImGui::SameLine();
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(ui.explorer.editor->GetPalette()[(int)TextEditor::PaletteIndex::Background]));
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(ui.explorer.editor->GetPalette().get(TextEditor::Color::background)));
         ImGui::BeginChild("##editor", {0,0}, ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
         ui.explorer.editor->Render("Editor");
         ImGui::EndChild();
@@ -2104,9 +2101,6 @@ static void ui_nodeexplorer(void) {
         }
     }
     ImGui::End();
-    if (ui.explorer.editor->IsTextChanged()) {
-        ui_nodeexplorer_update_selected_nodes_from_editor();
-    }
 }
 
 bool ui_is_nodeexplorer_active(void) {
