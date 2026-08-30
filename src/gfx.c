@@ -113,7 +113,7 @@ void gfx_init(const gfx_desc_t* desc) {
         .width = 256,
         .height = MAX_NODES / 256,
         .pixel_format = SG_PIXELFORMAT_R8,
-        .usage.stream_update = true,
+        .usage.write_transient = true,
         .label = "node-texture",
     });
     gfx.tex_view = sg_make_view(&(sg_view_desc){
@@ -185,8 +185,9 @@ void gfx_draw(void) {
         .offset = gfx.offset,
         .scale = (float2_t) { sx, sy },
     };
-    sg_update_image(gfx.img, &(sg_image_data){
-        .mip_levels[0] = SG_RANGE(gfx.node_state)
+    sg_write_image_transient(&(sg_write_image_desc){
+        .dst.image = gfx.img,
+        .src.data = SG_RANGE(gfx.node_state),
     });
     if (gfx.use_additive_blend) {
         sg_apply_pipeline(gfx.pip_add);
