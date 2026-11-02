@@ -1324,6 +1324,7 @@ static void ui_cassette_deck_controls(void) {
         sim_shutdown();
         sim_init();
         sim_start();
+        trace_store();
     }
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Reset");

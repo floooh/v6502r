@@ -119,6 +119,7 @@ static void app_init(void) {
     ui_asm_put_source("start", (range_t){ .ptr = (void*)init_src, strlen(init_src) });
     ui_asm_assemble();
     sim_start();
+    trace_store();
 }
 
 static void app_frame(void) {

@@ -705,7 +705,7 @@ static void load_item(uint32_t idx) {
 // load the previous trace item into the simulator and pop it from the trace log
 bool trace_revert_to_previous(void) {
     assert(trace.valid);
-    if (trace_num_items() < 1) {
+    if (trace_num_items() < 2) {
         return false;
     }
     load_item(trace_to_ring_index(1));
