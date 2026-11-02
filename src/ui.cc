@@ -1575,7 +1575,7 @@ static void ui_tracelog(void) {
     ImGui::SetNextWindowPos({ disp_w / 2, disp_h - 150 }, ImGuiCond_FirstUseEver, { 0.5f, 0.0f });
     ImGui::SetNextWindowSize({ 600, 128 }, ImGuiCond_FirstUseEver);
     bool any_hovered = false;
-    if (ImGui::Begin(ui_window_id(UI_WINDOW_TRACELOG), ui_window_open_ptr(UI_WINDOW_TRACELOG))) {
+    if (ImGui::Begin(ui_window_id(UI_WINDOW_TRACELOG), ui_window_open_ptr(UI_WINDOW_TRACELOG), ImGuiWindowFlags_NoScrollbar)) {
         const ImGuiTableFlags table_flags =
             ImGuiTableFlags_ScrollY |
             ImGuiTableFlags_ScrollX |
