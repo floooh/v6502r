@@ -14,6 +14,7 @@
 #include "sokol_gfx.h"
 #include "sokol_imgui.h"
 #include "sokol_gfx_imgui.h"
+#include "sokol_app_imgui.h"
 
 #define CHIPS_IMPL
 #define CHIPS_UI_IMPL
@@ -374,6 +375,7 @@ void ui_init() {
     // setup sokol-gfx debugging UI
     const sgimgui_desc_t sgimgui_desc = {};
     sgimgui_setup(&sgimgui_desc);
+    sappimgui_setup();
 
     // default window open state
     ui_init_window_open(UI_WINDOW_FLOATING_CONTROLS, true);
@@ -480,6 +482,7 @@ void ui_init() {
 
 void ui_shutdown() {
     assert(ui.valid);
+    sappimgui_shutdown();
     sgimgui_shutdown();
     ui_nodeexplorer_discard();
     ui_asm_discard();
@@ -584,6 +587,7 @@ static void ui_paste(void) {
 
 bool ui_handle_input(const sapp_event* ev) {
     assert(ui.valid);
+    sappimgui_track_event(ev);
     int l = -1;
     if (test_click(ev, ui.link_hovered)) {
         ui.link_hovered = false;
@@ -696,6 +700,7 @@ bool ui_handle_input(const sapp_event* ev) {
 void ui_frame() {
     assert(ui.valid);
     ui.link_hovered = false;
+    sappimgui_track_frame();
     simgui_new_frame({ sapp_width(), sapp_height(), sapp_frame_duration(), sapp_dpi_scale() });
     ui_handle_docking();
     ui_menu();
@@ -725,6 +730,7 @@ void ui_frame() {
     }
     ui_handle_save_settings();
     sgimgui_draw();
+    sappimgui_draw();
     simgui_flush();
 }
 
@@ -890,7 +896,11 @@ static void ui_menu(void) {
             }
             ImGui::EndMenu();
         }
-        sgimgui_draw_menu("Sokol");
+        if (ImGui::BeginMenu("Sokol")) {
+            sgimgui_draw_menu("Gfx");
+            sappimgui_draw_menu("App");
+            ImGui::EndMenu();
+        }
         if (ImGui::BeginMenu("Help")) {
             ImGui::MenuItem(ui_window_name(UI_WINDOW_HELP_ASM), 0, ui_window_open_ptr(UI_WINDOW_HELP_ASM));
             ImGui::MenuItem(ui_window_name(UI_WINDOW_HELP_OPCODES), 0, ui_window_open_ptr(UI_WINDOW_HELP_OPCODES));
