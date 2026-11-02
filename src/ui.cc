@@ -724,12 +724,12 @@ void ui_frame() {
         sapp_set_mouse_cursor(SAPP_MOUSECURSOR_POINTING_HAND);
     }
     ui_handle_save_settings();
+    sgimgui_draw();
     simgui_flush();
 }
 
 void ui_draw() {
     assert(ui.valid);
-    sgimgui_draw();
     simgui_draw();
 }
 
