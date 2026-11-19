@@ -7,6 +7,34 @@ import {
     TargetBuilder,
 } from "jsr:@floooh/fibs@^1";
 import { copy, ensureDirSync, existsSync } from "jsr:@std/fs@^1";
+import { buildSourceDistroCommand } from "./fibs-scripts/build-source-distro.ts";
+
+const commonSources = [
+    "main.c",
+    "input.c",
+    "input.h",
+    "util.c",
+    "util.h",
+    "gfx.c",
+    "gfx.h",
+    "pick.c",
+    "pick.h",
+    "sim.c",
+    "sim.h",
+    "trace.c",
+    "trace.h",
+    "asm.c",
+    "asm.h",
+    "ui.cc",
+    "ui.h",
+    "ui_asm.cc",
+    "ui_asm.h",
+    "ui_util.cc",
+    "ui_util.h",
+    "imgui_util.cc",
+    "imgui_util.h",
+    "common.h",
+];
 
 export function configure(c: Configurer) {
     c.addImportOptions({
@@ -44,6 +72,7 @@ export function configure(c: Configurer) {
         help: webpageCmdHelp,
         run: webpageCmdRun,
     });
+    c.addCommand(buildSourceDistroCommand(commonSources));
 }
 
 export function build(b: Builder) {
@@ -52,32 +81,6 @@ export function build(b: Builder) {
     if (b.isMsvc()) {
         b.addCompileOptions(["/wd4244"]); // conversion from X to Y, possible loss of data
     }
-    const commonSources = [
-        "main.c",
-        "input.c",
-        "input.h",
-        "util.c",
-        "util.h",
-        "gfx.c",
-        "gfx.h",
-        "pick.c",
-        "pick.h",
-        "sim.c",
-        "sim.h",
-        "trace.c",
-        "trace.h",
-        "asm.c",
-        "asm.h",
-        "ui.cc",
-        "ui.h",
-        "ui_asm.cc",
-        "ui_asm.h",
-        "ui_util.cc",
-        "ui_util.h",
-        "imgui_util.cc",
-        "imgui_util.h",
-        "common.h",
-    ];
     b.addTarget("v6502r", "windowed-exe", (t) => {
         t.setDir("src");
         t.addSources(commonSources);
